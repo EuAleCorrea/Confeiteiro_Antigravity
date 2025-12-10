@@ -1,0 +1,185 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Plus, Search, Filter, MoreHorizontal, FileText, Download, Send, Trash2, Copy } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
+import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
+import { storage, Orcamento } from "@/lib/storage";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+export default function OrcamentosPage() {
+    const router = useRouter();
+    const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("Todos");
+
+    useEffect(() => {
+        loadOrcamentos();
+    }, []);
+
+    function loadOrcamentos() {
+        setOrcamentos(storage.getOrcamentos());
+    }
+
+    function handleDelete(id: string) {
+        if (confirm("Excluir este orçamento?")) {
+            storage.deleteOrcamento(id);
+            loadOrcamentos();
+        }
+    }
+
+    const filtered = orcamentos.filter(o => {
+        const matchesSearch =
+            o.cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            o.numero.toString().includes(searchTerm);
+        const matchesStatus = statusFilter === "Todos" || o.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
+    // Calculate Stats
+    const totalMes = filtered.length; // Mock: using total instead of month for simplicity
+    const pendentes = filtered.filter(o => o.status === 'Pendente').length;
+    const aprovados = filtered.filter(o => o.status === 'Aprovado' || o.status === 'Convertido').length;
+    const taxaConversao = totalMes > 0 ? Math.round((aprovados / totalMes) * 100) : 0;
+
+    function getStatusVariant(status: string) {
+        switch (status) {
+            case 'Aprovado': case 'Convertido': return 'success';
+            case 'Pendente': return 'warning';
+            case 'Recusado': case 'Expirado': return 'error';
+            case 'Enviado': return 'info';
+            default: return 'neutral';
+        }
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-text-primary">Orçamentos</h1>
+                    <p className="text-text-secondary">Gerencie suas propostas comerciais</p>
+                </div>
+                <Link href="/orcamentos/novo">
+                    <Button>
+                        <Plus size={20} className="mr-2" />
+                        Novo Orçamento
+                    </Button>
+                </Link>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-sm text-text-secondary">Total (Geral)</p>
+                        <p className="text-2xl font-bold">{totalMes}</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-sm text-text-secondary">Pendentes</p>
+                        <p className="text-2xl font-bold text-warning-darker">{pendentes}</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-sm text-text-secondary">Aprovados</p>
+                        <p className="text-2xl font-bold text-success-darker">{aprovados}</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-sm text-text-secondary">Conversão</p>
+                        <p className="text-2xl font-bold text-primary">{taxaConversao}%</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center bg-surface p-2 rounded-xl border border-border">
+                <div className="flex items-center gap-2 flex-1 w-full">
+                    <Search size={20} className="text-text-secondary ml-2" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por número ou cliente..."
+                        className="flex-1 bg-transparent border-none focus:outline-none text-sm"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto overflow-x-auto">
+                    {['Todos', 'Pendente', 'Enviado', 'Aprovado'].map(status => (
+                        <Button
+                            key={status}
+                            variant={statusFilter === status ? 'primary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setStatusFilter(status)}
+                            className="rounded-full px-4"
+                        >
+                            {status}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead># Proposta</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Valor Total</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filtered.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={6} className="text-center py-12 text-text-secondary">
+                                Nenhum orçamento encontrado.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        filtered.map((orcamento) => (
+                            <TableRow key={orcamento.id}>
+                                <TableCell className="font-medium">#{orcamento.numero}</TableCell>
+                                <TableCell>{new Date(orcamento.dataCriacao).toLocaleDateString()}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{orcamento.cliente.nome}</span>
+                                        <span className="text-xs text-text-secondary">{orcamento.cliente.telefone}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="font-bold">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(orcamento.valorTotal)}
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={getStatusVariant(orcamento.status) as any}>
+                                        {orcamento.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Link href={`/orcamentos/${orcamento.id}`}>
+                                            <Button variant="ghost" size="icon" title="Ver Detalhes">
+                                                <FileText size={16} />
+                                            </Button>
+                                        </Link>
+                                        <Button variant="ghost" size="icon" className="text-error" onClick={() => handleDelete(orcamento.id)}>
+                                            <Trash2 size={16} />
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                </TableBody>
+            </Table>
+        </div>
+    );
+}

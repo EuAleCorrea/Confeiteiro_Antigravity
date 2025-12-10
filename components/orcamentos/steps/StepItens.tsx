@@ -1,0 +1,208 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { storage, Produto, Sabor, ItemOrcamento, Orcamento } from "@/lib/storage";
+import { Badge } from "@/components/ui/Badge";
+
+interface StepProps {
+    data: Partial<Orcamento>;
+    onUpdate: (data: Partial<Orcamento>) => void;
+    next?: () => void;
+    back?: () => void;
+}
+
+export default function StepItens({ data, onUpdate, next, back }: StepProps) {
+    const [availableProducts, setAvailableProducts] = useState<Produto[]>([]);
+    const [availableSabores, setAvailableSabores] = useState<Sabor[]>([]);
+    const [selectedProduct, setSelectedProduct] = useState<string>("");
+
+    // Item Details State
+    const [quantity, setQuantity] = useState(1);
+    const [selectedSize, setSelectedSize] = useState("");
+    const [selectedMassa, setSelectedMassa] = useState("");
+    const [selectedRecheio, setSelectedRecheio] = useState("");
+    const [items, setItems] = useState<ItemOrcamento[]>(data.itens || []);
+
+    const cartTotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+
+    useEffect(() => {
+        setAvailableProducts(storage.getProdutos().filter(p => p.ativo));
+        setAvailableSabores(storage.getSabores());
+    }, []);
+
+    const currentProduct = availableProducts.find(p => p.id === selectedProduct);
+    const massas = availableSabores.filter(s => s.tipo === 'Massa');
+    const recheios = availableSabores.filter(s => s.tipo === 'Recheio');
+
+    function addItem() {
+        if (!currentProduct) return;
+
+        const subtotal = currentProduct.preco * quantity; // Simplified pricing logic
+
+        const newItem: ItemOrcamento = {
+            id: crypto.randomUUID(),
+            tipo: currentProduct.categoria === 'Bolo' ? 'Produto' :
+                currentProduct.categoria === 'Adicional' ? 'Adicional' : 'Servico',
+            produtoId: currentProduct.id,
+            nome: currentProduct.nome,
+            tamanho: selectedSize,
+            saborMassa: selectedMassa ? massas.find(m => m.id === selectedMassa)?.nome : undefined,
+            saborRecheio: selectedRecheio ? recheios.find(r => r.id === selectedRecheio)?.nome : undefined,
+            quantidade: quantity,
+            precoUnitario: currentProduct.preco,
+            subtotal: subtotal
+        };
+
+        const newItems = [...items, newItem];
+        setItems(newItems);
+        onUpdate({ itens: newItems });
+
+        // Reset form
+        setSelectedProduct("");
+        setSelectedSize("");
+        setSelectedMassa("");
+        setSelectedRecheio("");
+        setQuantity(1);
+    }
+
+    function removeItem(id: string) {
+        const newItems = items.filter(i => i.id !== id);
+        setItems(newItems);
+        onUpdate({ itens: newItems });
+    }
+
+    return (
+        <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex-1 space-y-6">
+                <div>
+                    <h2 className="text-xl font-semibold mb-1">O que será encomendado?</h2>
+                    <p className="text-text-secondary">Escolha os produtos e configure os sabores.</p>
+                </div>
+
+                <div className="bg-surface p-4 rounded-xl border border-border space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Produto</label>
+                        <select
+                            className="w-full h-10 rounded-lg border border-border px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                            value={selectedProduct}
+                            onChange={(e) => setSelectedProduct(e.target.value)}
+                        >
+                            <option value="">Selecione um produto...</option>
+                            {availableProducts.map(p => (
+                                <option key={p.id} value={p.id}>
+                                    {p.nome} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.preco)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {currentProduct && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                            {currentProduct.categoria === 'Bolo' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    {currentProduct.tamanhos && currentProduct.tamanhos.length > 0 && (
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Tamanho</label>
+                                            <select
+                                                className="w-full h-10 rounded-lg border border-border px-3"
+                                                value={selectedSize}
+                                                onChange={(e) => setSelectedSize(e.target.value)}
+                                            >
+                                                <option value="">Selecione...</option>
+                                                {currentProduct.tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Massa</label>
+                                        <select
+                                            className="w-full h-10 rounded-lg border border-border px-3"
+                                            value={selectedMassa}
+                                            onChange={(e) => setSelectedMassa(e.target.value)}
+                                        >
+                                            <option value="">Padrão</option>
+                                            {massas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Recheio</label>
+                                        <select
+                                            className="w-full h-10 rounded-lg border border-border px-3"
+                                            value={selectedRecheio}
+                                            onChange={(e) => setSelectedRecheio(e.target.value)}
+                                        >
+                                            <option value="">Padrão</option>
+                                            {recheios.map(r => <option key={r.id} value={r.id}>{r.nome}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-end gap-4">
+                                <div className="w-24">
+                                    <Input
+                                        label="Qtd."
+                                        type="number"
+                                        min={1}
+                                        value={quantity}
+                                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                                    />
+                                </div>
+                                <Button className="flex-1" onClick={addItem}>
+                                    <Plus size={18} className="mr-2" />
+                                    Adicionar ao Pedido
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Sidebar Summary */}
+            <div className="w-full md:w-80 space-y-4">
+                <div className="bg-neutral-50 p-4 rounded-xl border border-border">
+                    <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide text-text-secondary">Resumo do Pedido</h3>
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                        {items.length === 0 && <p className="text-sm text-text-secondary italic">Nenhum item adicionado.</p>}
+                        {items.map(item => (
+                            <div key={item.id} className="bg-white p-3 rounded-lg border border-border shadow-sm text-sm relative group">
+                                <button
+                                    onClick={() => removeItem(item.id)}
+                                    className="absolute top-2 right-2 text-text-secondary hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                                <p className="font-medium">{item.quantidade}x {item.nome}</p>
+                                {(item.saborMassa || item.saborRecheio) && (
+                                    <p className="text-xs text-text-secondary mt-1">
+                                        {item.saborMassa && `Massa: ${item.saborMassa} `}
+                                        {item.saborRecheio && `• Rech: ${item.saborRecheio}`}
+                                    </p>
+                                )}
+                                <p className="text-right font-semibold mt-1">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.subtotal)}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="border-t border-border mt-4 pt-4 flex justify-between items-center">
+                        <span className="font-medium">Total Estimado</span>
+                        <span className="text-xl font-bold text-primary">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cartTotal)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="flex justify-between gap-2">
+                    <Button variant="ghost" onClick={back} className="w-full">Voltar</Button>
+                    <Button onClick={next} disabled={items.length === 0} className="w-full">Próximo: Entrega</Button>
+                </div>
+            </div>
+        </div>
+    );
+}
