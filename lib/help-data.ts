@@ -24,6 +24,8 @@ export interface FAQQuestion {
     atualizadoEm: string;
 }
 
+export type FAQItem = FAQQuestion;
+
 export interface Feedback {
     id: string;
     perguntaId: string;
