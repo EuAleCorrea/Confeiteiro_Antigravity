@@ -390,6 +390,92 @@ export interface ConfigProducao {
     };
 }
 
+export interface CashFlowMonthData {
+    periodo: string; // "YYYY-MM"
+    valores: Record<string, number>; // "categoryId": value
+}
+
+// --- Módulo 7: Financeiro ---
+
+export interface CashFlowCategory {
+    id: string;
+    nome: string;
+    tipo: 'Receita' | 'DespesaFixa' | 'DespesaVariavel';
+    customizada: boolean;
+}
+
+export interface Transaction {
+    id: string;
+    tipo: 'Receita' | 'Despesa';
+    data: string; // YYYY-MM-DD
+    descricao: string;
+    valor: number;
+    categoriaId: string;
+    categoriaNome: string; // Cache
+    formaPagamento?: string;
+    status: 'Pago' | 'Pendente';
+    observacoes?: string;
+
+    // Vinculos
+    pedidoId?: string;
+    movimentacaoEstoqueId?: string;
+
+    criadoEm: string;
+}
+
+// --- Módulo 7.2: Contas a Receber/Pagar ---
+
+export interface Pagamento {
+    id: string;
+    data: string;
+    valor: number;
+    formaPagamento: 'PIX' | 'Dinheiro' | 'Cartão Débito' | 'Cartão Crédito' | 'Transferência' | 'Boleto';
+    comprovante?: string;
+    observacoes?: string;
+}
+
+export interface ContaReceber {
+    id: string;
+    numeroOrcamento?: string;
+    clienteId?: string;
+    cliente: { nome: string; telefone?: string; email?: string };
+    descricao: string;
+    categoria: string;
+    valorTotal: number;
+    valorPago: number;
+    saldoRestante: number;
+    dataCadastro: string;
+    dataVencimento: string;
+    status: 'pendente' | 'pago' | 'atrasado' | 'parcial';
+    pagamentos: Pagamento[];
+    vinculoPedidoId?: string;
+    lancadoFluxoCaixa: boolean;
+    observacoes?: string;
+    criadoEm: string;
+    atualizadoEm: string;
+}
+
+export interface ContaPagar {
+    id: string;
+    numeroNF?: string;
+    fornecedorId?: string;
+    fornecedor: { nome: string; cnpj?: string; telefone?: string };
+    categoria: string;
+    descricao: string;
+    valorTotal: number;
+    valorPago: number;
+    saldoRestante: number;
+    dataEmissao: string;
+    dataVencimento: string;
+    status: 'pendente' | 'pago' | 'vencido' | 'parcial';
+    pagamentos: Pagamento[];
+    vinculoCompraId?: string;
+    lancadoFluxoCaixa: boolean;
+    observacoes?: string;
+    criadoEm: string;
+    atualizadoEm: string;
+}
+
 const STORAGE_KEYS = {
     CLIENTES: 'confeiteiro_clientes',
     PRODUTOS: 'confeiteiro_produtos',
@@ -407,6 +493,13 @@ const STORAGE_KEYS = {
     // Stage 6
     MOVIMENTACOES: 'confeiteiro_movimentacoes',
     CATEGORIAS: 'confeiteiro_categorias_insumos',
+    // Stage 7: Financeiro
+    FIN_CATEGORIAS: 'confeiteiro_fin_categorias',
+    FIN_TRANSACOES: 'confeiteiro_fin_transacoes',
+    FIN_FLUXO_CAIXA: 'confeiteiro_fin_fluxo_caixa',
+    // Stage 7.2: Contas
+    CONTAS_RECEBER: 'confeiteiro_contas_receber',
+    CONTAS_PAGAR: 'confeiteiro_contas_pagar',
 };
 
 // Seed data
@@ -436,7 +529,34 @@ const initialData = {
     categoriasPadrao: [
         'Laticínios', 'Secos', 'Hortifruti', 'Líquidos', 'Embalagens',
         'Decoração', 'Descartáveis', 'Equipamentos', 'Outros'
-    ]
+    ],
+    // Stage 7 Defaults
+    financeiro: {
+        categorias: [
+            // Receitas
+            { id: '1', nome: 'Vendas Bolos', tipo: 'Receita', customizada: false },
+            { id: '2', nome: 'Eventos', tipo: 'Receita', customizada: false },
+            { id: '3', nome: 'Outros', tipo: 'Receita', customizada: false },
+            // Despesas Variáveis
+            { id: '4', nome: 'Chocolate', tipo: 'DespesaVariavel', customizada: false },
+            { id: '5', nome: 'Manteiga', tipo: 'DespesaVariavel', customizada: false },
+            { id: '6', nome: 'Leite Cond/Creme', tipo: 'DespesaVariavel', customizada: false },
+            { id: '7', nome: 'Embalagens', tipo: 'DespesaVariavel', customizada: false },
+            { id: '8', nome: 'Insumos Gerais', tipo: 'DespesaVariavel', customizada: false },
+            { id: '9', nome: 'Motorista', tipo: 'DespesaVariavel', customizada: false },
+            // Despesas Fixas
+            { id: '10', nome: 'Aluguel', tipo: 'DespesaFixa', customizada: false },
+            { id: '11', nome: 'Telefone/Internet', tipo: 'DespesaFixa', customizada: false },
+            { id: '12', nome: 'Faxina', tipo: 'DespesaFixa', customizada: false },
+            { id: '13', nome: 'Imposto', tipo: 'DespesaFixa', customizada: false },
+            { id: '14', nome: 'Energia', tipo: 'DespesaFixa', customizada: false },
+        ] as CashFlowCategory[],
+        transacoes: [
+            { id: 't1', tipo: 'Receita', data: '2024-10-15', descricao: 'Venda: Bolo de Chocolate', valor: 85.00, categoriaId: '1', categoriaNome: 'Vendas Bolos', status: 'Pago', criadoEm: new Date().toISOString() },
+            { id: 't2', tipo: 'Despesa', data: '2024-10-14', descricao: 'Compra: Farinha de Trigo', valor: 32.50, categoriaId: '8', categoriaNome: 'Insumos Gerais', status: 'Pago', criadoEm: new Date().toISOString() },
+            { id: 't3', tipo: 'Receita', data: '2024-10-14', descricao: 'Venda: Dúzia de Brigadeiros', valor: 48.00, categoriaId: '1', categoriaNome: 'Vendas Bolos', status: 'Pago', criadoEm: new Date().toISOString() },
+        ] as Transaction[]
+    }
 };
 
 // ... StorageService class start ...
@@ -585,6 +705,56 @@ class StorageService {
         list.push(mov);
         this.setItem(STORAGE_KEYS.MOVIMENTACOES, list);
     }
+
+    // --- Módulo 7: Financeiro ---
+
+    getFinCategorias() {
+        const list = this.getList<CashFlowCategory>(STORAGE_KEYS.FIN_CATEGORIAS);
+        return list.length ? list : initialData.financeiro.categorias;
+    }
+    saveFinCategoria(cat: CashFlowCategory) { this.saveItem(STORAGE_KEYS.FIN_CATEGORIAS, cat); }
+    deleteFinCategoria(id: string) { this.deleteItem<CashFlowCategory>(STORAGE_KEYS.FIN_CATEGORIAS, id); }
+
+    getTransacoes() {
+        const list = this.getList<Transaction>(STORAGE_KEYS.FIN_TRANSACOES);
+        // If empty, seed? Maybe not forcing seeds for everything, but helpful for demo
+        if (list.length === 0 && !localStorage.getItem(STORAGE_KEYS.FIN_TRANSACOES)) {
+            return initialData.financeiro.transacoes;
+        }
+        return list.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+    }
+    saveTransacao(transacao: Transaction) { this.saveItem(STORAGE_KEYS.FIN_TRANSACOES, transacao); }
+    deleteTransacao(id: string) { this.deleteItem<Transaction>(STORAGE_KEYS.FIN_TRANSACOES, id); }
+
+    getFluxoCaixa() {
+        return this.getList<CashFlowMonthData>(STORAGE_KEYS.FIN_FLUXO_CAIXA);
+    }
+    saveFluxoCaixa(data: CashFlowMonthData) {
+        const list = this.getFluxoCaixa();
+        const index = list.findIndex(d => d.periodo === data.periodo);
+        if (index >= 0) {
+            list[index] = data;
+        } else {
+            list.push(data);
+        }
+        this.setItem(STORAGE_KEYS.FIN_FLUXO_CAIXA, list);
+    }
+
+    // --- Módulo 7.2: Contas a Receber/Pagar ---
+
+    getContasReceber() {
+        return this.getList<ContaReceber>(STORAGE_KEYS.CONTAS_RECEBER)
+            .sort((a, b) => new Date(b.dataVencimento).getTime() - new Date(a.dataVencimento).getTime());
+    }
+    saveContaReceber(conta: ContaReceber) { this.saveItem(STORAGE_KEYS.CONTAS_RECEBER, conta); }
+    deleteContaReceber(id: string) { this.deleteItem<ContaReceber>(STORAGE_KEYS.CONTAS_RECEBER, id); }
+
+    getContasPagar() {
+        return this.getList<ContaPagar>(STORAGE_KEYS.CONTAS_PAGAR)
+            .sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime());
+    }
+    saveContaPagar(conta: ContaPagar) { this.saveItem(STORAGE_KEYS.CONTAS_PAGAR, conta); }
+    deleteContaPagar(id: string) { this.deleteItem<ContaPagar>(STORAGE_KEYS.CONTAS_PAGAR, id); }
 }
 
 export const storage = new StorageService();

@@ -88,7 +88,8 @@ function TabIngredientes() {
             unidade: currentIng.unidade as any || 'g',
             categoria: currentIng.categoria as any || 'Outros',
             custoUnitario: currentIng.custoUnitario || 0,
-            estoqueAtual: currentIng.estoqueAtual || 0
+            estoqueAtual: currentIng.estoqueAtual || 0,
+            estoqueMinimo: currentIng.estoqueMinimo || 0
         };
 
         storage.saveIngrediente(toSave);

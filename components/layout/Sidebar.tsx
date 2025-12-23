@@ -16,7 +16,8 @@ import {
     X,
     UserCircle,
     Utensils,
-    Truck
+    Truck,
+    Sliders
 } from "lucide-react";
 
 interface SidebarProps {
@@ -37,6 +38,7 @@ const menuItems = [
     { icon: Calendar, label: "Agenda", href: "/agenda" },
     { icon: Users, label: "Equipe", href: "/equipe" },
     { icon: Settings, label: "Configurações", href: "/configuracoes" },
+    { icon: Sliders, label: "Config. Avançadas", href: "/configuracoes-avancadas" },
 ];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -56,7 +58,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             {/* Sidebar */}
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 w-64 transform bg-surface border-r border-border transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static",
+                    "fixed inset-y-0 left-0 z-50 w-64 transform bg-surface border-r border-border transition-transform duration-300 ease-in-out lg:translate-x-0",
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 )}
             >

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { storage, ProductionPlan } from "@/lib/storage";
+import { storage } from "@/lib/storage";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
-import { calculateProduction } from "@/components/producao/calculations";
+import { calculateProduction, ProductionPlan } from "@/components/producao/calculations";
 import { TechnicalTable } from "@/components/producao/TechnicalTable";
 
 export default function ProductionPrintPage() {

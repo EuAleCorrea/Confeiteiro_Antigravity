@@ -123,11 +123,10 @@ export function TabEntrega({ pedido }: TabEntregaProps) {
                             <button className="text-xs font-bold uppercase tracking-wide bg-white text-primary px-3 py-1.5 rounded-full shadow-sm hover:shadow">
                                 WhatsApp
                             </button>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
                 )}
+            </div>
         </div>
-        </div >
     );
 }

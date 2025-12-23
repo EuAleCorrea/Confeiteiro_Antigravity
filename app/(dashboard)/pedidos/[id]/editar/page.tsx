@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ArrowLeft, Save, Trash2, Plus } from "lucide-react";
 import Link from "next/link";
-import { v4 as uuidv4 } from 'uuid';
 
 export default function OrderFormPage() {
     const params = useParams();
@@ -21,7 +20,7 @@ export default function OrderFormPage() {
 
     // Form State
     const [pedido, setPedido] = useState<Partial<Pedido>>({
-        status: 'Pendente',
+        status: 'Pagamento Pendente',
         dataCriacao: new Date().toISOString(),
         itens: [],
         financeiro: { valorTotal: 0, statusPagamento: 'Pendente', formaPagamento: 'PIX', valorPago: 0, saldoPendente: 0 },
@@ -64,7 +63,7 @@ export default function OrderFormPage() {
 
         const orderToSave: Pedido = {
             ...pedido as Pedido,
-            id: isEditing ? pedido.id! : uuidv4(),
+            id: isEditing ? pedido.id! : crypto.randomUUID(),
             cliente: {
                 id: client.id,
                 nome: client.nome,
@@ -104,7 +103,8 @@ export default function OrderFormPage() {
         const price = parseFloat(priceStr?.replace(',', '.') || "0");
 
         const newItem = {
-            id: uuidv4(),
+            id: crypto.randomUUID(),
+            tipo: 'Produto' as const,
             produtoId: 'manual',
             nome,
             quantidade: qtd,

@@ -1,152 +1,133 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { storage, Pedido, Receita, Ingrediente, ConfigProducao } from "@/lib/storage";
+import { storage, Pedido } from "@/lib/storage";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { ChevronLeft, ChevronRight, Settings, Printer, Download, ShoppingCart } from "lucide-react";
-import Link from "next/link";
 import { WeekGrid } from "@/components/producao/WeekGrid";
-import { DoughCalculator } from "@/components/producao/DoughCalculator";
-import { FillingCalculator } from "@/components/producao/FillingCalculator";
-import { calculateProduction, ProductionPlan } from "@/components/producao/calculations";
+import { MonthCalendar } from "@/components/producao/MonthCalendar";
+import { DayProductionList } from "@/components/producao/DayProductionList";
+import { LayoutGrid, Calendar as CalendarIcon, Search, ShoppingCart, Printer, Settings } from "lucide-react";
+import Link from "next/link";
+import { startOfWeek } from "date-fns";
 
 export default function ProductionDashboardPage() {
-    // Stage 5 Implementation
-    // Default to current week start (Monday)
-    const [startDate, setStartDate] = useState<Date>(getMonday(new Date()));
+    // State
+    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [orders, setOrders] = useState<Pedido[]>([]);
-    const [plan, setPlan] = useState<ProductionPlan>({ massas: [], recheios: [], listaCompras: [] });
+    const [filteredOrders, setFilteredOrders] = useState<Pedido[]>([]);
 
-    // Stats
-    const [totalOrders, setTotalOrders] = useState(0);
-    const [totalDiscs, setTotalDiscs] = useState(0);
-    const [totalFillingKg, setTotalFillingKg] = useState(0);
+    // Derived state for WeekGrid (List View)
+    // When switching to list view, we might want to start the week view from the selected date's week
+    const weekStartDate = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday start
 
     useEffect(() => {
         loadData();
-    }, [startDate]);
+    }, []);
+
+    useEffect(() => {
+        // Filter orders based on selected date for the Day List
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        const dayOrders = orders.filter(o => o.dataEntrega === dateStr)
+            .sort((a, b) => a.horaEntrega.localeCompare(b.horaEntrega));
+        setFilteredOrders(dayOrders);
+    }, [selectedDate, orders]);
 
     const loadData = () => {
         const allOrders = storage.getPedidos();
-        const receitas = storage.getReceitas();
-        const ingredientes = storage.getIngredientes();
-        const config = storage.getConfigProducao();
-
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 7);
-
-        const weekOrders = allOrders.filter(o => {
-            const d = new Date(o.dataEntrega + 'T00:00:00');
-            return d >= startDate && d < endDate;
-        });
-
-        setOrders(weekOrders);
-        setTotalOrders(weekOrders.length);
-
-        const productionPlan = calculateProduction(weekOrders, receitas, ingredientes, config);
-        setPlan(productionPlan);
-
-        // Update stats
-        let totalDiscsCount = 0;
-        productionPlan.massas.forEach(m => {
-            m.detalhes.forEach(d => totalDiscsCount += d.qtdDiscos);
-        });
-        setTotalDiscs(totalDiscsCount);
-
-        let totalFilling = 0;
-        productionPlan.recheios.forEach(r => totalFilling += r.totalPesoGramas);
-        setTotalFillingKg(totalFilling / 1000);
+        setOrders(allOrders);
     };
-
-    const changeWeek = (offset: number) => {
-        const newDate = new Date(startDate);
-        newDate.setDate(newDate.getDate() + (offset * 7));
-        setStartDate(newDate);
-    };
-
-    // Date formatting
-    const formatDate = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-    const endOfWeek = new Date(startDate);
-    endOfWeek.setDate(startDate.getDate() + 6);
 
     return (
-        <div className="space-y-8 animate-in fade-in max-w-[1600px] mx-auto">
-            {/* Header and Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-neutral-800">Planejamento de Produção</h1>
-                    <p className="text-neutral-500">Gestão técnica de pedidos, massas e ingredientes</p>
+        <div className="h-[calc(100vh-theme(spacing.20))] flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    {/* Menu Button would go here if this was the full shell, but we are inside the page */}
+                    <h1 className="text-2xl font-bold text-neutral-800">Planejamento de Produção</h1>
+                    <div className="ml-auto md:hidden">
+                        <Search className="text-neutral-400" />
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <Link href="/producao/lista-compras">
-                        <Button variant="outline">
-                            <ShoppingCart size={18} className="mr-2" /> Lista de Compras
-                        </Button>
-                    </Link>
-                    <Link href="/producao/print">
-                        <Button variant="outline">
-                            <Printer size={18} className="mr-2" /> Fichas Técnicas
-                        </Button>
-                    </Link>
-                    <Link href="/producao/configuracoes">
-                        <Button variant="ghost" size="icon" title="Configurações">
-                            <Settings size={20} />
-                        </Button>
-                    </Link>
+
+                <div className="hidden md:flex items-center gap-2 bg-neutral-100 p-1 rounded-lg">
+                    <button
+                        onClick={() => setViewMode('calendar')}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'calendar'
+                            ? 'bg-white text-neutral-800 shadow-sm'
+                            : 'text-neutral-500 hover:text-neutral-700'
+                            }`}
+                    >
+                        <CalendarIcon size={16} />
+                        Calendário
+                    </button>
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'list'
+                            ? 'bg-white text-neutral-800 shadow-sm'
+                            : 'text-neutral-500 hover:text-neutral-700'
+                            }`}
+                    >
+                        <LayoutGrid size={16} />
+                        Lista de Pedidos
+                    </button>
+                </div>
+
+                <div className="hidden md:block">
+                    <Search className="text-neutral-400 cursor-pointer hover:text-neutral-600 transition-colors" />
                 </div>
             </div>
 
-            {/* Week Selector */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-neutral-200">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => changeWeek(-1)}>
-                        <ChevronLeft size={20} />
-                    </Button>
-                    <div className="text-center">
-                        <div className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Período</div>
-                        <div className="text-lg font-bold text-neutral-800">
-                            {formatDate(startDate)} a {formatDate(endOfWeek)}
+            {/* Content Area */}
+            {viewMode === 'calendar' ? (
+                <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-6 pb-6">
+                    {/* Calendar Panel */}
+                    <div className="md:col-span-5 lg:col-span-4 bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden flex flex-col">
+                        <MonthCalendar
+                            currentDate={selectedDate}
+                            onDateSelect={setSelectedDate}
+                            orders={orders}
+                        />
+
+                        {/* Quick Stats or Legend could go here in empty space */}
+                        <div className="mt-auto p-6 border-t border-neutral-50 bg-neutral-50/50">
+                            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">Legenda</h4>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                                    <span>Concluídos</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                                    <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                                    <span>Pendentes</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                    <span>Em Andamento</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => changeWeek(1)}>
-                        <ChevronRight size={20} />
-                    </Button>
-                </div>
 
-                <div className="flex gap-8 text-center text-sm">
-                    <div>
-                        <div className="text-neutral-500">Pedidos Confirmados</div>
-                        <div className="font-bold text-xl">{totalOrders}</div>
-                    </div>
-                    <div className="w-px bg-neutral-200 h-10"></div>
-                    <div>
-                        <div className="text-neutral-500">Total Discos</div>
-                        <div className="font-bold text-xl">{totalDiscs}</div>
-                    </div>
-                    <div className="w-px bg-neutral-200 h-10"></div>
-                    <div>
-                        <div className="text-neutral-500">Total Recheio</div>
-                        <div className="font-bold text-xl">{totalFillingKg.toFixed(1)}kg</div>
+                    {/* Day Details Panel */}
+                    <div className="md:col-span-7 lg:col-span-8 h-full min-h-[500px]">
+                        <DayProductionList date={selectedDate} orders={filteredOrders} />
                     </div>
                 </div>
-            </div>
-
-            {/* Main Visual Grid */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Panorama Semanal</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <WeekGrid startDate={startDate} orders={orders} />
-                </CardContent>
-            </Card>
-
-            {/* Calculators */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <DoughCalculator plan={plan} />
-                <FillingCalculator plan={plan} />
-            </div>
+            ) : (
+                <div className="flex-1 overflow-auto bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
+                    <WeekGrid
+                        startDate={weekStartDate}
+                        orders={orders}
+                        selectedDate={selectedDate}
+                        onSelectDate={(date) => {
+                            setSelectedDate(date);
+                            // Optional: switch to calendar view if desired, but user just asked to select
+                            // setViewMode('calendar'); 
+                        }}
+                    />
+                </div>
+            )}
         </div>
     );
 }

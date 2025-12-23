@@ -15,6 +15,9 @@ import StepRevisao from "@/components/orcamentos/steps/StepRevisao";
 export default function NovoOrcamentoPage() {
     const router = useRouter();
 
+    const defaultTermos = { pagamento: '', cancelamento: '', transporte: '', cuidados: '', importante: '' };
+    const configTermos = storage.getConfiguracoes()?.termos;
+
     // Central State for the Wizard
     const [orcamento, setOrcamento] = useState<Partial<Orcamento>>({
         itens: [],
@@ -22,7 +25,7 @@ export default function NovoOrcamentoPage() {
         dataCriacao: new Date().toISOString(),
         dataValidade: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // +7 days
         decoracao: { descricao: '', imagens: [] },
-        termos: storage.getConfiguracoes().termos,
+        termos: configTermos ? { ...defaultTermos, ...configTermos } : defaultTermos,
         valorTotal: 0
     });
 
