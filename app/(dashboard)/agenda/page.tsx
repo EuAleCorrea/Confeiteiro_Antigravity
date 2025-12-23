@@ -175,23 +175,25 @@ export default function AgendaPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-neutral-800 text-white">
+                    <Card className="bg-white">
+                        <CardHeader className="border-b border-border pb-4">
+                            <CardTitle className="text-lg font-bold text-text-primary">Resumo do Dia</CardTitle>
+                        </CardHeader>
                         <CardContent className="p-6 space-y-4">
-                            <h3 className="font-bold text-lg mb-2">Resumo do Dia</h3>
-                            <div className="flex justify-between items-center border-b border-neutral-700 pb-2">
-                                <span className="text-neutral-400">Total de Pedidos</span>
-                                <span className="text-2xl font-bold">{pedidos.length}</span>
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                                <span className="text-text-secondary">Total de Pedidos</span>
+                                <span className="text-2xl font-bold text-text-primary">{pedidos.length}</span>
                             </div>
-                            <div className="flex justify-between items-center border-b border-neutral-700 pb-2">
-                                <span className="text-neutral-400">A Entregar</span>
-                                <span className="text-xl font-bold">{entregas.length}</span>
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                                <span className="text-text-secondary">A Entregar</span>
+                                <span className="text-xl font-bold text-text-primary">{entregas.length}</span>
                             </div>
-                            <div className="flex justify-between items-center border-b border-neutral-700 pb-2">
-                                <span className="text-neutral-400">A Retirar</span>
-                                <span className="text-xl font-bold">{retiradas.length}</span>
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                                <span className="text-text-secondary">A Retirar</span>
+                                <span className="text-xl font-bold text-text-primary">{retiradas.length}</span>
                             </div>
                             <div className="pt-2">
-                                <Button className="w-full bg-white text-neutral-900 hover:bg-neutral-100 font-bold">
+                                <Button variant="primary" className="w-full font-bold">
                                     <CheckCircle size={18} className="mr-2" /> Fechar Dia
                                 </Button>
                             </div>

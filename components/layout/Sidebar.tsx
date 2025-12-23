@@ -17,12 +17,17 @@ import {
     UserCircle,
     Utensils,
     Truck,
-    Sliders
+    Sliders,
+    PanelLeftClose,
+    PanelLeft,
+    HelpCircle
 } from "lucide-react";
 
 interface SidebarProps {
     isOpen: boolean;
     onClose: () => void;
+    isCollapsed: boolean;
+    onToggleCollapse: () => void;
 }
 
 const menuItems = [
@@ -37,11 +42,9 @@ const menuItems = [
     { icon: DollarSign, label: "Financeiro", href: "/financeiro" },
     { icon: Calendar, label: "Agenda", href: "/agenda" },
     { icon: Users, label: "Equipe", href: "/equipe" },
-    { icon: Settings, label: "Configurações", href: "/configuracoes" },
-    { icon: Sliders, label: "Config. Avançadas", href: "/configuracoes-avancadas" },
 ];
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
     const pathname = usePathname();
 
     return (
@@ -58,12 +61,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             {/* Sidebar */}
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 w-64 transform bg-surface border-r border-border transition-transform duration-300 ease-in-out lg:translate-x-0",
-                    isOpen ? "translate-x-0" : "-translate-x-full"
+                    "fixed inset-y-0 left-0 z-50 transform bg-surface border-r border-border transition-all duration-300 ease-in-out lg:translate-x-0",
+                    isOpen ? "translate-x-0" : "-translate-x-full",
+                    isCollapsed ? "w-20" : "w-64"
                 )}
             >
-                <div className="flex h-16 items-center justify-between px-6 border-b border-border">
-                    <span className="text-xl font-bold text-primary">Confeiteiro</span>
+                {/* Header with Logo and Toggle */}
+                <div className={cn(
+                    "flex h-16 items-center border-b border-border",
+                    isCollapsed ? "justify-center px-2" : "justify-between px-4"
+                )}>
+                    {/* Logo / App Name */}
+                    {!isCollapsed ? (
+                        <span className="text-xl font-bold text-primary">Confeiteiro</span>
+                    ) : (
+                        <span className="text-xl">🧁</span>
+                    )}
+
+                    {/* Toggle Button (Desktop) */}
+                    <button
+                        onClick={onToggleCollapse}
+                        className={cn(
+                            "hidden lg:flex p-2 rounded-lg text-text-secondary hover:bg-neutral-100 hover:text-text-primary transition-colors",
+                            isCollapsed && "absolute right-2"
+                        )}
+                        title={isCollapsed ? "Expandir menu" : "Condensar menu"}
+                    >
+                        {isCollapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
+                    </button>
+
+                    {/* Close Button (Mobile) */}
                     <button
                         onClick={onClose}
                         className="lg:hidden text-text-secondary hover:text-text-primary"
@@ -72,22 +99,31 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     </button>
                 </div>
 
-                <nav className="p-4 space-y-1 overflow-y-auto h-[calc(100vh-64px)] scrollbar-thin">
+                {/* Navigation */}
+                <nav className={cn(
+                    "p-2 space-y-1 overflow-y-auto h-[calc(100vh-64px)] scrollbar-thin",
+                    isCollapsed ? "px-2" : "px-4"
+                )}>
                     {menuItems.map((item) => {
                         const isActive = pathname === item.href;
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
+                                title={isCollapsed ? item.label : undefined}
                                 className={cn(
-                                    "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                                    "flex items-center rounded-xl transition-colors",
+                                    isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5",
                                     isActive
                                         ? "bg-primary/10 text-primary font-medium"
                                         : "text-text-secondary hover:bg-neutral-100 hover:text-text-primary"
                                 )}
                             >
-                                <item.icon size={20} className={isActive ? "text-primary" : ""} />
-                                <span>{item.label}</span>
+                                <item.icon size={20} className={cn(
+                                    isActive ? "text-primary" : "",
+                                    isCollapsed ? "flex-shrink-0" : ""
+                                )} />
+                                {!isCollapsed && <span className="truncate">{item.label}</span>}
                             </Link>
                         );
                     })}

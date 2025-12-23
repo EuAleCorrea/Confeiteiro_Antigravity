@@ -1,9 +1,12 @@
 "use client";
 
-import { Menu, User, Search } from "lucide-react";
+import { Menu, User, Search, Settings, HelpCircle, Sliders, LogOut, X, FileText, ShoppingBag, Package, Truck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { NotificationPanel } from "./NotificationPanel";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -11,6 +14,20 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
     const [searchOpen, setSearchOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
+
+    // Close user menu when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setUserMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // Handle Ctrl+K shortcut
     useEffect(() => {
@@ -56,14 +73,62 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <NotificationPanel />
 
                     {/* User menu */}
-                    <div className="flex items-center gap-3 pl-3 border-l border-divider">
-                        <div className="hidden md:block text-right">
-                            <p className="text-sm font-medium text-text-primary">Admin</p>
-                            <p className="text-xs text-text-secondary">admin@confeitaria.com</p>
-                        </div>
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <User size={20} />
-                        </div>
+                    <div className="relative" ref={userMenuRef}>
+                        <button
+                            onClick={() => setUserMenuOpen(!userMenuOpen)}
+                            className="flex items-center gap-3 pl-3 border-l border-divider hover:opacity-80 transition-opacity"
+                        >
+                            <div className="hidden md:block text-right">
+                                <p className="text-sm font-medium text-text-primary">Admin</p>
+                                <p className="text-xs text-text-secondary">admin@confeitaria.com</p>
+                            </div>
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                <User size={20} />
+                            </div>
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {userMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-surface border border-border shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden">
+                                <div className="py-1">
+                                    <Link
+                                        href="/ajuda"
+                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-neutral-100 hover:text-text-primary transition-colors"
+                                        onClick={() => setUserMenuOpen(false)}
+                                    >
+                                        <HelpCircle size={18} />
+                                        <span>Ajuda</span>
+                                    </Link>
+                                    <Link
+                                        href="/configuracoes"
+                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-neutral-100 hover:text-text-primary transition-colors"
+                                        onClick={() => setUserMenuOpen(false)}
+                                    >
+                                        <Settings size={18} />
+                                        <span>Configurações</span>
+                                    </Link>
+                                    <Link
+                                        href="/configuracoes-avancadas"
+                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-neutral-100 hover:text-text-primary transition-colors"
+                                        onClick={() => setUserMenuOpen(false)}
+                                    >
+                                        <Sliders size={18} />
+                                        <span>Config. Avançadas</span>
+                                    </Link>
+                                    <div className="my-1 border-t border-divider" />
+                                    <button
+                                        onClick={() => {
+                                            setUserMenuOpen(false);
+                                            router.push("/login");
+                                        }}
+                                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors"
+                                    >
+                                        <LogOut size={18} />
+                                        <span>Sair</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
@@ -75,11 +140,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 }
 
 // Inline SearchModal component
-import { useRef, useCallback } from "react";
-import { X, FileText, ShoppingBag, Package, Truck } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { storage } from "@/lib/storage";
-import Link from "next/link";
 
 interface SearchResult {
     type: "cliente" | "pedido" | "orcamento" | "produto" | "fornecedor";

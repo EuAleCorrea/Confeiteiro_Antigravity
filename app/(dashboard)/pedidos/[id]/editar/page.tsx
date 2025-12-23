@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { storage, Pedido, Cliente, Produto } from "@/lib/storage";
+import { storage, Pedido, Cliente, Produto, ItemOrcamento } from "@/lib/storage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ArrowLeft, Save, Trash2, Plus } from "lucide-react";
 import Link from "next/link";
+import { AddItemModal } from "@/components/pedidos/AddItemModal";
 
 export default function OrderFormPage() {
     const params = useParams();
@@ -31,6 +32,7 @@ export default function OrderFormPage() {
     });
 
     const [selectedClientId, setSelectedClientId] = useState('');
+    const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
 
     useEffect(() => {
         setClientes(storage.getClientes());
@@ -92,26 +94,7 @@ export default function OrderFormPage() {
         router.push('/pedidos');
     };
 
-    const addItem = () => {
-        // Simple manual item add for now
-        const nome = prompt("Nome do Produto/Item:");
-        if (!nome) return;
-        const qtdStr = prompt("Quantidade:", "1");
-        const priceStr = prompt("Preço Unitário (R$):", "0");
-
-        const qtd = parseInt(qtdStr || "1");
-        const price = parseFloat(priceStr?.replace(',', '.') || "0");
-
-        const newItem = {
-            id: crypto.randomUUID(),
-            tipo: 'Produto' as const,
-            produtoId: 'manual',
-            nome,
-            quantidade: qtd,
-            precoUnitario: price,
-            subtotal: qtd * price
-        };
-
+    const addItem = (newItem: ItemOrcamento) => {
         const newItens = [...(pedido.itens || []), newItem];
         const newTotal = newItens.reduce((acc, i) => acc + i.subtotal, 0) + (pedido.entrega?.taxaEntrega || 0);
 
@@ -210,11 +193,10 @@ export default function OrderFormPage() {
                     </CardContent>
                 </Card>
 
-                {/* Items */}
                 <Card>
                     <CardHeader className="flex flex-row justify-between items-center">
                         <CardTitle>Itens</CardTitle>
-                        <Button size="sm" variant="outline" onClick={addItem}><Plus size={16} /></Button>
+                        <Button size="sm" variant="outline" onClick={() => setIsAddItemModalOpen(true)}><Plus size={16} /></Button>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {(pedido.itens || []).map((item, idx) => (
@@ -247,6 +229,13 @@ export default function OrderFormPage() {
                     <Save size={18} className="mr-2" /> Salvar Pedido
                 </Button>
             </div>
+
+            {/* Add Item Modal */}
+            <AddItemModal
+                isOpen={isAddItemModalOpen}
+                onClose={() => setIsAddItemModalOpen(false)}
+                onAdd={addItem}
+            />
         </div>
     );
 }

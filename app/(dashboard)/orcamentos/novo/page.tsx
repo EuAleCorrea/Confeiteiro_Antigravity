@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Wizard } from "@/components/ui/Wizard";
 import { storage, Orcamento } from "@/lib/storage";
+import { User, Package, Truck, Palette, FileText } from "lucide-react";
 
 // Steps Components (Placeholders for now)
 import StepCliente from "@/components/orcamentos/steps/StepCliente";
@@ -62,26 +63,31 @@ export default function NovoOrcamentoPage() {
         {
             id: 'cliente',
             label: 'Cliente',
+            icon: <User />,
             component: <StepCliente data={orcamento} onUpdate={updateOrcamento} />
         },
         {
             id: 'itens',
             label: 'Itens',
+            icon: <Package />,
             component: <StepItens data={orcamento} onUpdate={updateOrcamento} />
         },
         {
             id: 'entrega',
             label: 'Entrega',
+            icon: <Truck />,
             component: <StepEntrega data={orcamento} onUpdate={updateOrcamento} />
         },
         {
             id: 'decoracao',
             label: 'Decoração',
+            icon: <Palette />,
             component: <StepDecoracao data={orcamento} onUpdate={updateOrcamento} />
         },
         {
             id: 'revisao',
             label: 'Revisão',
+            icon: <FileText />,
             component: <StepRevisao data={orcamento} onUpdate={updateOrcamento} onFinish={handleFinish} />
         }
     ];

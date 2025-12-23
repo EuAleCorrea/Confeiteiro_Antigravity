@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { storage, Transaction } from "@/lib/storage";
 import { FinancialCard } from "@/components/financeiro/FinancialCard";
@@ -12,6 +13,14 @@ import { ptBR } from "date-fns/locale";
 import { TransactionModal } from "@/components/financeiro/TransactionModal";
 
 export default function FinanceiroPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-neutral-500">Carregando finanças...</div>}>
+            <FinanceiroContent />
+        </Suspense>
+    );
+}
+
+function FinanceiroContent() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'Receita' | 'Despesa'>('Receita');
@@ -26,9 +35,23 @@ export default function FinanceiroPage() {
     });
     const [chartData, setChartData] = useState<{ label: string; value: number; isCurrent?: boolean }[]>([]);
 
+    const searchParams = useSearchParams();
+
     useEffect(() => {
         loadData();
     }, []);
+
+    // Handle FAB actions from query params
+    useEffect(() => {
+        const action = searchParams.get('action');
+        if (action === 'nova-receita') {
+            setModalType('Receita');
+            setModalOpen(true);
+        } else if (action === 'nova-despesa') {
+            setModalType('Despesa');
+            setModalOpen(true);
+        }
+    }, [searchParams]);
 
     const loadData = () => {
         const allTransactions = storage.getTransacoes();
@@ -181,32 +204,13 @@ export default function FinanceiroPage() {
                 </div>
             </div>
 
-            {/* FAB */}
-            <div className="fixed bottom-8 right-8 z-50 group">
-                <button className="w-14 h-14 bg-orange-600 rounded-full shadow-[0_6px_20px_rgba(255,87,34,0.4)] flex items-center justify-center text-white hover:bg-orange-700 transition-transform active:scale-95 group-hover:scale-105">
-                    <Plus className="w-8 h-8" />
-                </button>
-
-                {/* Menu */}
-                <div className="absolute bottom-16 right-0 bg-white rounded-xl shadow-xl border border-neutral-100 p-2 min-w-[200px] hidden group-hover:block animate-in fade-in slide-in-from-bottom-4">
-                    <button
-                        onClick={() => { setModalType('Receita'); setModalOpen(true); }}
-                        className="w-full text-left px-4 py-3 hover:bg-neutral-50 rounded-lg text-sm font-medium text-neutral-700 flex items-center gap-2"
-                    >
-                        💰 Registrar Receita
-                    </button>
-                    <button
-                        onClick={() => { setModalType('Despesa'); setModalOpen(true); }}
-                        className="w-full text-left px-4 py-3 hover:bg-neutral-50 rounded-lg text-sm font-medium text-neutral-700 flex items-center gap-2"
-                    >
-                        💸 Registrar Despesa
-                    </button>
-                </div>
-            </div>
-
             <TransactionModal
                 isOpen={modalOpen}
-                onClose={() => setModalOpen(false)}
+                onClose={() => {
+                    setModalOpen(false);
+                    // Clear search params when closing
+                    window.history.replaceState({}, '', window.location.pathname);
+                }}
                 type={modalType}
                 onSuccess={loadData}
             />
