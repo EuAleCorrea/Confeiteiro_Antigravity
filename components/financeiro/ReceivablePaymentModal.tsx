@@ -102,7 +102,7 @@ export function ReceivablePaymentModal({ conta, onClose, onSuccess }: Receivable
                     <Button type="button" variant="ghost" onClick={onClose}>
                         Cancelar
                     </Button>
-                    <Button type="submit" variant="default" className="bg-green-600 hover:bg-green-700 text-white shadow-green-200">
+                    <Button type="submit" variant="primary" className="bg-green-600 hover:bg-green-700 text-white shadow-green-200">
                         Confirmar Pagamento
                     </Button>
                 </div>
