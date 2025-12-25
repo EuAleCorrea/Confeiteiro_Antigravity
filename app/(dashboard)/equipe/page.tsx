@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
+import { Toggle } from "@/components/ui/Toggle";
 import { storage, Colaborador } from "@/lib/storage";
 
 export default function EquipePage() {
@@ -129,8 +130,8 @@ export default function EquipePage() {
                                                 <span
                                                     key={dia}
                                                     className={`text-[10px] w-6 h-6 flex items-center justify-center rounded-full ${colaborador.escala?.includes(dia)
-                                                            ? 'bg-primary text-white'
-                                                            : 'bg-neutral-100 text-neutral-400'
+                                                        ? 'bg-primary text-white'
+                                                        : 'bg-neutral-100 text-neutral-400'
                                                         }`}
                                                 >
                                                     {dia[0]}
@@ -196,15 +197,14 @@ export default function EquipePage() {
                             <label className="text-sm font-medium text-text-secondary">Escala de Trabalho</label>
                             <div className="flex gap-2">
                                 {diasSemana.map(dia => (
-                                    <label key={dia} className="flex items-center space-x-1 cursor-pointer">
-                                        <input
-                                            type="checkbox"
+                                    <div key={dia} className="flex flex-col items-center p-2 rounded border border-neutral-100 bg-neutral-50">
+                                        <span className="text-xs font-medium mb-2">{dia}</span>
+                                        <Toggle
                                             checked={formData.escala?.includes(dia) || false}
                                             onChange={() => toggleDia(dia)}
-                                            className="rounded border-gray-300 text-primary focus:ring-primary"
+                                            size="sm"
                                         />
-                                        <span className="text-sm">{dia}</span>
-                                    </label>
+                                    </div>
                                 ))}
                             </div>
                         </div>

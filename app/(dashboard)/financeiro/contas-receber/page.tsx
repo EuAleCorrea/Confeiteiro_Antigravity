@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, Search, Filter, MoreHorizontal, ArrowLeft, Check, Clock, AlertTriangle, Calendar } from "lucide-react";
 import { storage, ContaReceber, Pagamento } from "@/lib/storage";
 import { format, isAfter, isBefore, startOfDay, startOfMonth, endOfMonth, addMonths } from "date-fns";
+import { Toggle } from "@/components/ui/Toggle";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
@@ -466,15 +467,14 @@ function NewContaReceberModal({ onClose, onSuccess }: { onClose: () => void; onS
                     </div>
 
                     <div className="border-t border-neutral-100 pt-4">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="w-5 h-5 rounded text-pink-600"
-                                checked={formData.marcarPago}
-                                onChange={e => setFormData({ ...formData, marcarPago: e.target.checked })}
-                            />
+                        <div className="flex items-center justify-between mb-4">
                             <span className="text-sm font-medium text-neutral-700">Marcar como pago agora</span>
-                        </label>
+                            <Toggle
+                                checked={formData.marcarPago}
+                                onChange={(checked) => setFormData({ ...formData, marcarPago: checked })}
+                                size="sm"
+                            />
+                        </div>
 
                         {formData.marcarPago && (
                             <div className="mt-4 p-4 bg-green-50 rounded-xl space-y-3">
@@ -503,15 +503,14 @@ function NewContaReceberModal({ onClose, onSuccess }: { onClose: () => void; onS
                                         </select>
                                     </div>
                                 </div>
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        className="w-4 h-4 rounded"
+                                <div className="flex items-center gap-3 mt-3">
+                                    <Toggle
                                         checked={formData.lancarFluxo}
-                                        onChange={e => setFormData({ ...formData, lancarFluxo: e.target.checked })}
+                                        onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
+                                        size="sm"
                                     />
-                                    Lançar no Fluxo de Caixa
-                                </label>
+                                    <span className="text-sm">Lançar no Fluxo de Caixa</span>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -525,8 +524,8 @@ function NewContaReceberModal({ onClose, onSuccess }: { onClose: () => void; onS
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 
@@ -607,15 +606,14 @@ function PaymentModal({ conta, onClose, onSuccess }: { conta: ContaReceber; onCl
                         </select>
                     </div>
 
-                    <label className="flex items-center gap-3">
-                        <input
-                            type="checkbox"
-                            className="w-5 h-5 rounded text-green-600"
+                    <div className="flex items-center gap-3 pt-2">
+                        <Toggle
                             checked={formData.lancarFluxo}
-                            onChange={e => setFormData({ ...formData, lancarFluxo: e.target.checked })}
+                            onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
+                            size="sm"
                         />
                         <span className="text-sm text-neutral-700">Lançar receita no Fluxo de Caixa</span>
-                    </label>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-4">
                         <button type="button" onClick={onClose} className="w-full py-3 bg-white border border-neutral-200 text-neutral-600 font-bold rounded-xl hover:bg-neutral-50">

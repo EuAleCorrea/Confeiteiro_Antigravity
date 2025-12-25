@@ -3,6 +3,7 @@ import { storage, ConfigProducao } from "@/lib/storage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Toggle } from "@/components/ui/Toggle";
 import { Save, Plus, Trash2 } from "lucide-react";
 
 export function TabGeral() {
@@ -134,22 +135,22 @@ export function TabGeral() {
                 <Card>
                     <CardHeader><CardTitle>Notificações</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={config.notificacoes?.alertaPrazoCurto || false}
-                                onChange={e => setConfig({ ...config, notificacoes: { ...config.notificacoes!, alertaPrazoCurto: e.target.checked } })}
-                            />
+                        <div className="flex items-center justify-between">
                             <span className="text-sm">Alertar sobre prazos curtos (menos de 24h)</span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={config.notificacoes?.alertaEstoque || false}
-                                onChange={e => setConfig({ ...config, notificacoes: { ...config.notificacoes!, alertaEstoque: e.target.checked } })}
+                            <Toggle
+                                checked={config.notificacoes?.alertaPrazoCurto || false}
+                                onChange={(checked) => setConfig({ ...config, notificacoes: { ...config.notificacoes!, alertaPrazoCurto: checked } })}
+                                size="sm"
                             />
+                        </div>
+                        <div className="flex items-center justify-between">
                             <span className="text-sm">Alertar sobre estoque baixo (Ingredientes)</span>
-                        </label>
+                            <Toggle
+                                checked={config.notificacoes?.alertaEstoque || false}
+                                onChange={(checked) => setConfig({ ...config, notificacoes: { ...config.notificacoes!, alertaEstoque: checked } })}
+                                size="sm"
+                            />
+                        </div>
                     </CardContent>
                 </Card>
 

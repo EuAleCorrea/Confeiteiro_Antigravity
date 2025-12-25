@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { storage, CashFlowCategory } from "@/lib/storage";
 import { format } from "date-fns";
+import { Toggle } from "@/components/ui/Toggle";
 
 interface TransactionModalProps {
     isOpen: boolean;
@@ -152,17 +153,13 @@ export function TransactionModal({ isOpen, onClose, type, onSuccess }: Transacti
                         />
                     </div>
 
-                    <div className="flex items-center gap-3 pt-2">
-                        <input
-                            type="checkbox"
-                            id="fluxoCheck"
-                            className="w-5 h-5 rounded text-orange-600 focus:ring-orange-500"
+                    <div className="flex items-center justify-between pt-2">
+                        <span className="text-sm text-neutral-600">Lançar no Fluxo de Caixa (Planilha)</span>
+                        <Toggle
                             checked={formData.lancarFluxo}
-                            onChange={e => setFormData({ ...formData, lancarFluxo: e.target.checked })}
+                            onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
+                            size="sm"
                         />
-                        <label htmlFor="fluxoCheck" className="text-sm text-neutral-600 select-none cursor-pointer">
-                            Lançar no Fluxo de Caixa (Planilha)
-                        </label>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-4">

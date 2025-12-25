@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { X, HelpCircle, Bug, Lightbulb, AlertTriangle, Upload, FileText, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Toggle } from "@/components/ui/Toggle";
 // ... (lines 5-219 remain same, need to be careful with range)
 
 // We need to do this in two chunks because the file is large and range logic might be tricky if I don't see exact lines.
@@ -290,27 +291,25 @@ export default function CreateTicketModal({ isOpen, onClose, onSubmit }: CreateT
                             </div>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-gray-200">
-                            <label className="flex items-start gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                        <div className="space-y-4 pt-2 border-t border-gray-200">
+                            <div className="flex items-start gap-3">
+                                <Toggle
                                     checked={form.termosAceitos}
-                                    onChange={e => setForm({ ...form, termosAceitos: e.target.checked })}
+                                    onChange={(checked) => setForm({ ...form, termosAceitos: checked })}
+                                    size="sm"
                                 />
-                                <span className="text-sm text-text-secondary">Li e aceito os termos de suporte e política de privacidade.</span>
-                            </label>
-                            {errors.termosAceitos && <p className="text-red-500 text-xs ml-6">{errors.termosAceitos}</p>}
+                                <span className="text-sm text-text-secondary pt-1">Li e aceito os termos de suporte e política de privacidade.</span>
+                            </div>
+                            {errors.termosAceitos && <p className="text-red-500 text-xs ml-11 -mt-2">{errors.termosAceitos}</p>}
 
-                            <label className="flex items-start gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                            <div className="flex items-start gap-3">
+                                <Toggle
                                     checked={form.contatoAutorizado}
-                                    onChange={e => setForm({ ...form, contatoAutorizado: e.target.checked })}
+                                    onChange={(checked) => setForm({ ...form, contatoAutorizado: checked })}
+                                    size="sm"
                                 />
-                                <span className="text-sm text-text-secondary">Autorizo contato por e-mail e telefone para resolução deste ticket.</span>
-                            </label>
+                                <span className="text-sm text-text-secondary pt-1">Autorizo contato por e-mail e telefone para resolução deste ticket.</span>
+                            </div>
                         </div>
                     </section>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Toggle } from "@/components/ui/Toggle";
 import {
     Settings, Bell, Link2, Database, Shield,
     Sun, Moon, Monitor, Download, Upload,
@@ -177,43 +178,41 @@ function TabNotificacoes({ onSave }: { onSave: () => void }) {
             <CardContent className="space-y-6">
                 <div>
                     <h4 className="font-medium text-text-primary mb-3">Canais de Notificação</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         {[
                             { key: "sistema", label: "No sistema (badge)" },
                             { key: "email", label: "Por e-mail" },
                             { key: "whatsapp", label: "Por WhatsApp" },
                         ].map((item) => (
-                            <label key={item.key} className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
+                            <div key={item.key} className="flex items-center justify-between">
+                                <span className="text-sm text-text-primary">{item.label}</span>
+                                <Toggle
                                     checked={settings[item.key as keyof typeof settings] as boolean}
                                     onChange={() => toggle(item.key as keyof typeof settings)}
-                                    className="w-4 h-4 rounded text-primary"
+                                    size="sm"
                                 />
-                                <span className="text-sm text-text-primary">{item.label}</span>
-                            </label>
+                            </div>
                         ))}
                     </div>
                 </div>
 
                 <div>
                     <h4 className="font-medium text-text-primary mb-3">Tipos de Notificação</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         {[
                             { key: "pedidos", label: "Pedidos" },
                             { key: "producao", label: "Produção" },
                             { key: "estoque", label: "Estoque" },
                             { key: "financeiro", label: "Financeiro" },
                         ].map((item) => (
-                            <label key={item.key} className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
+                            <div key={item.key} className="flex items-center justify-between">
+                                <span className="text-sm text-text-primary">{item.label}</span>
+                                <Toggle
                                     checked={settings[item.key as keyof typeof settings] as boolean}
                                     onChange={() => toggle(item.key as keyof typeof settings)}
-                                    className="w-4 h-4 rounded text-primary"
+                                    size="sm"
                                 />
-                                <span className="text-sm text-text-primary">{item.label}</span>
-                            </label>
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -287,10 +286,10 @@ function TabIntegracoes() {
                 <CardContent>
                     <div className="space-y-3">
                         {["Mercado Pago", "PagSeguro", "Stripe"].map((gateway) => (
-                            <label key={gateway} className="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" className="w-4 h-4 rounded text-primary" />
+                            <div key={gateway} className="flex items-center justify-between">
                                 <span className="text-sm text-text-primary">{gateway}</span>
-                            </label>
+                                <Toggle checked={false} onChange={() => { }} size="sm" />
+                            </div>
                         ))}
                     </div>
                 </CardContent>
@@ -337,15 +336,13 @@ function TabBackup({ showToast }: { showToast: (type: "success" | "error" | "war
                     <CardTitle className="text-lg">💾 Backup Automático</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={autoBackup}
-                            onChange={(e) => setAutoBackup(e.target.checked)}
-                            className="w-4 h-4 rounded text-primary"
-                        />
+                    <div className="flex items-center justify-between">
                         <span className="text-sm text-text-primary">Ativar backup automático</span>
-                    </label>
+                        <Toggle
+                            checked={autoBackup}
+                            onChange={setAutoBackup}
+                        />
+                    </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <div>
@@ -535,14 +532,14 @@ function TabSeguranca({ onSave }: { onSave: () => void }) {
                             { key: "dataHora", label: "Incluir data e hora", checked: true },
                             { key: "usuario", label: "Incluir usuário responsável", checked: true },
                         ].map((item) => (
-                            <label key={item.key} className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    defaultChecked={item.checked}
-                                    className="w-4 h-4 rounded text-primary"
-                                />
+                            <div key={item.key} className="flex items-center justify-between">
                                 <span className="text-sm text-text-primary">{item.label}</span>
-                            </label>
+                                <Toggle
+                                    checked={item.checked}
+                                    onChange={() => { }}
+                                    size="sm"
+                                />
+                            </div>
                         ))}
                     </div>
                     <Button variant="outline">Ver Log Completo →</Button>

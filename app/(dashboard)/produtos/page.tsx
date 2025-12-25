@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
+import { Toggle } from "@/components/ui/Toggle";
 import { storage, Produto } from "@/lib/storage";
 
 export default function ProdutosPage() {
@@ -106,8 +107,8 @@ export default function ProdutosPage() {
                     <button
                         key={tab}
                         className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab
-                                ? "border-primary text-primary"
-                                : "border-transparent text-text-secondary hover:text-text-primary"
+                            ? "border-primary text-primary"
+                            : "border-transparent text-text-secondary hover:text-text-primary"
                             }`}
                         onClick={() => setActiveTab(tab as any)}
                     >
@@ -211,15 +212,14 @@ export default function ProdutosPage() {
                                 <label className="text-sm font-medium text-text-secondary">Tamanhos Disponíveis</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {tamanhosOpcoes.map(tamanho => (
-                                        <label key={tamanho} className="flex items-center space-x-2 text-sm cursor-pointer">
-                                            <input
-                                                type="checkbox"
+                                        <div key={tamanho} className="flex items-center justify-between p-2 rounded-lg border border-neutral-100 bg-neutral-50">
+                                            <span className="text-sm text-neutral-700">{tamanho}</span>
+                                            <Toggle
                                                 checked={formData.tamanhos?.includes(tamanho) || false}
                                                 onChange={() => toggleTamanho(tamanho)}
-                                                className="rounded border-gray-300 text-primary focus:ring-primary"
+                                                size="sm"
                                             />
-                                            <span>{tamanho}</span>
-                                        </label>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -227,15 +227,13 @@ export default function ProdutosPage() {
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-border">
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={formData.ativo ?? true}
-                                onChange={e => setFormData({ ...formData, ativo: e.target.checked })}
-                                className="rounded border-gray-300 text-primary focus:ring-primary h-5 w-5"
-                            />
+                        <div className="flex items-center gap-3">
                             <span className="font-medium text-text-primary">Produto Ativo</span>
-                        </label>
+                            <Toggle
+                                checked={formData.ativo ?? true}
+                                onChange={(checked) => setFormData({ ...formData, ativo: checked })}
+                            />
+                        </div>
 
                         <div className="flex gap-3">
                             <Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button>

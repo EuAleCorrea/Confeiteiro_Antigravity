@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { Toggle } from "@/components/ui/Toggle";
 import { Dialog } from "@/components/ui/Dialog"; // Assuming standard UI component exists or we build a simple modal
 // Since I don't know if a Dialog component exists, I'll build a simple custom one to be safe and dependency-free
 
@@ -61,18 +62,17 @@ export default function FeedbackControl({ questionId }: { questionId: string }) 
 
                 <div className="space-y-2 mb-4">
                     {['Informação incorreta', 'Resposta incompleta', 'Difícil de entender', 'Outro motivo'].map((r) => (
-                        <label key={r} className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:bg-gray-50 p-1 rounded">
-                            <input
-                                type="checkbox"
+                        <div key={r} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                            <span className="text-sm text-text-secondary">{r}</span>
+                            <Toggle
                                 checked={reasons.includes(r)}
-                                onChange={(e) => {
-                                    if (e.target.checked) setReasons([...reasons, r]);
+                                onChange={(checked) => {
+                                    if (checked) setReasons([...reasons, r]);
                                     else setReasons(reasons.filter(x => x !== r));
                                 }}
-                                className="rounded border-gray-300 text-primary focus:ring-primary"
+                                size="sm"
                             />
-                            {r}
-                        </label>
+                        </div>
                     ))}
                 </div>
 

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
+import { Toggle } from "@/components/ui/Toggle";
 import { storage, Fornecedor } from "@/lib/storage";
 
 export default function FornecedoresPage() {
@@ -222,15 +223,13 @@ export default function FornecedoresPage() {
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-border">
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={formData.ativo ?? true}
-                                onChange={e => setFormData({ ...formData, ativo: e.target.checked })}
-                                className="rounded border-gray-300 text-primary focus:ring-primary h-5 w-5"
-                            />
+                        <div className="flex items-center gap-3">
                             <span className="font-medium text-text-primary">Fornecedor Ativo</span>
-                        </label>
+                            <Toggle
+                                checked={formData.ativo ?? true}
+                                onChange={(checked) => setFormData({ ...formData, ativo: checked })}
+                            />
+                        </div>
                         <div className="flex gap-3">
                             <Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button>
                             <Button type="submit">Salvar Fornecedor</Button>
