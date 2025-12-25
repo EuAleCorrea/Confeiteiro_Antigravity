@@ -104,18 +104,18 @@ export function DashboardCards() {
     ];
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
             {cards.map((card, i) => (
                 <Card key={i} className="overflow-hidden">
-                    <CardContent className="p-5">
+                    <CardContent className="p-3 md:p-5">
                         <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                                <p className="text-sm font-medium text-text-secondary">{card.title}</p>
-                                <p className="text-2xl font-bold text-text-primary">{card.value}</p>
-                                <p className="text-xs text-text-secondary">{card.subtitle}</p>
+                            <div className="space-y-0.5 md:space-y-1 min-w-0 flex-1">
+                                <p className="text-xs md:text-sm font-medium text-text-secondary truncate">{card.title}</p>
+                                <p className="text-lg md:text-2xl font-bold text-text-primary">{card.value}</p>
+                                <p className="text-[10px] md:text-xs text-text-secondary truncate">{card.subtitle}</p>
                             </div>
-                            <div className={cn("p-3 rounded-xl", card.color)}>
-                                <card.icon size={22} />
+                            <div className={cn("p-2 md:p-3 rounded-xl flex-shrink-0 ml-2", card.color)}>
+                                <card.icon size={18} className="md:w-[22px] md:h-[22px]" />
                             </div>
                         </div>
                     </CardContent>

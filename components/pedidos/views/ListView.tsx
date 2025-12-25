@@ -4,38 +4,88 @@ import { Pedido } from "@/lib/storage";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { StatusBadge } from "../StatusBadge";
 import { Button } from "@/components/ui/Button";
-import { Eye, Edit } from "lucide-react";
+import { Eye, Edit, Calendar, Clock, MapPin, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/Card";
 
 interface ListViewProps {
     pedidos: Pedido[];
 }
 
 export function ListView({ pedidos }: ListViewProps) {
+    if (pedidos.length === 0) {
+        return (
+            <div className="text-center py-12 text-text-secondary bg-white rounded-lg border border-border">
+                Nenhum pedido encontrado.
+            </div>
+        );
+    }
+
     return (
-        <div className="bg-white rounded-lg border border-border overflow-hidden">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Número</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Data Entrega</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Itens / Decoração</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {pedidos.length === 0 ? (
+        <>
+            {/* Mobile: Card-based list */}
+            <div className="md:hidden space-y-3">
+                {pedidos.map((pedido) => (
+                    <Link key={pedido.id} href={`/pedidos/${pedido.id}`}>
+                        <Card className="hover:shadow-md transition-shadow active:scale-[0.99]">
+                            <CardContent className="p-4">
+                                <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-neutral-800">#{pedido.numero}</span>
+                                            <StatusBadge status={pedido.status} />
+                                        </div>
+                                        <p className="font-medium text-neutral-700 mt-1">{pedido.cliente.nome}</p>
+                                        <p className="text-xs text-text-secondary">{pedido.cliente.telefone}</p>
+                                    </div>
+                                    <ChevronRight size={20} className="text-neutral-400 mt-1" />
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-600 mb-3">
+                                    <div className="flex items-center gap-1">
+                                        <Calendar size={14} />
+                                        <span>{new Date(pedido.dataEntrega).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Clock size={14} />
+                                        <span>{pedido.horaEntrega}</span>
+                                    </div>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${pedido.tipo === 'Entrega' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>
+                                        {pedido.tipo}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
+                                    <div className="text-sm text-neutral-600">
+                                        {pedido.itens.length} item(s)
+                                    </div>
+                                    <span className="font-bold text-neutral-900">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pedido.financeiro.valorTotal)}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                ))}
+            </div>
+
+            {/* Desktop: Table view */}
+            <div className="hidden md:block bg-white rounded-lg border border-border overflow-hidden">
+                <Table>
+                    <TableHeader>
                         <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-text-secondary">
-                                Nenhum pedido encontrado.
-                            </TableCell>
+                            <TableHead>Número</TableHead>
+                            <TableHead>Cliente</TableHead>
+                            <TableHead>Data Entrega</TableHead>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead>Itens / Decoração</TableHead>
+                            <TableHead>Valor</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                    ) : (
-                        pedidos.map((pedido) => (
+                    </TableHeader>
+                    <TableBody>
+                        {pedidos.map((pedido) => (
                             <TableRow key={pedido.id}>
                                 <TableCell className="font-medium">#{pedido.numero}</TableCell>
                                 <TableCell>
@@ -79,10 +129,11 @@ export function ListView({ pedidos }: ListViewProps) {
                                     </div>
                                 </TableCell>
                             </TableRow>
-                        ))
-                    )}
-                </TableBody>
-            </Table>
-        </div>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </>
     );
 }
+

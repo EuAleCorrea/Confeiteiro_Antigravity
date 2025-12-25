@@ -46,18 +46,27 @@ export function Header({ onMenuClick }: HeaderProps) {
 
     return (
         <>
-            <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface px-4 lg:px-6 shadow-sm">
-                <div className="flex items-center gap-4">
+            <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-border bg-surface px-3 md:px-4 lg:px-6 shadow-sm">
+                <div className="flex items-center gap-2 md:gap-4">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={onMenuClick}
-                        className="lg:hidden"
+                        className="lg:hidden min-w-[44px] min-h-[44px]"
                     >
                         <Menu size={24} />
                     </Button>
 
-                    {/* Search trigger */}
+                    {/* Search trigger - Mobile */}
+                    <button
+                        onClick={() => setSearchOpen(true)}
+                        className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-neutral-100 text-text-secondary hover:bg-neutral-200 transition-colors"
+                        aria-label="Buscar"
+                    >
+                        <Search size={20} />
+                    </button>
+
+                    {/* Search trigger - Desktop */}
                     <button
                         onClick={() => setSearchOpen(true)}
                         className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-100 text-text-secondary hover:bg-neutral-200 transition-colors"

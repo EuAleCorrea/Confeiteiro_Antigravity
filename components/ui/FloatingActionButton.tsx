@@ -54,7 +54,7 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-end gap-3">
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex flex-col-reverse items-end gap-3 pb-safe">
             {/* Action buttons */}
             <div
                 className={cn(
