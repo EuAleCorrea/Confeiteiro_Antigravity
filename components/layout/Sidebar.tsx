@@ -111,6 +111,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                                 key={item.href}
                                 href={item.href}
                                 title={isCollapsed ? item.label : undefined}
+                                onClick={onClose}
                                 className={cn(
                                     "flex items-center rounded-xl transition-colors",
                                     isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5",
