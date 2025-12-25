@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Dialog } from "@/components/ui/Dialog";
 import { Ingrediente, Movimentacao, storage } from "@/lib/storage";
-import { X, Trash2, Plus } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 
 interface StockEntryFormProps {
+    isOpen: boolean;
     ingrediente?: Ingrediente; // Pre-selected
     onClose: () => void;
     onSave: () => void;
@@ -18,19 +22,27 @@ interface EntryItem {
     valorUnitario: number;
 }
 
-export function StockEntryForm({ ingrediente, onClose, onSave }: StockEntryFormProps) {
+export function StockEntryForm({ isOpen, ingrediente, onClose, onSave }: StockEntryFormProps) {
     const listIngredientes = storage.getIngredientes();
 
-    // Default single item if pre-selected, else empty array
-    const [items, setItems] = useState<EntryItem[]>(
-        ingrediente ? [{ id: '1', ingredienteId: ingrediente.id, quantidade: 0, valorUnitario: 0 }] : []
-    );
-
+    const [items, setItems] = useState<EntryItem[]>([]);
     const [headerData, setHeaderData] = useState({
         fornecedor: '',
         notaFiscal: '',
         dataCompra: new Date().toISOString().split('T')[0]
     });
+
+    // Reset state when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setItems(ingrediente ? [{ id: '1', ingredienteId: ingrediente.id, quantidade: 0, valorUnitario: 0 }] : []);
+            setHeaderData({
+                fornecedor: '',
+                notaFiscal: '',
+                dataCompra: new Date().toISOString().split('T')[0]
+            });
+        }
+    }, [isOpen, ingrediente]);
 
     const addItem = () => {
         setItems([...items, { id: crypto.randomUUID(), ingredienteId: listIngredientes[0]?.id || '', quantidade: 0, valorUnitario: 0 }]);
@@ -95,120 +107,109 @@ export function StockEntryForm({ ingrediente, onClose, onSave }: StockEntryFormP
     const totalValue = items.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0);
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between p-6 border-b border-neutral-200">
-                    <h2 className="text-xl font-bold">Registrar Entrada (Compra)</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose}><X size={20} /></Button>
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Registrar Entrada (Compra)"
+            className="max-w-3xl"
+        >
+            <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+                {/* Header */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input
+                        label="Data Compra"
+                        type="date"
+                        required
+                        value={headerData.dataCompra}
+                        onChange={e => setHeaderData({ ...headerData, dataCompra: e.target.value })}
+                    />
+                    <Input
+                        label="Nota Fiscal"
+                        value={headerData.notaFiscal}
+                        onChange={e => setHeaderData({ ...headerData, notaFiscal: e.target.value })}
+                        placeholder="Opcional"
+                    />
+                    <Input
+                        label="Fornecedor"
+                        value={headerData.fornecedor}
+                        onChange={e => setHeaderData({ ...headerData, fornecedor: e.target.value })}
+                        placeholder="Opcional"
+                    />
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {/* Header */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Data Compra</label>
-                            <input
-                                type="date"
-                                required
-                                value={headerData.dataCompra}
-                                onChange={e => setHeaderData({ ...headerData, dataCompra: e.target.value })}
-                                className="w-full p-2 border rounded"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Nota Fiscal</label>
-                            <input
-                                type="text"
-                                value={headerData.notaFiscal}
-                                onChange={e => setHeaderData({ ...headerData, notaFiscal: e.target.value })}
-                                className="w-full p-2 border rounded"
-                                placeholder="Opcional"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Fornecedor</label>
-                            <input
-                                type="text"
-                                value={headerData.fornecedor}
-                                onChange={e => setHeaderData({ ...headerData, fornecedor: e.target.value })}
-                                className="w-full p-2 border rounded"
-                                placeholder="Opcional"
-                            />
-                        </div>
+                {/* Items List */}
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-border pb-2">
+                        <h3 className="font-bold text-sm uppercase text-text-secondary">Itens</h3>
+                        {!ingrediente && (
+                            <Button type="button" size="sm" variant="outline" onClick={addItem}>
+                                <Plus size={16} className="mr-1" /> Adicionar Item
+                            </Button>
+                        )}
                     </div>
 
-                    {/* Items List */}
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center border-b pb-2">
-                            <h3 className="font-bold text-sm uppercase text-neutral-500">Itens</h3>
-                            {!ingrediente && (
-                                <Button type="button" size="sm" variant="outline" onClick={addItem}>
-                                    <Plus size={16} className="mr-1" /> Adicionar Item
-                                </Button>
-                            )}
-                        </div>
+                    {items.length === 0 && <p className="text-center text-text-secondary py-4">Nenhum item adicionado.</p>}
 
-                        {items.length === 0 && <p className="text-center text-neutral-500 py-4">Nenhum item adicionado.</p>}
-
-                        {items.map((item, idx) => (
-                            <div key={item.id} className="grid grid-cols-12 gap-2 items-end bg-neutral-50 p-3 rounded">
-                                <div className="col-span-5">
-                                    <label className="text-xs text-neutral-500 font-bold">Insumo</label>
-                                    {ingrediente ? (
-                                        <div className="font-medium p-2 bg-white border rounded">{ingrediente.nome}</div>
-                                    ) : (
-                                        <select
-                                            className="w-full p-2 border rounded text-sm"
-                                            value={item.ingredienteId}
-                                            onChange={e => updateItem(item.id, 'ingredienteId', e.target.value)}
-                                        >
-                                            {listIngredientes.map(i => (
-                                                <option key={i.id} value={i.id}>{i.nome} ({i.unidade})</option>
-                                            ))}
-                                        </select>
-                                    )}
-                                </div>
-                                <div className="col-span-3">
-                                    <label className="text-xs text-neutral-500 font-bold">Qtd</label>
-                                    <input
-                                        type="number" step="0.001" min="0" required
-                                        className="w-full p-2 border rounded text-sm"
-                                        value={item.quantidade}
-                                        onChange={e => updateItem(item.id, 'quantidade', e.target.value)}
-                                    />
-                                </div>
-                                <div className="col-span-3">
-                                    <label className="text-xs text-neutral-500 font-bold">Valor Un.</label>
-                                    <input
-                                        type="number" step="0.01" min="0" required
-                                        className="w-full p-2 border rounded text-sm"
-                                        value={item.valorUnitario}
-                                        onChange={e => updateItem(item.id, 'valorUnitario', e.target.value)}
-                                    />
-                                </div>
-                                <div className="col-span-1">
-                                    {!ingrediente && (
-                                        <Button type="button" variant="ghost" size="icon" className="text-red-500" onClick={() => removeItem(item.id)}>
-                                            <Trash2 size={16} />
-                                        </Button>
-                                    )}
-                                </div>
+                    {items.map((item, idx) => (
+                        <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-neutral-50 p-3 rounded-lg border border-neutral-100">
+                            <div className="md:col-span-5">
+                                <label className="text-xs text-text-secondary font-bold block mb-1">Insumo</label>
+                                {ingrediente ? (
+                                    <div className="font-medium p-2 bg-surface border border-border rounded-xl text-sm h-10 flex items-center">{ingrediente.nome}</div>
+                                ) : (
+                                    <select
+                                        className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                                        value={item.ingredienteId}
+                                        onChange={e => updateItem(item.id, 'ingredienteId', e.target.value)}
+                                    >
+                                        {listIngredientes.map(i => (
+                                            <option key={i.id} value={i.id}>{i.nome} ({i.unidade})</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
-                        ))}
-                    </div>
-
-                    {/* Total */}
-                    <div className="flex justify-end items-center gap-4 pt-4 border-t border-neutral-200">
-                        <div className="text-right">
-                            <span className="text-sm text-neutral-500 block">Total da Nota</span>
-                            <span className="text-2xl font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}</span>
+                            <div className="md:col-span-3">
+                                <label className="text-xs text-text-secondary font-bold block mb-1">Qtd</label>
+                                <Input
+                                    type="number" step="0.001" min="0" required
+                                    value={item.quantidade}
+                                    onChange={e => updateItem(item.id, 'quantidade', e.target.value)}
+                                    className="h-10"
+                                />
+                            </div>
+                            <div className="md:col-span-3">
+                                <label className="text-xs text-text-secondary font-bold block mb-1">Valor Un.</label>
+                                <Input
+                                    type="number" step="0.01" min="0" required
+                                    value={item.valorUnitario}
+                                    onChange={e => updateItem(item.id, 'valorUnitario', e.target.value)}
+                                    className="h-10"
+                                />
+                            </div>
+                            <div className="md:col-span-1 flex justify-end md:justify-center pb-2 md:pb-0">
+                                {!ingrediente && (
+                                    <Button type="button" variant="ghost" size="icon" className="text-error hover:text-red-700" onClick={() => removeItem(item.id)}>
+                                        <Trash2 size={18} />
+                                    </Button>
+                                )}
+                            </div>
                         </div>
-                        <div className="h-10 w-px bg-neutral-300 mx-2"></div>
-                        <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
-                        <Button type="submit">Confirmar Entrada</Button>
+                    ))}
+                </div>
+
+                {/* Total */}
+                <div className="flex flex-col md:flex-row justify-end items-center gap-4 pt-4 border-t border-border">
+                    <div className="text-right w-full md:w-auto">
+                        <span className="text-sm text-text-secondary block">Total da Nota</span>
+                        <span className="text-2xl font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}</span>
                     </div>
-                </form>
-            </div>
-        </div>
+                    <div className="hidden md:block h-10 w-px bg-border mx-2"></div>
+                    <div className="flex gap-3 w-full md:w-auto">
+                        <Button type="button" variant="ghost" onClick={onClose} className="flex-1 md:flex-none">Cancelar</Button>
+                        <Button type="submit" className="flex-1 md:flex-none">Confirmar Entrada</Button>
+                    </div>
+                </div>
+            </form>
+        </Dialog>
     );
 }

@@ -1,10 +1,13 @@
 "use client";
 
+
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
 import { storage, CashFlowCategory } from "@/lib/storage";
 import { format } from "date-fns";
 import { Toggle } from "@/components/ui/Toggle";
+import { Dialog } from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 interface TransactionModalProps {
     isOpen: boolean;
@@ -41,8 +44,6 @@ export function TransactionModal({ isOpen, onClose, type, onSuccess }: Transacti
         }
     }, [isOpen, type]);
 
-    if (!isOpen) return null;
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -78,107 +79,84 @@ export function TransactionModal({ isOpen, onClose, type, onSuccess }: Transacti
 
         onSuccess();
         onClose();
-        // Reset form handling? controlled by isOpen/useEffect mostly
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-                <div className="flex justify-between items-center p-6 border-b border-neutral-100">
-                    <h2 className="text-xl font-bold text-neutral-800">
-                        {type === 'Receita' ? '💰 Registrar Receita' : '💸 Registrar Despesa'}
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-neutral-500">
-                        <X className="w-5 h-5" />
-                    </button>
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title={type === 'Receita' ? '💰 Registrar Receita' : '💸 Registrar Despesa'}
+            className="max-w-md"
+        >
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <Input
+                    label="Data *"
+                    type="date"
+                    required
+                    value={formData.data}
+                    onChange={e => setFormData({ ...formData, data: e.target.value })}
+                />
+
+                <Input
+                    label="Descrição *"
+                    placeholder="Ex: Venda de bolo, Compra de açúcar"
+                    required
+                    value={formData.descricao}
+                    onChange={e => setFormData({ ...formData, descricao: e.target.value })}
+                />
+
+                <Input
+                    label="Valor (R$) *"
+                    type="number"
+                    step="0.01"
+                    placeholder="0,00"
+                    required
+                    className="text-lg font-bold"
+                    value={formData.valor}
+                    onChange={e => setFormData({ ...formData, valor: e.target.value })}
+                />
+
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-text-secondary">Categoria *</label>
+                    <select
+                        className="flex h-12 w-full rounded-xl border border-border bg-surface px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        value={formData.categoriaId}
+                        onChange={e => setFormData({ ...formData, categoriaId: e.target.value })}
+                    >
+                        {categories.map(c => (
+                            <option key={c.id} value={c.id}>{c.nome}</option>
+                        ))}
+                    </select>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-neutral-700">Data *</label>
-                        <input
-                            type="date"
-                            required
-                            className="w-full p-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium text-neutral-600"
-                            value={formData.data}
-                            onChange={e => setFormData({ ...formData, data: e.target.value })}
-                        />
-                    </div>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-text-secondary">Observações</label>
+                    <textarea
+                        rows={2}
+                        className="flex min-h-[80px] w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary resize-none"
+                        value={formData.observacoes}
+                        onChange={e => setFormData({ ...formData, observacoes: e.target.value })}
+                    />
+                </div>
 
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-neutral-700">Descrição *</label>
-                        <input
-                            type="text"
-                            required
-                            placeholder="Ex: Venda de bolo, Compra de açúcar"
-                            className="w-full p-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                            value={formData.descricao}
-                            onChange={e => setFormData({ ...formData, descricao: e.target.value })}
-                        />
-                    </div>
+                <div className="flex items-center justify-between pt-2">
+                    <span className="text-sm text-text-secondary">Lançar no Fluxo de Caixa (Planilha)</span>
+                    <Toggle
+                        checked={formData.lancarFluxo}
+                        onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
+                        size="sm"
+                    />
+                </div>
 
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-neutral-700">Valor (R$) *</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            required
-                            placeholder="0,00"
-                            className="w-full p-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-lg font-bold text-neutral-800"
-                            value={formData.valor}
-                            onChange={e => setFormData({ ...formData, valor: e.target.value })}
-                        />
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-neutral-700">Categoria *</label>
-                        <select
-                            className="w-full p-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all appearance-none"
-                            value={formData.categoriaId}
-                            onChange={e => setFormData({ ...formData, categoriaId: e.target.value })}
-                        >
-                            {categories.map(c => (
-                                <option key={c.id} value={c.id}>{c.nome}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-neutral-700">Observações</label>
-                        <textarea
-                            rows={2}
-                            className="w-full p-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none"
-                            value={formData.observacoes}
-                            onChange={e => setFormData({ ...formData, observacoes: e.target.value })}
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2">
-                        <span className="text-sm text-neutral-600">Lançar no Fluxo de Caixa (Planilha)</span>
-                        <Toggle
-                            checked={formData.lancarFluxo}
-                            onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
-                            size="sm"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="w-full py-3 px-4 bg-white border border-neutral-200 text-neutral-600 font-bold rounded-xl hover:bg-neutral-50 transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            className="w-full py-3 px-4 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all translate-y-0 active:translate-y-0.5"
-                        >
-                            Confirmar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                <div className="grid grid-cols-2 gap-3 pt-4">
+                    <Button type="button" variant="ghost" onClick={onClose}>
+                        Cancelar
+                    </Button>
+                    <Button type="submit" variant={type === 'Receita' ? 'primary' : 'danger'}>
+                        Confirmar
+                    </Button>
+                </div>
+            </form>
+        </Dialog>
     );
 }

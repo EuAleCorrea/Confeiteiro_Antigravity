@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Dialog } from "@/components/ui/Dialog";
 import { Ingrediente, Movimentacao, storage } from "@/lib/storage";
-import { X, Trash2, Plus } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 
 interface StockExitFormProps {
+    isOpen: boolean;
     ingrediente?: Ingrediente; // Pre-selected
     onClose: () => void;
     onSave: () => void;
@@ -17,18 +21,26 @@ interface ExitItem {
     quantidade: number;
 }
 
-export function StockExitForm({ ingrediente, onClose, onSave }: StockExitFormProps) {
+export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExitFormProps) {
     const listIngredientes = storage.getIngredientes();
 
-    const [items, setItems] = useState<ExitItem[]>(
-        ingrediente ? [{ id: '1', ingredienteId: ingrediente.id, quantidade: 0 }] : []
-    );
-
+    const [items, setItems] = useState<ExitItem[]>([]);
     const [headerData, setHeaderData] = useState({
         dataSaida: new Date().toISOString().split('T')[0],
         motivo: 'Perda',
         observacoes: ''
     });
+
+    useEffect(() => {
+        if (isOpen) {
+            setItems(ingrediente ? [{ id: '1', ingredienteId: ingrediente.id, quantidade: 0 }] : []);
+            setHeaderData({
+                dataSaida: new Date().toISOString().split('T')[0],
+                motivo: 'Perda',
+                observacoes: ''
+            });
+        }
+    }, [isOpen, ingrediente]);
 
     const addItem = () => {
         setItems([...items, { id: crypto.randomUUID(), ingredienteId: listIngredientes[0]?.id || '', quantidade: 0 }]);
@@ -92,108 +104,103 @@ export function StockExitForm({ ingrediente, onClose, onSave }: StockExitFormPro
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between p-6 border-b border-neutral-200">
-                    <h2 className="text-xl font-bold">Registrar Saída (Baixa/Perda)</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose}><X size={20} /></Button>
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Registrar Saída (Baixa/Perda)"
+            className="max-w-2xl"
+        >
+            <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+                {/* Header */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                        label="Data Saída"
+                        type="date"
+                        required
+                        value={headerData.dataSaida}
+                        onChange={e => setHeaderData({ ...headerData, dataSaida: e.target.value })}
+                    />
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1">Motivo</label>
+                        <select
+                            value={headerData.motivo}
+                            onChange={e => setHeaderData({ ...headerData, motivo: e.target.value })}
+                            className="flex h-12 w-full rounded-xl border border-border bg-surface px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        >
+                            <option value="Perda">Perda / Vencimento</option>
+                            <option value="Quebra">Quebra / Acidente</option>
+                            <option value="Amostra">Amostra / Degustação</option>
+                            <option value="Consumo Interno">Consumo Interno</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {/* Header */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Data Saída</label>
-                            <input
-                                type="date"
-                                required
-                                value={headerData.dataSaida}
-                                onChange={e => setHeaderData({ ...headerData, dataSaida: e.target.value })}
-                                className="w-full p-2 border rounded"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Motivo</label>
-                            <select
-                                value={headerData.motivo}
-                                onChange={e => setHeaderData({ ...headerData, motivo: e.target.value })}
-                                className="w-full p-2 border rounded"
-                            >
-                                <option value="Perda">Perda / Vencimento</option>
-                                <option value="Quebra">Quebra / Acidente</option>
-                                <option value="Amostra">Amostra / Degustação</option>
-                                <option value="Consumo Interno">Consumo Interno</option>
-                                <option value="Outro">Outro</option>
-                            </select>
-                        </div>
+                {/* Items List */}
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-border pb-2">
+                        <h3 className="font-bold text-sm uppercase text-text-secondary">Itens</h3>
+                        {!ingrediente && (
+                            <Button type="button" size="sm" variant="outline" onClick={addItem}>
+                                <Plus size={16} className="mr-1" /> Adicionar Item
+                            </Button>
+                        )}
                     </div>
 
-                    {/* Items List */}
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center border-b pb-2">
-                            <h3 className="font-bold text-sm uppercase text-neutral-500">Itens</h3>
-                            {!ingrediente && (
-                                <Button type="button" size="sm" variant="outline" onClick={addItem}>
-                                    <Plus size={16} className="mr-1" /> Adicionar Item
-                                </Button>
-                            )}
-                        </div>
-
-                        {items.map((item, idx) => (
-                            <div key={item.id} className="grid grid-cols-12 gap-2 items-end bg-neutral-50 p-3 rounded">
-                                <div className="col-span-8">
-                                    <label className="text-xs text-neutral-500 font-bold">Insumo</label>
-                                    {ingrediente ? (
-                                        <div className="font-medium p-2 bg-white border rounded">{ingrediente.nome}</div>
-                                    ) : (
-                                        <select
-                                            className="w-full p-2 border rounded text-sm"
-                                            value={item.ingredienteId}
-                                            onChange={e => updateItem(item.id, 'ingredienteId', e.target.value)}
-                                        >
-                                            {listIngredientes.map(i => (
-                                                <option key={i.id} value={i.id}>{i.nome} (Atual: {i.estoqueAtual} {i.unidade})</option>
-                                            ))}
-                                        </select>
-                                    )}
-                                </div>
-                                <div className="col-span-3">
-                                    <label className="text-xs text-neutral-500 font-bold">Qtd Saída</label>
-                                    <input
-                                        type="number" step="0.001" min="0" required
-                                        className="w-full p-2 border rounded text-sm"
-                                        value={item.quantidade}
-                                        onChange={e => updateItem(item.id, 'quantidade', e.target.value)}
-                                    />
-                                </div>
-                                <div className="col-span-1">
-                                    {!ingrediente && (
-                                        <Button type="button" variant="ghost" size="icon" className="text-red-500" onClick={() => removeItem(item.id)}>
-                                            <Trash2 size={16} />
-                                        </Button>
-                                    )}
-                                </div>
+                    {items.map((item, idx) => (
+                        <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-neutral-50 p-3 rounded-lg border border-neutral-100">
+                            <div className="md:col-span-8">
+                                <label className="text-xs text-text-secondary font-bold block mb-1">Insumo</label>
+                                {ingrediente ? (
+                                    <div className="font-medium p-2 bg-surface border border-border rounded-xl text-sm h-10 flex items-center">{ingrediente.nome}</div>
+                                ) : (
+                                    <select
+                                        className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                                        value={item.ingredienteId}
+                                        onChange={e => updateItem(item.id, 'ingredienteId', e.target.value)}
+                                    >
+                                        {listIngredientes.map(i => (
+                                            <option key={i.id} value={i.id}>{i.nome} (Atual: {i.estoqueAtual} {i.unidade})</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
-                        ))}
-                    </div>
+                            <div className="md:col-span-3">
+                                <label className="text-xs text-text-secondary font-bold block mb-1">Qtd Saída</label>
+                                <Input
+                                    type="number" step="0.001" min="0" required
+                                    value={item.quantidade}
+                                    onChange={e => updateItem(item.id, 'quantidade', e.target.value)}
+                                    className="h-10"
+                                />
+                            </div>
+                            <div className="md:col-span-1 flex justify-end md:justify-center pb-2 md:pb-0">
+                                {!ingrediente && (
+                                    <Button type="button" variant="ghost" size="icon" className="text-error hover:text-red-700" onClick={() => removeItem(item.id)}>
+                                        <Trash2 size={18} />
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Observações</label>
-                        <textarea
-                            className="w-full p-2 border rounded"
-                            rows={2}
-                            value={headerData.observacoes}
-                            onChange={e => setHeaderData({ ...headerData, observacoes: e.target.value })}
-                        ></textarea>
-                    </div>
+                <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">Observações</label>
+                    <textarea
+                        className="flex min-h-[80px] w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        rows={2}
+                        value={headerData.observacoes}
+                        onChange={e => setHeaderData({ ...headerData, observacoes: e.target.value })}
+                    ></textarea>
+                </div>
 
-                    {/* Total */}
-                    <div className="flex justify-end items-center gap-2 pt-4 border-t border-neutral-200">
-                        <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
-                        <Button type="submit" variant="danger">Confirmar Saída</Button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                {/* Total */}
+                <div className="flex justify-end items-center gap-3 pt-4 border-t border-border">
+                    <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+                    <Button type="submit" variant="danger">Confirmar Saída</Button>
+                </div>
+            </form>
+        </Dialog>
     );
 }

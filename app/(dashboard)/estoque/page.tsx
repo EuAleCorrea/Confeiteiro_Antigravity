@@ -82,38 +82,35 @@ export default function StockPage() {
                 <MovementHistory />
             )}
 
-            {isInventoryOpen && (
-                <InventoryForm
-                    ingrediente={selectedIngrediente}
-                    onClose={() => setIsInventoryOpen(false)}
-                    onSave={() => {
-                        setIsInventoryOpen(false);
-                        refreshData();
-                    }}
-                />
-            )}
+            <InventoryForm
+                isOpen={isInventoryOpen}
+                ingrediente={selectedIngrediente}
+                onClose={() => setIsInventoryOpen(false)}
+                onSave={() => {
+                    setIsInventoryOpen(false);
+                    refreshData();
+                }}
+            />
 
-            {isEntryOpen && (
-                <StockEntryForm
-                    ingrediente={selectedIngrediente}
-                    onClose={() => setIsEntryOpen(false)}
-                    onSave={() => {
-                        setIsEntryOpen(false);
-                        refreshData();
-                    }}
-                />
-            )}
+            <StockEntryForm
+                isOpen={isEntryOpen}
+                ingrediente={selectedIngrediente}
+                onClose={() => setIsEntryOpen(false)}
+                onSave={() => {
+                    setIsEntryOpen(false);
+                    refreshData();
+                }}
+            />
 
-            {isExitOpen && (
-                <StockExitForm
-                    ingrediente={selectedIngrediente}
-                    onClose={() => setIsExitOpen(false)}
-                    onSave={() => {
-                        setIsExitOpen(false);
-                        refreshData();
-                    }}
-                />
-            )}
+            <StockExitForm
+                isOpen={isExitOpen}
+                ingrediente={selectedIngrediente}
+                onClose={() => setIsExitOpen(false)}
+                onSave={() => {
+                    setIsExitOpen(false);
+                    refreshData();
+                }}
+            />
         </div>
     );
 }

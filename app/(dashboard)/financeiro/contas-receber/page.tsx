@@ -1,23 +1,24 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
-import { Plus, Search, Filter, MoreHorizontal, ArrowLeft, Check, Clock, AlertTriangle, Calendar } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Search, ArrowUpCircle, CheckCircle2, Clock, AlertTriangle, Check, DollarSign } from "lucide-react";
 import { storage, ContaReceber, Pagamento } from "@/lib/storage";
-import { format, isAfter, isBefore, startOfDay, startOfMonth, endOfMonth, addMonths } from "date-fns";
-import { Toggle } from "@/components/ui/Toggle";
+import { format, isAfter, startOfDay, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { NewContaReceberModal } from "@/components/financeiro/NewContaReceberModal";
+import { ReceivablePaymentModal } from "@/components/financeiro/ReceivablePaymentModal";
 
 type TabType = 'pendentes' | 'recebidas' | 'atrasadas' | 'todas';
 
 export default function ContasReceberPage() {
+    const router = useRouter();
     const [contas, setContas] = useState<ContaReceber[]>([]);
     const [activeTab, setActiveTab] = useState<TabType>('pendentes');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showNewModal, setShowNewModal] = useState(false);
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [selectedConta, setSelectedConta] = useState<ContaReceber | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'todos' | 'pendente' | 'pago' | 'vencido'>('todos');
+    const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+    const [paymentModal, setPaymentModal] = useState<{ open: boolean; conta: ContaReceber | null }>({ open: false, conta: null });
 
     useEffect(() => {
         loadData();
@@ -35,26 +36,6 @@ export default function ContasReceberPage() {
         });
         setContas(updated);
     };
-
-    // Filter by tab
-    const filteredContas = useMemo(() => {
-        let result = contas;
-
-        if (activeTab === 'pendentes') result = result.filter(c => c.status === 'pendente' || c.status === 'parcial');
-        else if (activeTab === 'recebidas') result = result.filter(c => c.status === 'pago');
-        else if (activeTab === 'atrasadas') result = result.filter(c => c.status === 'atrasado');
-
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            result = result.filter(c =>
-                c.cliente.nome.toLowerCase().includes(q) ||
-                c.descricao.toLowerCase().includes(q) ||
-                c.numeroOrcamento?.includes(q)
-            );
-        }
-
-        return result;
-    }, [contas, activeTab, searchQuery]);
 
     // Summary calculations
     const summary = useMemo(() => {
@@ -79,552 +60,261 @@ export default function ContasReceberPage() {
         const overdue = contas.filter(c => c.status === 'atrasado');
 
         return {
+            total: contas.reduce((acc, c) => acc + c.valorTotal, 0),
             aReceber: pending.reduce((acc, c) => acc + c.saldoRestante, 0),
-            aReceberCount: pending.length,
             recebido: received.reduce((acc, c) => acc + c.valorTotal, 0),
-            recebidoCount: received.length,
-            atrasado: overdue.reduce((acc, c) => acc + c.saldoRestante, 0),
-            atrasadoCount: overdue.length,
-            previsao: nextMonthContas.reduce((acc, c) => acc + c.saldoRestante, 0),
-            previsaoCount: nextMonthContas.length
+            pendente: contas.filter(c => c.status !== 'pago').reduce((acc, c) => acc + c.saldoRestante, 0)
         };
     }, [contas]);
 
-    const getStatusBadge = (status: ContaReceber['status']) => {
-        switch (status) {
-            case 'pago': return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700"><Check className="w-3 h-3" /> Pago</span>;
-            case 'pendente': return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700"><Clock className="w-3 h-3" /> Pendente</span>;
-            case 'atrasado': return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700"><AlertTriangle className="w-3 h-3" /> Atrasado</span>;
-            case 'parcial': return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700"><Clock className="w-3 h-3" /> Parcial</span>;
+    // Filter logic
+    const filteredContas = useMemo(() => {
+        let result = contas;
+
+        // Filter by Status Dropdown
+        if (statusFilter !== 'todos') {
+            if (statusFilter === 'vencido') result = result.filter(c => c.status === 'atrasado');
+            else result = result.filter(c => c.status === statusFilter || (statusFilter === 'pendente' && c.status === 'parcial'));
         }
-    };
 
-    const tabs: { key: TabType; label: string; count: number }[] = [
-        { key: 'pendentes', label: 'Pendentes', count: contas.filter(c => c.status === 'pendente' || c.status === 'parcial').length },
-        { key: 'recebidas', label: 'Recebidas', count: contas.filter(c => c.status === 'pago').length },
-        { key: 'atrasadas', label: 'Atrasadas', count: contas.filter(c => c.status === 'atrasado').length },
-        { key: 'todas', label: 'Todas', count: contas.length },
-    ];
+        // Filter by Search Term
+        if (searchTerm) {
+            const q = searchTerm.toLowerCase();
+            result = result.filter(c =>
+                c.cliente.nome.toLowerCase().includes(q) ||
+                c.descricao.toLowerCase().includes(q) ||
+                (c.numeroOrcamento && c.numeroOrcamento.includes(q))
+            );
+        }
 
-    const handleRegisterPayment = (conta: ContaReceber) => {
-        setSelectedConta(conta);
-        setShowPaymentModal(true);
-    };
+        return result.sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime());
+    }, [contas, searchTerm, statusFilter]);
 
-    const handlePaymentSuccess = (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => {
-        const conta = contas.find(c => c.id === contaId);
-        if (!conta) return;
+    const handlePayment = (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => {
+        const contaIndex = contas.findIndex(c => c.id === contaId);
+        if (contaIndex === -1) return;
 
-        const newPagamentos = [...conta.pagamentos, payment];
-        const newValorPago = conta.valorPago + payment.valor;
-        const newSaldo = conta.valorTotal - newValorPago;
+        const conta = contas[contaIndex];
+        const novoValorPago = conta.valorPago + payment.valor;
+        const novoSaldo = conta.valorTotal - novoValorPago;
+        const novoStatus = novoSaldo <= 0 ? 'pago' : 'pendente'; // simplistic logic, loadData fixes it perfectly next render
 
         const updatedConta: ContaReceber = {
             ...conta,
-            pagamentos: newPagamentos,
-            valorPago: newValorPago,
-            saldoRestante: newSaldo,
-            status: newSaldo === 0 ? 'pago' : 'parcial',
-            lancadoFluxoCaixa: lancadoFluxo || conta.lancadoFluxoCaixa,
+            valorPago: novoValorPago,
+            saldoRestante: novoSaldo > 0 ? novoSaldo : 0,
+            status: novoStatus as any,
+            pagamentos: [...conta.pagamentos, payment],
             atualizadoEm: new Date().toISOString()
         };
 
         storage.saveContaReceber(updatedConta);
 
-        // Also save as transaction if lancadoFluxo
         if (lancadoFluxo) {
             storage.saveTransacao({
                 id: crypto.randomUUID(),
                 tipo: 'Receita',
                 data: payment.data,
-                descricao: `Recebimento: ${conta.cliente.nome} - ${conta.descricao}`,
+                descricao: `Recebimento Parcial/Total: ${conta.cliente.nome} - ${conta.descricao}`,
                 valor: payment.valor,
-                categoriaId: '1', // Default - Vendas Bolos
-                categoriaNome: conta.categoria || 'Vendas Bolos',
+                categoriaId: '1', // Default category for now
+                categoriaNome: conta.categoria,
                 status: 'Pago',
                 criadoEm: new Date().toISOString()
             });
         }
 
-        setShowPaymentModal(false);
-        setSelectedConta(null);
         loadData();
+        setPaymentModal({ open: false, conta: null });
+    };
+
+    const getStatusColor = (status: string, vencimento: string) => {
+        if (status === 'pago') return 'bg-green-500';
+        if (status === 'atrasado') return 'bg-red-500';
+        return 'bg-secondary';
     };
 
     return (
-        <div className="p-6 md:p-8 max-w-[1600px] mx-auto">
+        <div className="p-8 max-w-[1600px] mx-auto pb-24">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-4">
-                    <Link href="/financeiro" className="p-2 hover:bg-neutral-100 rounded-full transition-colors">
-                        <ArrowLeft className="w-5 h-5 text-neutral-600" />
-                    </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold text-neutral-800">💰 Contas a Receber</h1>
-                        <p className="text-sm text-neutral-500">Controle de recebimentos de clientes</p>
-                    </div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-neutral-800">Contas a Receber</h1>
+                    <p className="text-neutral-500 mt-1">Gerencie os pagamentos pendentes de seus clientes</p>
                 </div>
                 <div className="flex gap-3">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input
-                            type="text"
-                            placeholder="Buscar..."
-                            className="pl-10 pr-4 py-2 bg-white border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 w-48"
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                        />
-                    </div>
                     <button
-                        onClick={() => setShowNewModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg text-sm font-medium hover:bg-pink-700 shadow-sm"
+                        onClick={() => router.push('/financeiro')}
+                        className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-xl font-medium transition-colors"
                     >
-                        <Plus className="w-4 h-4" /> Nova Conta
+                        Voltar
+                    </button>
+                    <button
+                        onClick={() => setIsNewModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-xl font-bold hover:bg-pink-700 shadow-lg shadow-pink-200 transition-all translate-y-0 active:translate-y-0.5"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Nova Conta
                     </button>
                 </div>
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
-                    <p className="text-xs text-neutral-500 mb-1">A Receber Este Mês</p>
-                    <p className="text-xl font-bold text-neutral-800">R$ {summary.aReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-xs text-neutral-400">{summary.aReceberCount} contas</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
-                    <p className="text-xs text-neutral-500 mb-1">Recebido Este Mês</p>
-                    <p className="text-xl font-bold text-green-600">R$ {summary.recebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-xs text-neutral-400">{summary.recebidoCount} contas</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
-                    <p className="text-xs text-neutral-500 mb-1">Atrasado</p>
-                    <p className="text-xl font-bold text-red-600">R$ {summary.atrasado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-xs text-neutral-400">{summary.atrasadoCount} contas</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
-                    <p className="text-xs text-neutral-500 mb-1">Previsão Próx. Mês</p>
-                    <p className="text-xl font-bold text-blue-600">R$ {summary.previsao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-xs text-neutral-400">{summary.previsaoCount} contas</p>
-                </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 mb-4 bg-neutral-100 p-1 rounded-lg w-fit">
-                {tabs.map(tab => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={cn(
-                            "px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                            activeTab === tab.key
-                                ? "bg-white text-neutral-800 shadow-sm"
-                                : "text-neutral-500 hover:text-neutral-700"
-                        )}
-                    >
-                        {tab.label} <span className="text-xs text-neutral-400">({tab.count})</span>
-                    </button>
-                ))}
-            </div>
-
-            {/* Table */}
-            <div className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
-                <table className="w-full">
-                    <thead className="bg-neutral-50 border-b border-neutral-100">
-                        <tr>
-                            <th className="text-left p-4 text-xs font-semibold text-neutral-500 uppercase">Data Cad.</th>
-                            <th className="text-left p-4 text-xs font-semibold text-neutral-500 uppercase">Nº Orç.</th>
-                            <th className="text-left p-4 text-xs font-semibold text-neutral-500 uppercase">Cliente</th>
-                            <th className="text-left p-4 text-xs font-semibold text-neutral-500 uppercase">Descrição</th>
-                            <th className="text-right p-4 text-xs font-semibold text-neutral-500 uppercase">Valor</th>
-                            <th className="text-center p-4 text-xs font-semibold text-neutral-500 uppercase">Vencimento</th>
-                            <th className="text-center p-4 text-xs font-semibold text-neutral-500 uppercase">Status</th>
-                            <th className="text-center p-4 text-xs font-semibold text-neutral-500 uppercase">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredContas.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} className="p-8 text-center text-neutral-400">
-                                    Nenhuma conta encontrada
-                                </td>
-                            </tr>
-                        ) : (
-                            filteredContas.map(conta => (
-                                <tr key={conta.id} className={cn(
-                                    "border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors",
-                                    conta.status === 'pago' && "bg-green-50/30",
-                                    conta.status === 'atrasado' && "bg-red-50/30"
-                                )}>
-                                    <td className="p-4 text-sm text-neutral-600">{format(new Date(conta.dataCadastro), 'dd/MM')}</td>
-                                    <td className="p-4 text-sm font-mono text-neutral-500">{conta.numeroOrcamento || '-'}</td>
-                                    <td className="p-4 text-sm font-medium text-neutral-800">{conta.cliente.nome}</td>
-                                    <td className="p-4 text-sm text-neutral-600 max-w-[200px] truncate">{conta.descricao}</td>
-                                    <td className="p-4 text-sm font-bold text-neutral-800 text-right">
-                                        R$ {conta.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                        {conta.saldoRestante !== conta.valorTotal && conta.saldoRestante > 0 && (
-                                            <div className="text-xs text-neutral-400 font-normal">
-                                                Saldo: R$ {conta.saldoRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-sm text-center text-neutral-600">{format(new Date(conta.dataVencimento), 'dd/MM')}</td>
-                                    <td className="p-4 text-center">{getStatusBadge(conta.status)}</td>
-                                    <td className="p-4 text-center">
-                                        <div className="relative group">
-                                            <button className="p-2 hover:bg-neutral-100 rounded-full">
-                                                <MoreHorizontal className="w-4 h-4 text-neutral-500" />
-                                            </button>
-                                            <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-neutral-100 py-1 min-w-[180px] hidden group-hover:block z-10">
-                                                {conta.status !== 'pago' && (
-                                                    <button
-                                                        onClick={() => handleRegisterPayment(conta)}
-                                                        className="w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 flex items-center gap-2"
-                                                    >
-                                                        💰 Registrar Pagamento
-                                                    </button>
-                                                )}
-                                                <button className="w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 flex items-center gap-2">
-                                                    📄 Ver Detalhes
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        if (confirm('Excluir esta conta?')) {
-                                                            storage.deleteContaReceber(conta.id);
-                                                            loadData();
-                                                        }
-                                                    }}
-                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
-                                                >
-                                                    🗑️ Excluir
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* New Account Modal */}
-            {showNewModal && (
-                <NewContaReceberModal
-                    onClose={() => setShowNewModal(false)}
-                    onSuccess={() => { setShowNewModal(false); loadData(); }}
-                />
-            )}
-
-            {/* Payment Modal */}
-            {showPaymentModal && selectedConta && (
-                <PaymentModal
-                    conta={selectedConta}
-                    onClose={() => { setShowPaymentModal(false); setSelectedConta(null); }}
-                    onSuccess={handlePaymentSuccess}
-                />
-            )}
-        </div>
-    );
-}
-
-// --- New Account Modal ---
-function NewContaReceberModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-    const [formData, setFormData] = useState({
-        clienteNome: '',
-        clienteTelefone: '',
-        numeroOrcamento: '',
-        descricao: '',
-        valorTotal: '',
-        dataVencimento: format(new Date(), 'yyyy-MM-dd'),
-        categoria: 'Vendas Bolos',
-        observacoes: '',
-        marcarPago: false,
-        dataPagamento: format(new Date(), 'yyyy-MM-dd'),
-        formaPagamento: 'PIX' as Pagamento['formaPagamento'],
-        lancarFluxo: true
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const valor = parseFloat(formData.valorTotal.replace(',', '.')) || 0;
-        const now = new Date().toISOString();
-
-        const novaConta: ContaReceber = {
-            id: crypto.randomUUID(),
-            numeroOrcamento: formData.numeroOrcamento || undefined,
-            cliente: { nome: formData.clienteNome, telefone: formData.clienteTelefone },
-            descricao: formData.descricao,
-            categoria: formData.categoria,
-            valorTotal: valor,
-            valorPago: formData.marcarPago ? valor : 0,
-            saldoRestante: formData.marcarPago ? 0 : valor,
-            dataCadastro: format(new Date(), 'yyyy-MM-dd'),
-            dataVencimento: formData.dataVencimento,
-            status: formData.marcarPago ? 'pago' : 'pendente',
-            pagamentos: formData.marcarPago ? [{
-                id: crypto.randomUUID(),
-                data: formData.dataPagamento,
-                valor: valor,
-                formaPagamento: formData.formaPagamento
-            }] : [],
-            lancadoFluxoCaixa: formData.marcarPago && formData.lancarFluxo,
-            observacoes: formData.observacoes,
-            criadoEm: now,
-            atualizadoEm: now
-        };
-
-        storage.saveContaReceber(novaConta);
-
-        if (formData.marcarPago && formData.lancarFluxo) {
-            storage.saveTransacao({
-                id: crypto.randomUUID(),
-                tipo: 'Receita',
-                data: formData.dataPagamento,
-                descricao: `Recebimento: ${formData.clienteNome} - ${formData.descricao}`,
-                valor: valor,
-                categoriaId: '1',
-                categoriaNome: formData.categoria,
-                status: 'Pago',
-                criadoEm: now
-            });
-        }
-
-        onSuccess();
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
-                <div className="flex justify-between items-center p-6 border-b border-neutral-100 sticky top-0 bg-white">
-                    <h2 className="text-xl font-bold text-neutral-800">Nova Conta a Receber</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full text-neutral-500">✕</button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label className="text-sm font-medium text-neutral-700">Cliente *</label>
-                            <input
-                                type="text" required
-                                placeholder="Nome do cliente"
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500"
-                                value={formData.clienteNome}
-                                onChange={e => setFormData({ ...formData, clienteNome: e.target.value })}
-                            />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="p-6 bg-white rounded-2xl border border-neutral-100 shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                            <ArrowUpCircle className="w-6 h-6" />
                         </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Nº Orçamento</label>
-                            <input
-                                type="text"
-                                placeholder="Ex: 25342"
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.numeroOrcamento}
-                                onChange={e => setFormData({ ...formData, numeroOrcamento: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Categoria</label>
-                            <select
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.categoria}
-                                onChange={e => setFormData({ ...formData, categoria: e.target.value })}
-                            >
-                                <option>Vendas Bolos</option>
-                                <option>Eventos</option>
-                                <option>Serviços</option>
-                                <option>Outros</option>
-                            </select>
-                        </div>
-                        <div className="col-span-2">
-                            <label className="text-sm font-medium text-neutral-700">Descrição *</label>
-                            <input
-                                type="text" required
-                                placeholder="Ex: Bolo de Chocolate - Médio"
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.descricao}
-                                onChange={e => setFormData({ ...formData, descricao: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Valor Total *</label>
-                            <input
-                                type="number" step="0.01" required
-                                placeholder="0,00"
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl text-lg font-bold"
-                                value={formData.valorTotal}
-                                onChange={e => setFormData({ ...formData, valorTotal: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Vencimento *</label>
-                            <input
-                                type="date" required
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.dataVencimento}
-                                onChange={e => setFormData({ ...formData, dataVencimento: e.target.value })}
-                            />
-                        </div>
+                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Total Geral</span>
                     </div>
+                    <div className="space-y-1">
+                        <span className="text-2xl font-bold text-neutral-800">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <p className="text-xs text-neutral-500">Valor total a receber</p>
+                    </div>
+                </div>
 
-                    <div className="border-t border-neutral-100 pt-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm font-medium text-neutral-700">Marcar como pago agora</span>
-                            <Toggle
-                                checked={formData.marcarPago}
-                                onChange={(checked) => setFormData({ ...formData, marcarPago: checked })}
-                                size="sm"
-                            />
+                <div className="p-6 bg-white rounded-2xl border border-neutral-100 shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-green-50 text-green-600 rounded-xl">
+                            <CheckCircle2 className="w-6 h-6" />
                         </div>
+                        <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">Recebido</span>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-2xl font-bold text-neutral-800">R$ {summary.recebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <p className="text-xs text-neutral-500">Já pago pelos clientes</p>
+                    </div>
+                </div>
 
-                        {formData.marcarPago && (
-                            <div className="mt-4 p-4 bg-green-50 rounded-xl space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-xs text-neutral-600">Data Pagamento</label>
-                                        <input
-                                            type="date"
-                                            className="w-full mt-1 p-2 bg-white border border-neutral-200 rounded-lg text-sm"
-                                            value={formData.dataPagamento}
-                                            onChange={e => setFormData({ ...formData, dataPagamento: e.target.value })}
-                                        />
+                <div className="p-6 bg-white rounded-2xl border border-neutral-100 shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+                            <Clock className="w-6 h-6" />
+                        </div>
+                        <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">Pendente</span>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-2xl font-bold text-neutral-800">R$ {summary.pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <p className="text-xs text-neutral-500">Ainda a receber</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm">
+                <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por cliente, descrição ou orçamento..."
+                        className="w-full pl-10 pr-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0">
+                    <select
+                        className="px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 font-medium text-neutral-600"
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value as any)}
+                    >
+                        <option value="todos">Todos Status</option>
+                        <option value="pendente">Pendentes</option>
+                        <option value="pago">Pagos</option>
+                        <option value="vencido">Vencidos</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* List */}
+            <div className="space-y-4">
+                {filteredContas.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-3xl border border-neutral-200 border-dashed">
+                        <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Search className="w-8 h-8 text-neutral-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-neutral-800 mb-1">Nenhuma conta encontrada</h3>
+                        <p className="text-neutral-500">Tente ajustar os filtros ou adicione uma nova conta.</p>
+                    </div>
+                ) : (
+                    filteredContas.map(conta => (
+                        <div key={conta.id} className="bg-white rounded-2xl p-5 border border-neutral-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex flex-col md:flex-row justify-between gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className={`w-2 h-2 rounded-full ${getStatusColor(conta.status, conta.dataVencimento)}`} />
+                                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                                            {conta.numeroOrcamento ? `Orçamento #${conta.numeroOrcamento}` : 'Conta Avulsa'}
+                                        </span>
+                                        <span className="text-xs text-neutral-400">•</span>
+                                        <span className="text-xs font-medium text-neutral-500">{format(new Date(conta.dataVencimento), "dd 'de' MMM, yyyy", { locale: ptBR })}</span>
                                     </div>
-                                    <div>
-                                        <label className="text-xs text-neutral-600">Forma Pagamento</label>
-                                        <select
-                                            className="w-full mt-1 p-2 bg-white border border-neutral-200 rounded-lg text-sm"
-                                            value={formData.formaPagamento}
-                                            onChange={e => setFormData({ ...formData, formaPagamento: e.target.value as Pagamento['formaPagamento'] })}
-                                        >
-                                            <option>PIX</option>
-                                            <option>Dinheiro</option>
-                                            <option>Cartão Débito</option>
-                                            <option>Cartão Crédito</option>
-                                            <option>Transferência</option>
-                                        </select>
+                                    <h3 className="text-lg font-bold text-neutral-800 mb-1">{conta.descricao}</h3>
+                                    <div className="flex items-center gap-2 text-neutral-600 mb-3">
+                                        <span className="font-medium">{conta.cliente.nome}</span>
+                                        {conta.cliente.telefone && (
+                                            <>
+                                                <span className="text-neutral-300">|</span>
+                                                <span className="text-sm">{conta.cliente.telefone}</span>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="max-w-md w-full">
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span className="text-green-600 font-medium">Pago: R$ {conta.valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                            <span className="text-neutral-500 font-medium">Total: R$ {conta.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-green-500 rounded-full transition-all duration-500"
+                                                style={{ width: `${(conta.valorPago / conta.valorTotal) * 100}%` }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 mt-3">
-                                    <Toggle
-                                        checked={formData.lancarFluxo}
-                                        onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
-                                        size="sm"
-                                    />
-                                    <span className="text-sm">Lançar no Fluxo de Caixa</span>
+
+                                <div className="flex flex-col items-end gap-3 justify-between min-w-[150px]">
+                                    <div className="text-right">
+                                        <span className="text-xs text-neutral-400 block mb-1">Restante a Receber</span>
+                                        <span className={`text-2xl font-bold ${conta.saldoRestante === 0 ? 'text-green-500' : 'text-neutral-800'}`}>
+                                            R$ {conta.saldoRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+
+                                    {conta.saldoRestante > 0 && (
+                                        <button
+                                            onClick={() => setPaymentModal({ open: true, conta })}
+                                            className="px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                                        >
+                                            <DollarSign className="w-4 h-4" />
+                                            Receber
+                                        </button>
+                                    )}
                                 </div>
                             </div>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="w-full py-3 bg-white border border-neutral-200 text-neutral-600 font-bold rounded-xl hover:bg-neutral-50">
-                            Cancelar
-                        </button>
-                        <button type="submit" className="w-full py-3 bg-pink-600 text-white font-bold rounded-xl hover:bg-pink-700">
-                            Salvar Conta
-                        </button>
-                    </div>
-                </form>
-            </div >
-        </div >
-    );
-}
-
-// --- Payment Modal ---
-function PaymentModal({ conta, onClose, onSuccess }: { conta: ContaReceber; onClose: () => void; onSuccess: (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => void }) {
-    const [formData, setFormData] = useState({
-        dataPagamento: format(new Date(), 'yyyy-MM-dd'),
-        valorRecebido: conta.saldoRestante.toString(),
-        formaPagamento: 'PIX' as Pagamento['formaPagamento'],
-        observacoes: '',
-        lancarFluxo: true
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const valor = parseFloat(formData.valorRecebido.replace(',', '.')) || 0;
-
-        const payment: Pagamento = {
-            id: crypto.randomUUID(),
-            data: formData.dataPagamento,
-            valor: valor,
-            formaPagamento: formData.formaPagamento,
-            observacoes: formData.observacoes
-        };
-
-        onSuccess(conta.id, payment, formData.lancarFluxo);
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-                <div className="flex justify-between items-center p-6 border-b border-neutral-100">
-                    <h2 className="text-xl font-bold text-neutral-800">Registrar Pagamento</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full text-neutral-500">✕</button>
-                </div>
-
-                <div className="p-6 border-b border-neutral-100 bg-neutral-50">
-                    <p className="text-sm text-neutral-500">Conta: <span className="font-medium text-neutral-800">#{conta.numeroOrcamento || conta.id.slice(0, 8)} - {conta.cliente.nome}</span></p>
-                    <p className="text-sm text-neutral-500">Descrição: <span className="text-neutral-700">{conta.descricao}</span></p>
-                    <p className="text-sm text-neutral-500">Valor Total: <span className="font-bold text-neutral-800">R$ {conta.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
-                    <p className="text-sm text-neutral-500">Saldo Restante: <span className="font-bold text-green-600">R$ {conta.saldoRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Data Pagamento *</label>
-                            <input
-                                type="date" required
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.dataPagamento}
-                                onChange={e => setFormData({ ...formData, dataPagamento: e.target.value })}
-                            />
                         </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Valor Recebido *</label>
-                            <input
-                                type="number" step="0.01" required
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl text-lg font-bold"
-                                value={formData.valorRecebido}
-                                onChange={e => setFormData({ ...formData, valorRecebido: e.target.value })}
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium text-neutral-700">Forma de Pagamento *</label>
-                        <select
-                            className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                            value={formData.formaPagamento}
-                            onChange={e => setFormData({ ...formData, formaPagamento: e.target.value as Pagamento['formaPagamento'] })}
-                        >
-                            <option>PIX</option>
-                            <option>Dinheiro</option>
-                            <option>Cartão Débito</option>
-                            <option>Cartão Crédito</option>
-                            <option>Transferência</option>
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2">
-                        <Toggle
-                            checked={formData.lancarFluxo}
-                            onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
-                            size="sm"
-                        />
-                        <span className="text-sm text-neutral-700">Lançar receita no Fluxo de Caixa</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="w-full py-3 bg-white border border-neutral-200 text-neutral-600 font-bold rounded-xl hover:bg-neutral-50">
-                            Cancelar
-                        </button>
-                        <button type="submit" className="w-full py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700">
-                            Confirmar Pagamento
-                        </button>
-                    </div>
-                </form>
+                    ))
+                )}
             </div>
+
+            {/* Modals */}
+            <NewContaReceberModal
+                isOpen={isNewModalOpen}
+                onClose={() => setIsNewModalOpen(false)}
+                onSuccess={loadData}
+            />
+
+            {paymentModal.conta && paymentModal.open && (
+                <ReceivablePaymentModal
+                    conta={paymentModal.conta}
+                    onClose={() => setPaymentModal({ open: false, conta: null })}
+                    onSuccess={handlePayment}
+                />
+            )}
         </div>
     );
 }
+

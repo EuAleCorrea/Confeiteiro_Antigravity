@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Plus, Search, MoreHorizontal, ArrowLeft, Check, Clock, AlertTriangle } from "lucide-react";
 import { storage, ContaPagar, Pagamento } from "@/lib/storage";
 import { format, isAfter, startOfDay, startOfMonth, endOfMonth, addMonths } from "date-fns";
-import { Toggle } from "@/components/ui/Toggle";
-import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { NewContaPagarModal } from "@/components/financeiro/NewContaPagarModal";
+import { PayablePaymentModal } from "@/components/financeiro/PayablePaymentModal";
 
 type TabType = 'pendentes' | 'pagas' | 'vencidas' | 'todas';
 
@@ -16,8 +16,7 @@ export default function ContasPagarPage() {
     const [activeTab, setActiveTab] = useState<TabType>('pendentes');
     const [searchQuery, setSearchQuery] = useState('');
     const [showNewModal, setShowNewModal] = useState(false);
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
+    const [paymentModal, setPaymentModal] = useState<{ open: boolean; conta: ContaPagar | null }>({ open: false, conta: null });
 
     useEffect(() => {
         loadData();
@@ -47,7 +46,7 @@ export default function ContasPagarPage() {
             result = result.filter(c =>
                 c.fornecedor.nome.toLowerCase().includes(q) ||
                 c.descricao.toLowerCase().includes(q) ||
-                c.numeroNF?.includes(q)
+                (c.numeroNF && c.numeroNF.includes(q))
             );
         }
 
@@ -104,8 +103,7 @@ export default function ContasPagarPage() {
     ];
 
     const handleRegisterPayment = (conta: ContaPagar) => {
-        setSelectedConta(conta);
-        setShowPaymentModal(true);
+        setPaymentModal({ open: true, conta });
     };
 
     const handlePaymentSuccess = (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => {
@@ -142,8 +140,7 @@ export default function ContasPagarPage() {
             });
         }
 
-        setShowPaymentModal(false);
-        setSelectedConta(null);
+        setPaymentModal({ open: false, conta: null });
         loadData();
     };
 
@@ -312,314 +309,13 @@ export default function ContasPagarPage() {
             )}
 
             {/* Payment Modal */}
-            {showPaymentModal && selectedConta && (
-                <PaymentModal
-                    conta={selectedConta}
-                    onClose={() => { setShowPaymentModal(false); setSelectedConta(null); }}
+            {paymentModal.open && paymentModal.conta && (
+                <PayablePaymentModal
+                    conta={paymentModal.conta}
+                    onClose={() => setPaymentModal({ open: false, conta: null })}
                     onSuccess={handlePaymentSuccess}
                 />
             )}
-        </div>
-    );
-}
-
-// --- New Account Modal ---
-function NewContaPagarModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-    const [formData, setFormData] = useState({
-        fornecedorNome: '',
-        numeroNF: '',
-        categoria: 'Ingredientes',
-        descricao: '',
-        valorTotal: '',
-        dataEmissao: format(new Date(), 'yyyy-MM-dd'),
-        dataVencimento: format(new Date(), 'yyyy-MM-dd'),
-        observacoes: '',
-        marcarPago: false,
-        dataPagamento: format(new Date(), 'yyyy-MM-dd'),
-        formaPagamento: 'PIX' as Pagamento['formaPagamento'],
-        lancarFluxo: true
-    });
-
-    const categorias = ['Ingredientes', 'Embalagens', 'Aluguel', 'Utilities', 'Impostos', 'Salários', 'Manutenção', 'Marketing', 'Outras'];
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const valor = parseFloat(formData.valorTotal.replace(',', '.')) || 0;
-        const now = new Date().toISOString();
-
-        const novaConta: ContaPagar = {
-            id: crypto.randomUUID(),
-            numeroNF: formData.numeroNF || undefined,
-            fornecedor: { nome: formData.fornecedorNome },
-            categoria: formData.categoria,
-            descricao: formData.descricao,
-            valorTotal: valor,
-            valorPago: formData.marcarPago ? valor : 0,
-            saldoRestante: formData.marcarPago ? 0 : valor,
-            dataEmissao: formData.dataEmissao,
-            dataVencimento: formData.dataVencimento,
-            status: formData.marcarPago ? 'pago' : 'pendente',
-            pagamentos: formData.marcarPago ? [{
-                id: crypto.randomUUID(),
-                data: formData.dataPagamento,
-                valor: valor,
-                formaPagamento: formData.formaPagamento
-            }] : [],
-            lancadoFluxoCaixa: formData.marcarPago && formData.lancarFluxo,
-            observacoes: formData.observacoes,
-            criadoEm: now,
-            atualizadoEm: now
-        };
-
-        storage.saveContaPagar(novaConta);
-
-        if (formData.marcarPago && formData.lancarFluxo) {
-            storage.saveTransacao({
-                id: crypto.randomUUID(),
-                tipo: 'Despesa',
-                data: formData.dataPagamento,
-                descricao: `Pagamento: ${formData.fornecedorNome} - ${formData.descricao}`,
-                valor: valor,
-                categoriaId: '8',
-                categoriaNome: formData.categoria,
-                status: 'Pago',
-                criadoEm: now
-            });
-        }
-
-        onSuccess();
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
-                <div className="flex justify-between items-center p-6 border-b border-neutral-100 sticky top-0 bg-white">
-                    <h2 className="text-xl font-bold text-neutral-800">Nova Conta a Pagar</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full text-neutral-500">✕</button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label className="text-sm font-medium text-neutral-700">Fornecedor *</label>
-                            <input
-                                type="text" required
-                                placeholder="Nome do fornecedor"
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                                value={formData.fornecedorNome}
-                                onChange={e => setFormData({ ...formData, fornecedorNome: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Nº NF</label>
-                            <input
-                                type="text"
-                                placeholder="Ex: 123456"
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.numeroNF}
-                                onChange={e => setFormData({ ...formData, numeroNF: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Categoria *</label>
-                            <select
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.categoria}
-                                onChange={e => setFormData({ ...formData, categoria: e.target.value })}
-                            >
-                                {categorias.map(c => <option key={c}>{c}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-span-2">
-                            <label className="text-sm font-medium text-neutral-700">Descrição *</label>
-                            <input
-                                type="text" required
-                                placeholder="Ex: Compra de farinha 50kg"
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.descricao}
-                                onChange={e => setFormData({ ...formData, descricao: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Valor Total *</label>
-                            <input
-                                type="number" step="0.01" required
-                                placeholder="0,00"
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl text-lg font-bold"
-                                value={formData.valorTotal}
-                                onChange={e => setFormData({ ...formData, valorTotal: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Vencimento *</label>
-                            <input
-                                type="date" required
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.dataVencimento}
-                                onChange={e => setFormData({ ...formData, dataVencimento: e.target.value })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="border-t border-neutral-100 pt-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm font-medium text-neutral-700">Marcar como pago agora</span>
-                            <Toggle
-                                checked={formData.marcarPago}
-                                onChange={(checked) => setFormData({ ...formData, marcarPago: checked })}
-                                size="sm"
-                            />
-                        </div>
-
-                        {formData.marcarPago && (
-                            <div className="mt-4 p-4 bg-green-50 rounded-xl space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-xs text-neutral-600">Data Pagamento</label>
-                                        <input
-                                            type="date"
-                                            className="w-full mt-1 p-2 bg-white border border-neutral-200 rounded-lg text-sm"
-                                            value={formData.dataPagamento}
-                                            onChange={e => setFormData({ ...formData, dataPagamento: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-neutral-600">Forma Pagamento</label>
-                                        <select
-                                            className="w-full mt-1 p-2 bg-white border border-neutral-200 rounded-lg text-sm"
-                                            value={formData.formaPagamento}
-                                            onChange={e => setFormData({ ...formData, formaPagamento: e.target.value as Pagamento['formaPagamento'] })}
-                                        >
-                                            <option>PIX</option>
-                                            <option>Dinheiro</option>
-                                            <option>Boleto</option>
-                                            <option>Cartão Crédito</option>
-                                            <option>Transferência</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3 mt-3">
-                                    <Toggle
-                                        checked={formData.lancarFluxo}
-                                        onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
-                                        size="sm"
-                                    />
-                                    <span className="text-sm">Lançar no Fluxo de Caixa</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="w-full py-3 bg-white border border-neutral-200 text-neutral-600 font-bold rounded-xl hover:bg-neutral-50">
-                            Cancelar
-                        </button>
-                        <button type="submit" className="w-full py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700">
-                            Salvar Conta
-                        </button>
-                    </div>
-                </form>
-            </div >
-        </div >
-    );
-}
-
-// --- Payment Modal ---
-function PaymentModal({ conta, onClose, onSuccess }: { conta: ContaPagar; onClose: () => void; onSuccess: (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => void }) {
-    const [formData, setFormData] = useState({
-        dataPagamento: format(new Date(), 'yyyy-MM-dd'),
-        valorPago: conta.saldoRestante.toString(),
-        formaPagamento: 'PIX' as Pagamento['formaPagamento'],
-        observacoes: '',
-        lancarFluxo: true
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const valor = parseFloat(formData.valorPago.replace(',', '.')) || 0;
-
-        const payment: Pagamento = {
-            id: crypto.randomUUID(),
-            data: formData.dataPagamento,
-            valor: valor,
-            formaPagamento: formData.formaPagamento,
-            observacoes: formData.observacoes
-        };
-
-        onSuccess(conta.id, payment, formData.lancarFluxo);
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-                <div className="flex justify-between items-center p-6 border-b border-neutral-100">
-                    <h2 className="text-xl font-bold text-neutral-800">Registrar Pagamento</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full text-neutral-500">✕</button>
-                </div>
-
-                <div className="p-6 border-b border-neutral-100 bg-neutral-50">
-                    <p className="text-sm text-neutral-500">Conta: <span className="font-medium text-neutral-800">#{conta.numeroNF || conta.id.slice(0, 8)} - {conta.fornecedor.nome}</span></p>
-                    <p className="text-sm text-neutral-500">Descrição: <span className="text-neutral-700">{conta.descricao}</span></p>
-                    <p className="text-sm text-neutral-500">Valor Total: <span className="font-bold text-neutral-800">R$ {conta.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
-                    <p className="text-sm text-neutral-500">Saldo Restante: <span className="font-bold text-red-600">R$ {conta.saldoRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Data Pagamento *</label>
-                            <input
-                                type="date" required
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                                value={formData.dataPagamento}
-                                onChange={e => setFormData({ ...formData, dataPagamento: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-neutral-700">Valor Pago *</label>
-                            <input
-                                type="number" step="0.01" required
-                                className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl text-lg font-bold"
-                                value={formData.valorPago}
-                                onChange={e => setFormData({ ...formData, valorPago: e.target.value })}
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium text-neutral-700">Forma de Pagamento *</label>
-                        <select
-                            className="w-full mt-1 p-3 bg-neutral-50 border border-neutral-200 rounded-xl"
-                            value={formData.formaPagamento}
-                            onChange={e => setFormData({ ...formData, formaPagamento: e.target.value as Pagamento['formaPagamento'] })}
-                        >
-                            <option>PIX</option>
-                            <option>Dinheiro</option>
-                            <option>Boleto</option>
-                            <option>Cartão Crédito</option>
-                            <option>Transferência</option>
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2">
-                        <Toggle
-                            checked={formData.lancarFluxo}
-                            onChange={(checked) => setFormData({ ...formData, lancarFluxo: checked })}
-                            size="sm"
-                        />
-                        <span className="text-sm text-neutral-700">Lançar despesa no Fluxo de Caixa</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="w-full py-3 bg-white border border-neutral-200 text-neutral-600 font-bold rounded-xl hover:bg-neutral-50">
-                            Cancelar
-                        </button>
-                        <button type="submit" className="w-full py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700">
-                            Confirmar Pagamento
-                        </button>
-                    </div>
-                </form>
-            </div>
         </div>
     );
 }
