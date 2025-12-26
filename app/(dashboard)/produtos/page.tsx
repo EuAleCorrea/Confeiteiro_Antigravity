@@ -181,7 +181,7 @@ export default function ProdutosPage() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingProduto ? "Editar Produto" : "Novo Produto"}
-                className="max-w-2xl"
+                className="max-w-3xl"
             >
                 <form onSubmit={handleSave} className="space-y-6 mt-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -226,7 +226,7 @@ export default function ProdutosPage() {
                         {(formData.categoria === 'Bolo' || (!formData.categoria && activeTab === 'Bolo')) && (
                             <div className="col-span-2 space-y-4">
                                 <label className="text-sm font-medium text-text-secondary">Tamanhos Disponíveis</label>
-                                <div className="grid grid-cols-1 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {tamanhosOpcoes.map(tamanho => {
                                         const isSelected = formData.tamanhos?.includes(tamanho);
                                         return (

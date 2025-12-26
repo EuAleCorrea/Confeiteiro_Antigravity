@@ -10,6 +10,8 @@ import { ListView } from "@/components/pedidos/views/ListView";
 import { KanbanView } from "@/components/pedidos/views/KanbanView";
 import { CalendarView } from "@/components/pedidos/views/CalendarView";
 import { WeeklyView } from "@/components/pedidos/views/WeeklyView";
+import { Dialog } from "@/components/ui/Dialog";
+import { OrderForm } from "@/components/pedidos/OrderForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -18,6 +20,7 @@ export default function PedidosPage() {
     const [view, setView] = useState<'list' | 'kanban' | 'calendar' | 'weekly'>('kanban');
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -117,12 +120,10 @@ export default function PedidosPage() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <Link href="/pedidos/novo">
-                        <Button variant="primary">
-                            <Plus size={18} className="mr-2" /> Novo Pedido
-                        </Button>
-                    </Link>
                 </div>
+                <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+                    <Plus size={18} className="mr-2" /> Novo Pedido
+                </Button>
             </div>
 
             {/* Stats Cards */}
@@ -212,6 +213,21 @@ export default function PedidosPage() {
                 {view === 'calendar' && <CalendarView pedidos={filteredPedidos} />}
                 {view === 'weekly' && <WeeklyView pedidos={filteredPedidos} />}
             </div>
-        </div>
+
+            <Dialog
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Novo Pedido"
+                className="max-w-4xl"
+            >
+                <OrderForm
+                    onClose={() => setIsModalOpen(false)}
+                    onSave={() => {
+                        setIsModalOpen(false);
+                        loadPedidos();
+                    }}
+                />
+            </Dialog>
+        </div >
     );
 }
