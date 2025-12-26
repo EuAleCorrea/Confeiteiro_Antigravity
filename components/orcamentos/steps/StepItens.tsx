@@ -23,7 +23,7 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
     const [quantity, setQuantity] = useState(1);
     const [selectedSize, setSelectedSize] = useState("");
     const [selectedMassa, setSelectedMassa] = useState("");
-    const [selectedRecheio, setSelectedRecheio] = useState("");
+    const [selectedRecheios, setSelectedRecheios] = useState<string[]>([]);
     const [items, setItems] = useState<ItemOrcamento[]>(data.itens || []);
 
     const cartTotal = items.reduce((sum, item) => sum + item.subtotal, 0);
@@ -40,7 +40,12 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
     function addItem() {
         if (!currentProduct) return;
 
-        const subtotal = currentProduct.preco * quantity; // Simplified pricing logic
+        let unitPrice = currentProduct.preco;
+        if (selectedSize && currentProduct.precosPorTamanho && currentProduct.precosPorTamanho[selectedSize]) {
+            unitPrice = currentProduct.precosPorTamanho[selectedSize];
+        }
+
+        const subtotal = unitPrice * quantity;
 
         const newItem: ItemOrcamento = {
             id: crypto.randomUUID(),
@@ -50,9 +55,11 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
             nome: currentProduct.nome,
             tamanho: selectedSize,
             saborMassa: selectedMassa ? massas.find(m => m.id === selectedMassa)?.nome : undefined,
-            saborRecheio: selectedRecheio ? recheios.find(r => r.id === selectedRecheio)?.nome : undefined,
+            saborRecheio: selectedRecheios.length > 0
+                ? selectedRecheios.map(id => recheios.find(r => r.id === id)?.nome).filter(Boolean).join(" + ")
+                : undefined,
             quantidade: quantity,
-            precoUnitario: currentProduct.preco,
+            precoUnitario: unitPrice,
             subtotal: subtotal
         };
 
@@ -64,7 +71,7 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
         setSelectedProduct("");
         setSelectedSize("");
         setSelectedMassa("");
-        setSelectedRecheio("");
+        setSelectedRecheios([]);
         setQuantity(1);
     }
 
@@ -123,20 +130,35 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
                                             value={selectedMassa}
                                             onChange={(e) => setSelectedMassa(e.target.value)}
                                         >
-                                            <option value="">Padrão</option>
+                                            <option value="">Padrão / Nenhuma</option>
                                             {massas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Recheio</label>
-                                        <select
-                                            className="w-full h-10 rounded-lg border border-border px-3"
-                                            value={selectedRecheio}
-                                            onChange={(e) => setSelectedRecheio(e.target.value)}
-                                        >
-                                            <option value="">Padrão</option>
-                                            {recheios.map(r => <option key={r.id} value={r.id}>{r.nome}</option>)}
-                                        </select>
+                                    <div className="col-span-2 space-y-2">
+                                        <label className="block text-sm font-medium">Recheios (Máx 3)</label>
+                                        <div className="space-y-2">
+                                            {/* Dynamic Recheio Selects */}
+                                            {[0, 1, 2].map(idx => (
+                                                <select
+                                                    key={idx}
+                                                    className="w-full h-10 rounded-lg border border-border px-3"
+                                                    value={selectedRecheios[idx] || ""}
+                                                    onChange={(e) => {
+                                                        const newRecheios = [...selectedRecheios];
+                                                        if (e.target.value) {
+                                                            newRecheios[idx] = e.target.value;
+                                                        } else {
+                                                            newRecheios.splice(idx, 1);
+                                                        }
+                                                        setSelectedRecheios(newRecheios.filter(Boolean));
+                                                    }}
+                                                >
+                                                    <option value="">{idx === 0 ? "Selecione um recheio..." : "Adicionar outro recheio..."}</option>
+                                                    {recheios.map(r => <option key={r.id} value={r.id}>{r.nome}</option>)}
+                                                </select>
+                                            ))}
+                                            {selectedRecheios.length > 0 && <p className="text-xs text-text-secondary">Selecionados: {selectedRecheios.length}</p>}
+                                        </div>
                                     </div>
                                 </div>
                             )}

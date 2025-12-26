@@ -23,6 +23,7 @@ export interface Produto {
     nome: string;
     categoria: 'Bolo' | 'Adicional' | 'Serviço';
     preco: number;
+    precosPorTamanho?: Record<string, number>; // Preço específico por tamanho
     descricao?: string;
     foto?: string;
     tamanhos?: string[];

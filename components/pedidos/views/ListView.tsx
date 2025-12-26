@@ -4,15 +4,16 @@ import { Pedido } from "@/lib/storage";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { StatusBadge } from "../StatusBadge";
 import { Button } from "@/components/ui/Button";
-import { Eye, Edit, Calendar, Clock, MapPin, ChevronRight } from "lucide-react";
+import { Eye, Edit, Calendar, Clock, MapPin, ChevronRight, DollarSign } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/Card";
 
 interface ListViewProps {
     pedidos: Pedido[];
+    onPaymentConfirm?: (id: string) => void;
 }
 
-export function ListView({ pedidos }: ListViewProps) {
+export function ListView({ pedidos, onPaymentConfirm }: ListViewProps) {
     if (pedidos.length === 0) {
         return (
             <div className="text-center py-12 text-text-secondary bg-white rounded-lg border border-border">
@@ -121,6 +122,11 @@ export function ListView({ pedidos }: ListViewProps) {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
+                                        {onPaymentConfirm && pedido.financeiro.statusPagamento !== 'Pago' && (
+                                            <Button variant="ghost" size="sm" className="text-green-600" title="Confirmar Pagamento" onClick={() => onPaymentConfirm(pedido.id)}>
+                                                <DollarSign size={16} />
+                                            </Button>
+                                        )}
                                         <Link href={`/pedidos/${pedido.id}`}>
                                             <Button variant="ghost" size="sm" title="Ver Detalhes">
                                                 <Eye size={16} />

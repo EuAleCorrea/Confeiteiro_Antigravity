@@ -36,6 +36,7 @@ export default function ProdutosPage() {
             preco: Number(formData.preco),
             descricao: formData.descricao || "",
             tamanhos: formData.tamanhos || [],
+            precosPorTamanho: formData.precosPorTamanho || {},
             ativo: formData.ativo !== undefined ? formData.ativo : true,
             // foto: formData.foto
         };
@@ -81,11 +82,26 @@ export default function ProdutosPage() {
 
     function toggleTamanho(tamanho: string) {
         const current = formData.tamanhos || [];
+        const currentPrices = formData.precosPorTamanho || {};
+
         if (current.includes(tamanho)) {
-            setFormData({ ...formData, tamanhos: current.filter(t => t !== tamanho) });
+            const newTamanhos = current.filter(t => t !== tamanho);
+            // Optional: cleanup price for removed size
+            const { [tamanho]: _, ...rest } = currentPrices;
+            setFormData({ ...formData, tamanhos: newTamanhos, precosPorTamanho: rest });
         } else {
             setFormData({ ...formData, tamanhos: [...current, tamanho] });
         }
+    }
+
+    function handlePriceChange(tamanho: string, price: string) {
+        setFormData({
+            ...formData,
+            precosPorTamanho: {
+                ...formData.precosPorTamanho,
+                [tamanho]: parseFloat(price) || 0
+            }
+        });
     }
 
     const filteredProdutos = produtos.filter(p => p.categoria === activeTab);
@@ -208,19 +224,37 @@ export default function ProdutosPage() {
 
                         {/* Conditional fields for 'Bolo' */}
                         {(formData.categoria === 'Bolo' || (!formData.categoria && activeTab === 'Bolo')) && (
-                            <div className="col-span-2 space-y-2">
+                            <div className="col-span-2 space-y-4">
                                 <label className="text-sm font-medium text-text-secondary">Tamanhos Disponíveis</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {tamanhosOpcoes.map(tamanho => (
-                                        <div key={tamanho} className="flex items-center justify-between p-2 rounded-lg border border-neutral-100 bg-neutral-50">
-                                            <span className="text-sm text-neutral-700">{tamanho}</span>
-                                            <Toggle
-                                                checked={formData.tamanhos?.includes(tamanho) || false}
-                                                onChange={() => toggleTamanho(tamanho)}
-                                                size="sm"
-                                            />
-                                        </div>
-                                    ))}
+                                <div className="grid grid-cols-1 gap-3">
+                                    {tamanhosOpcoes.map(tamanho => {
+                                        const isSelected = formData.tamanhos?.includes(tamanho);
+                                        return (
+                                            <div key={tamanho} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isSelected ? 'bg-primary-50 border-primary-100' : 'bg-neutral-50 border-neutral-100'}`}>
+                                                <Toggle
+                                                    checked={isSelected || false}
+                                                    onChange={() => toggleTamanho(tamanho)}
+                                                    size="sm"
+                                                />
+                                                <span className={`text-sm flex-1 ${isSelected ? 'font-medium text-primary-900' : 'text-neutral-700'}`}>{tamanho}</span>
+
+                                                {isSelected && (
+                                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                                                        <span className="text-xs text-text-secondary">Preço: R$</span>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-24 h-8 px-2 rounded border border-border text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+                                                            placeholder={String(formData.preco || 0)}
+                                                            value={formData.precosPorTamanho?.[tamanho] || ""}
+                                                            onChange={(e) => handlePriceChange(tamanho, e.target.value)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

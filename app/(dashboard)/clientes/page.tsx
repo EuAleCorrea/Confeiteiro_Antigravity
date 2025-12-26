@@ -28,12 +28,12 @@ export default function ClientesPage() {
 
     function handleSave(e: React.FormEvent) {
         e.preventDefault();
-        if (!formData.nome || !formData.telefone || !formData.cpf) return;
+        if (!formData.nome || !formData.telefone) return;
 
         const cliente: Cliente = {
             id: editingCliente ? editingCliente.id : crypto.randomUUID(),
             nome: formData.nome,
-            cpf: formData.cpf,
+            cpf: formData.cpf || "", // Ensure string
             telefone: formData.telefone,
             email: formData.email || "",
             endereco: {
@@ -193,9 +193,8 @@ export default function ClientesPage() {
                             onChange={e => setFormData({ ...formData, nome: e.target.value })}
                         />
                         <Input
-                            label="CPF *"
+                            label="CPF"
                             placeholder="000.000.000-00"
-                            required
                             value={formData.cpf || ""}
                             onChange={e => setFormData({ ...formData, cpf: e.target.value })}
                         />

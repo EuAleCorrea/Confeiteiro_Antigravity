@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 interface KanbanViewProps {
     pedidos: Pedido[];
     onStatusChange: (pedidoId: string, newStatus: Pedido['status']) => void;
+    onPaymentConfirm?: (id: string) => void;
 }
 
 const COLUMNS: { id: Pedido['status']; label: string; shortLabel: string }[] = [
@@ -21,7 +22,7 @@ const COLUMNS: { id: Pedido['status']; label: string; shortLabel: string }[] = [
     { id: 'Entregue', label: 'Entregue', shortLabel: 'Entregue' },
 ];
 
-export function KanbanView({ pedidos, onStatusChange }: KanbanViewProps) {
+export function KanbanView({ pedidos, onStatusChange, onPaymentConfirm }: KanbanViewProps) {
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [activeColumnIndex, setActiveColumnIndex] = useState(0);
 
@@ -106,7 +107,21 @@ export function KanbanView({ pedidos, onStatusChange }: KanbanViewProps) {
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pedido.financeiro.valorTotal)}
                             </span>
                             {pedido.financeiro.saldoPendente > 0 && (
-                                <span className="text-[10px] text-red-500 font-medium">Pendente</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-red-500 font-medium">Pendente</span>
+                                    {onPaymentConfirm && (
+                                        <button
+                                            className="text-green-600 hover:bg-green-50 p-1 rounded-full"
+                                            title="Confirmar Pagamento"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                onPaymentConfirm(pedido.id);
+                                            }}
+                                        >
+                                            <DollarSign size={14} />
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </CardContent>

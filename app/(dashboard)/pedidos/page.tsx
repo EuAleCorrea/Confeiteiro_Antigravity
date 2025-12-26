@@ -68,9 +68,40 @@ export default function PedidosPage() {
         pending: pedidos.filter(p => p.status === 'Pagamento Pendente' || p.status === 'Aguardando Produção').length
     };
 
+
+    const handlePaymentConfirm = (pedidoId: string) => {
+        if (!confirm("Confirmar recebimento do pagamento?")) return;
+
+        const pedido = storage.getPedidoById(pedidoId);
+        if (pedido) {
+            const updated = {
+                ...pedido,
+                financeiro: {
+                    ...pedido.financeiro,
+                    statusPagamento: 'Pago' as const,
+                    valorPago: pedido.financeiro.valorTotal,
+                    saldoPendente: 0
+                },
+                // Optional: Auto-advance status if it was Payment Pending
+                status: pedido.status === 'Pagamento Pendente' ? 'Aguardando Produção' : pedido.status,
+                historico: [
+                    ...pedido.historico,
+                    {
+                        data: new Date().toISOString(),
+                        acao: 'Pagamento Confirmado',
+                        usuario: 'Admin'
+                    }
+                ]
+            };
+
+            storage.savePedido(updated);
+            loadPedidos();
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in">
-            {/* Header */}
+            {/* ... Header & Stats (unchanged) ... */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-neutral-800">Pedidos</h1>
@@ -176,8 +207,8 @@ export default function PedidosPage() {
 
             {/* Content Area */}
             <div className="min-h-[500px]">
-                {view === 'list' && <ListView pedidos={filteredPedidos} />}
-                {view === 'kanban' && <KanbanView pedidos={filteredPedidos} onStatusChange={handleStatusChange} />}
+                {view === 'list' && <ListView pedidos={filteredPedidos} onPaymentConfirm={handlePaymentConfirm} />}
+                {view === 'kanban' && <KanbanView pedidos={filteredPedidos} onStatusChange={handleStatusChange} onPaymentConfirm={handlePaymentConfirm} />}
                 {view === 'calendar' && <CalendarView pedidos={filteredPedidos} />}
                 {view === 'weekly' && <WeeklyView pedidos={filteredPedidos} />}
             </div>
