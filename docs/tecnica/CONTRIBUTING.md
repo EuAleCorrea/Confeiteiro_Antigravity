@@ -192,6 +192,8 @@ git push origin feature/nome-da-feature
 
 ### **Padrão de Commits**
 
+**⚠️ REGRA IMPORTANTE:** Todas as mensagens de commit devem ser escritas em **Português do Brasil (pt-BR)**.
+
 Use commits semânticos:
 - `feat:` Nova funcionalidade
 - `fix:` Correção de bug
