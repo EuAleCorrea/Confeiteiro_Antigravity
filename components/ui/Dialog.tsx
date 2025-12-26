@@ -28,7 +28,7 @@ export function Dialog({ isOpen, onClose, title, description, children, classNam
                 "relative z-50 w-full bg-surface shadow-xl",
                 // Mobile: slide from bottom, full width, rounded top
                 fullScreenOnMobile
-                    ? "max-h-[90vh] rounded-t-2xl md:rounded-2xl md:max-w-lg animate-in slide-in-from-bottom md:fade-in md:zoom-in-95 duration-300"
+                    ? "max-h-[90vh] rounded-t-2xl md:rounded-2xl max-w-lg animate-in slide-in-from-bottom md:slide-in-from-bottom-0 md:fade-in md:zoom-in-95 duration-300"
                     : "max-w-lg rounded-2xl mx-4 animate-in fade-in zoom-in-95 duration-200",
                 "p-4 md:p-6 overflow-y-auto",
                 className
