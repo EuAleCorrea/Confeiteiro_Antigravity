@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, X, FileText, DollarSign, TrendingDown, Package, ClipboardList } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -51,7 +52,11 @@ interface FloatingActionButtonProps {
 }
 
 export function FloatingActionButton({ actions = defaultActions }: FloatingActionButtonProps) {
+    const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+
+    // Hide on specific pages where it might obstruct UI or is redundant
+    if (pathname?.startsWith('/estoque')) return null;
 
     return (
         <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex flex-col-reverse items-end gap-3 pb-safe">
