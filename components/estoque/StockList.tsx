@@ -46,7 +46,7 @@ export function StockList({ onEdit, onEntry, onExit }: StockListProps) {
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 space-y-4">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 space-y-4 relative z-10">
                 <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                     <div className="relative w-full md:w-96">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />

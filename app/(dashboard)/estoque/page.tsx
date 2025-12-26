@@ -49,24 +49,24 @@ export default function StockPage() {
                     <h1 className="text-3xl font-bold text-neutral-800">Controle de Estoque</h1>
                     <p className="text-neutral-500">Gerenciamento de insumos, compras e movimentações</p>
                 </div>
-                <div className="flex gap-2 items-center">
-                    <div className="bg-neutral-100 p-1 rounded-lg flex mr-2">
+                <div className="flex flex-wrap gap-2 items-center justify-end">
+                    <div className="bg-neutral-100 p-1 rounded-lg flex shrink-0">
                         <button
                             onClick={() => setView('dashboard')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${view === 'dashboard' ? 'bg-white shadow text-orange-600' : 'text-neutral-500 hover:text-neutral-700'}`}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${view === 'dashboard' ? 'bg-white shadow text-orange-600' : 'text-neutral-500 hover:text-neutral-700'}`}
                         >
                             <LayoutDashboard size={14} /> Visão Geral
                         </button>
                         <button
                             onClick={() => setView('history')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${view === 'history' ? 'bg-white shadow text-orange-600' : 'text-neutral-500 hover:text-neutral-700'}`}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${view === 'history' ? 'bg-white shadow text-orange-600' : 'text-neutral-500 hover:text-neutral-700'}`}
                         >
                             <History size={14} /> Histórico
                         </button>
                     </div>
 
                     {view === 'dashboard' && (
-                        <Button onClick={handleNew}>
+                        <Button onClick={handleNew} className="whitespace-nowrap shrink-0">
                             <Plus size={18} className="mr-2" /> Novo Insumo
                         </Button>
                     )}
