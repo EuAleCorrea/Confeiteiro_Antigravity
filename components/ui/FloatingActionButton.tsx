@@ -56,7 +56,7 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
     const [isOpen, setIsOpen] = useState(false);
 
     // Hide on specific pages where it might obstruct UI or is redundant
-    if (pathname?.startsWith('/estoque')) return null;
+    if (pathname?.startsWith('/estoque') || pathname?.startsWith('/orcamentos')) return null;
 
     return (
         <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex flex-col-reverse items-end gap-3 pb-safe">

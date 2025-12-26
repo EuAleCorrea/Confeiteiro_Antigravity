@@ -129,12 +129,12 @@ export default function OrcamentosPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead># Proposta</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Valor Total</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
+                        <TableHead className="whitespace-nowrap"># Proposta</TableHead>
+                        <TableHead className="whitespace-nowrap">Data</TableHead>
+                        <TableHead className="whitespace-nowrap">Cliente</TableHead>
+                        <TableHead className="whitespace-nowrap">Valor Total</TableHead>
+                        <TableHead className="whitespace-nowrap">Status</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
