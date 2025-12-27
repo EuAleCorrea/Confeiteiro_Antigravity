@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Sparkles, Package2, AlertTriangle, Pencil, Trash2, CheckCircle, Truck, Tag } from "lucide-react";
+import Link from "next/link";
+import { Plus, Search, Sparkles, Package2, AlertTriangle, Pencil, Trash2, CheckCircle, Truck, Tag, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
@@ -168,10 +169,18 @@ export default function AderecosPage() {
                     </h1>
                     <p className="text-text-secondary">Gerencie topos, flores, kits decorativos e outros materiais</p>
                 </div>
-                <Button onClick={openCreateModal}>
-                    <Plus size={20} className="mr-2" />
-                    Novo Adereço
-                </Button>
+                <div className="flex gap-2">
+                    <Link href="/aderecos/compras">
+                        <Button variant="outline">
+                            <ShoppingCart size={20} className="mr-2" />
+                            Compras
+                        </Button>
+                    </Link>
+                    <Button onClick={openCreateModal}>
+                        <Plus size={20} className="mr-2" />
+                        Novo Adereço
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Cards */}
