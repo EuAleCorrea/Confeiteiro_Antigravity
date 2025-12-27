@@ -92,23 +92,44 @@ export default function StepCliente({ data, onUpdate, next, back }: WizardStepPr
             </div>
 
             {selectedCliente ? (
-                <Card className="p-6 border-primary/20 bg-primary/5">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                                <User size={24} />
+                <div className="space-y-6">
+                    <Card className="p-6 border-primary/20 bg-primary/5">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                                    <User size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg">{selectedCliente.nome}</h3>
+                                    <p className="text-text-secondary">{selectedCliente.telefone}</p>
+                                    {selectedCliente.email && <p className="text-text-secondary text-sm">{selectedCliente.email}</p>}
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="font-bold text-lg">{selectedCliente.nome}</h3>
-                                <p className="text-text-secondary">{selectedCliente.telefone}</p>
-                                {selectedCliente.email && <p className="text-text-secondary text-sm">{selectedCliente.email}</p>}
-                            </div>
+                            <Button variant="outline" size="sm" onClick={() => onUpdate({ cliente: undefined })}>
+                                Trocar
+                            </Button>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => onUpdate({ cliente: undefined })}>
-                            Trocar
-                        </Button>
+                    </Card>
+
+                    {/* Ocasião Field */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-text-primary">Qual a ocasião?</label>
+                        <select
+                            className="w-full h-12 px-4 rounded-xl border border-border bg-surface focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            value={data.ocasiao || ''}
+                            onChange={(e) => onUpdate({ ocasiao: e.target.value as any })}
+                        >
+                            <option value="">Selecione a ocasião...</option>
+                            <option value="Aniversário">🎂 Aniversário</option>
+                            <option value="Casamento">💒 Casamento</option>
+                            <option value="Formatura">🎓 Formatura</option>
+                            <option value="Batizado">⛪ Batizado</option>
+                            <option value="Chá de Bebê">👶 Chá de Bebê</option>
+                            <option value="Corporativo">🏢 Corporativo</option>
+                            <option value="Outro">📋 Outro</option>
+                        </select>
                     </div>
-                </Card>
+                </div>
             ) : (
                 <div className="space-y-4">
                     <div className="relative">

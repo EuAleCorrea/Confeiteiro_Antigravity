@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Dialog } from "@/components/ui/Dialog";
 import { storage, Produto, Sabor, ItemOrcamento, Orcamento } from "@/lib/storage";
 import { Badge } from "@/components/ui/Badge";
 
@@ -26,12 +27,48 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
     const [selectedRecheios, setSelectedRecheios] = useState<string[]>([]);
     const [items, setItems] = useState<ItemOrcamento[]>(data.itens || []);
 
+    // Quick Product Modal State
+    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [newProductName, setNewProductName] = useState("");
+    const [newProductPrice, setNewProductPrice] = useState("");
+    const [newProductCategory, setNewProductCategory] = useState<'Bolo' | 'Adicional' | 'Serviço'>('Bolo');
+
     const cartTotal = items.reduce((sum, item) => sum + item.subtotal, 0);
 
     useEffect(() => {
-        setAvailableProducts(storage.getProdutos().filter(p => p.ativo));
+        loadProducts();
         setAvailableSabores(storage.getSabores());
     }, []);
+
+    function loadProducts() {
+        setAvailableProducts(storage.getProdutos().filter(p => p.ativo));
+    }
+
+    function handleQuickProductSave() {
+        if (!newProductName || !newProductPrice) return;
+
+        const newProduct: Produto = {
+            id: crypto.randomUUID(),
+            nome: newProductName,
+            categoria: newProductCategory,
+            preco: parseFloat(newProductPrice),
+            descricao: '',
+            tamanhos: [],
+            precosPorTamanho: {},
+            ativo: true
+        };
+
+        storage.saveProduto(newProduct);
+        loadProducts();
+
+        // Auto-select the new product
+        setSelectedProduct(newProduct.id);
+
+        // Reset and close modal
+        setNewProductName("");
+        setNewProductPrice("");
+        setIsProductModalOpen(false);
+    }
 
     const currentProduct = availableProducts.find(p => p.id === selectedProduct);
     const massas = availableSabores.filter(s => s.tipo === 'Massa');
@@ -92,18 +129,27 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
                 <div className="bg-surface p-4 rounded-xl border border-border space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Produto</label>
-                        <select
-                            className="w-full h-10 rounded-lg border border-border px-3 focus:outline-none focus:ring-2 focus:ring-primary"
-                            value={selectedProduct}
-                            onChange={(e) => setSelectedProduct(e.target.value)}
-                        >
-                            <option value="">Selecione um produto...</option>
-                            {availableProducts.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.nome} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.preco)}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="flex gap-2">
+                            <select
+                                className="flex-1 h-10 rounded-lg border border-border px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                                value={selectedProduct}
+                                onChange={(e) => setSelectedProduct(e.target.value)}
+                            >
+                                <option value="">Selecione um produto...</option>
+                                {availableProducts.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.nome} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.preco)}
+                                    </option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={() => setIsProductModalOpen(true)}
+                                className="h-10 w-10 rounded-lg border border-dashed border-primary text-primary hover:bg-primary/10 flex items-center justify-center transition-colors"
+                                title="Cadastrar novo produto"
+                            >
+                                <Plus size={20} />
+                            </button>
+                        </div>
                     </div>
 
                     {currentProduct && (
@@ -225,6 +271,53 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
                     <Button onClick={next} disabled={items.length === 0} className="w-full">Próximo: Entrega</Button>
                 </div>
             </div>
+
+            {/* Quick Product Modal */}
+            <Dialog
+                isOpen={isProductModalOpen}
+                onClose={() => setIsProductModalOpen(false)}
+                title="Cadastro Rápido de Produto"
+                className="max-w-md"
+            >
+                <div className="space-y-4">
+                    <Input
+                        label="Nome do Produto *"
+                        value={newProductName}
+                        onChange={(e) => setNewProductName(e.target.value)}
+                        placeholder="Ex: Bolo de Chocolate"
+                        autoFocus
+                    />
+                    <Input
+                        label="Preço (R$) *"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={newProductPrice}
+                        onChange={(e) => setNewProductPrice(e.target.value)}
+                        placeholder="150.00"
+                    />
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Categoria</label>
+                        <select
+                            className="w-full h-10 rounded-lg border border-border px-3"
+                            value={newProductCategory}
+                            onChange={(e) => setNewProductCategory(e.target.value as any)}
+                        >
+                            <option value="Bolo">Bolo</option>
+                            <option value="Adicional">Adicional</option>
+                            <option value="Serviço">Serviço</option>
+                        </select>
+                    </div>
+                    <div className="flex gap-3 pt-4">
+                        <Button variant="outline" onClick={() => setIsProductModalOpen(false)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleQuickProductSave} className="flex-1" disabled={!newProductName || !newProductPrice}>
+                            Salvar e Usar
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
         </div>
     );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Orcamento } from "@/lib/storage";
-import { CheckCircle } from "lucide-react";
+import { Orcamento, storage } from "@/lib/storage";
+import { generateQuotePDF } from "@/lib/pdf-generator";
+import { CheckCircle, Download, Save } from "lucide-react";
 
 interface StepProps {
     data: Partial<Orcamento>;
@@ -18,6 +19,27 @@ export default function StepRevisao({ data, back, onFinish }: StepProps) {
     const totalItens = data.itens?.reduce((sum, i) => sum + i.subtotal, 0) || 0;
     const frete = data.entrega?.taxa || 0;
     const total = totalItens + frete;
+
+    const handleDownloadPDF = () => {
+        // Create a temporary complete orcamento object for PDF generation
+        const tempOrcamento: Orcamento = {
+            id: crypto.randomUUID(),
+            numero: storage.getOrcamentos().length + 1,
+            dataCriacao: data.dataCriacao || new Date().toISOString(),
+            dataValidade: data.dataValidade || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            cliente: data.cliente!,
+            ocasiao: data.ocasiao,
+            itens: data.itens || [],
+            entrega: data.entrega!,
+            decoracao: data.decoracao!,
+            termos: data.termos!,
+            status: 'Pendente',
+            valorTotal: total,
+            historico: []
+        };
+
+        generateQuotePDF(tempOrcamento);
+    };
 
     return (
         <div className="max-w-2xl mx-auto space-y-8">
@@ -38,6 +60,7 @@ export default function StepRevisao({ data, back, onFinish }: StepProps) {
                         <p className="text-sm text-text-secondary">Cliente</p>
                         <p className="font-medium">{data.cliente?.nome}</p>
                         <p className="text-sm">{data.cliente?.telefone}</p>
+                        {data.ocasiao && <p className="text-sm text-primary">📋 {data.ocasiao}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -79,9 +102,14 @@ export default function StepRevisao({ data, back, onFinish }: StepProps) {
 
             <div className="flex justify-between pt-4">
                 <Button variant="ghost" onClick={back}>Voltar</Button>
-                <Button onClick={onFinish} className="bg-success hover:bg-success-darker text-white">
-                    Confirmar e Gerar Orçamento
-                </Button>
+                <div className="flex gap-3">
+                    <Button variant="outline" onClick={handleDownloadPDF}>
+                        <Download size={18} className="mr-2" /> Baixar PDF
+                    </Button>
+                    <Button onClick={onFinish} className="bg-success hover:bg-success-darker text-white">
+                        <Save size={18} className="mr-2" /> Salvar Orçamento
+                    </Button>
+                </div>
             </div>
         </div>
     );

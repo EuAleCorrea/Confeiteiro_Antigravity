@@ -49,8 +49,8 @@ export default function DashboardPage() {
                     <button
                         onClick={() => setPeriod("hoje")}
                         className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${period === "hoje"
-                                ? "bg-surface text-text-primary shadow-sm"
-                                : "text-text-secondary hover:text-text-primary"
+                            ? "bg-surface text-text-primary shadow-sm"
+                            : "text-text-secondary hover:text-text-primary"
                             }`}
                     >
                         Hoje
@@ -58,8 +58,8 @@ export default function DashboardPage() {
                     <button
                         onClick={() => setPeriod("semana")}
                         className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${period === "semana"
-                                ? "bg-surface text-text-primary shadow-sm"
-                                : "text-text-secondary hover:text-text-primary"
+                            ? "bg-surface text-text-primary shadow-sm"
+                            : "text-text-secondary hover:text-text-primary"
                             }`}
                     >
                         Esta Semana

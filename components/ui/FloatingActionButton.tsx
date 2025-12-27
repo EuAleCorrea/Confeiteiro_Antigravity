@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X, FileText, DollarSign, TrendingDown, Package, ClipboardList } from "lucide-react";
+import { Plus, X, FileText, DollarSign, Package, Calendar, ShoppingBag, ChefHat } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -17,9 +17,27 @@ interface FABAction {
 const defaultActions: FABAction[] = [
     {
         icon: FileText,
-        label: "Novo Pedido",
-        href: "/pedidos/novo",
+        label: "Novo Orçamento",
+        href: "/orcamentos/novo",
         color: "bg-primary",
+    },
+    {
+        icon: Calendar,
+        label: "Ver Agenda",
+        href: "/agenda",
+        color: "bg-blue-500",
+    },
+    {
+        icon: ShoppingBag,
+        label: "Novo Pedido",
+        href: "/pedidos",
+        color: "bg-orange-500",
+    },
+    {
+        icon: ChefHat,
+        label: "Produção",
+        href: "/producao",
+        color: "bg-green-600",
     },
     {
         icon: DollarSign,
@@ -28,22 +46,10 @@ const defaultActions: FABAction[] = [
         color: "bg-success",
     },
     {
-        icon: TrendingDown,
-        label: "Registrar Despesa",
-        href: "/financeiro?action=nova-despesa",
-        color: "bg-warning",
-    },
-    {
         icon: Package,
         label: "Entrada de Estoque",
         href: "/estoque?action=entrada",
         color: "bg-info",
-    },
-    {
-        icon: ClipboardList,
-        label: "Nova Tarefa",
-        onClick: () => { },
-        color: "bg-purple-500",
     },
 ];
 

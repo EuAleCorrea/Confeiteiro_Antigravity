@@ -143,6 +143,7 @@ export interface Orcamento {
         telefone: string;
         email?: string;
     };
+    ocasiao?: 'Aniversário' | 'Casamento' | 'Formatura' | 'Batizado' | 'Chá de Bebê' | 'Corporativo' | 'Outro';
     itens: ItemOrcamento[];
     entrega: {
         tipo: 'Entrega' | 'Retirada';
@@ -477,6 +478,72 @@ export interface ContaPagar {
     atualizadoEm: string;
 }
 
+// --- Módulo 8: Adereços/Materiais Terceirizados ---
+
+export interface CategoriaAdereco {
+    id: string;
+    nome: string;
+    descricao?: string;
+}
+
+export interface Adereco {
+    id: string;
+    nome: string;                    // "Topo de Bolo - Bailarina"
+    categoriaId: string;             // ID da categoria
+    categoriaNome: string;           // Cache: "Topo", "Flores", "Kit Decorativo"
+    fornecedorId?: string;           // ID do fornecedor
+    fornecedorNome?: string;         // Cache
+    precoMedio: number;              // Preço médio de compra
+    unidade: string;                 // "un", "kit", "pacote"
+    estoqueAtual: number;            // Quantidade em estoque
+    estoqueMinimo: number;           // Alerta quando baixo
+    foto?: string;                   // Referência visual (base64 ou URL)
+    observacoes?: string;
+    ativo: boolean;
+    criadoEm: string;
+    atualizadoEm: string;
+}
+
+export interface ItemCompraAdereco {
+    aderecoId: string;
+    aderecoNome: string;             // Cache
+    quantidade: number;
+    precoUnitario: number;
+    subtotal: number;
+}
+
+export interface CompraAderecos {
+    id: string;
+    numero: number;
+    data: string;                    // Data da compra
+    fornecedorId?: string;
+    fornecedorNome?: string;         // Cache
+    itens: ItemCompraAdereco[];
+    valorTotal: number;
+    observacoes?: string;
+    status: 'Pendente' | 'Recebido' | 'Pago';
+    criadoEm: string;
+    atualizadoEm: string;
+}
+
+export interface AderecoPedido {
+    aderecoId: string;
+    aderecoNome: string;             // Cache
+    quantidade: number;
+    reservado: boolean;              // Se já separou do estoque
+    observacoes?: string;
+}
+
+export interface AgendaSemanal {
+    id: string;
+    semanaInicio: string;            // Data do início da semana (segunda)
+    semanaFim: string;               // Data do fim da semana (domingo)
+    status: 'Aberta' | 'Fechada';
+    observacoes?: string;
+    fechadoEm?: string;
+    fechadoPor?: string;
+}
+
 const STORAGE_KEYS = {
     CLIENTES: 'confeiteiro_clientes',
     PRODUTOS: 'confeiteiro_produtos',
@@ -501,6 +568,11 @@ const STORAGE_KEYS = {
     // Stage 7.2: Contas
     CONTAS_RECEBER: 'confeiteiro_contas_receber',
     CONTAS_PAGAR: 'confeiteiro_contas_pagar',
+    // Stage 8: Adereços/Terceirizados
+    ADERECOS: 'confeiteiro_aderecos',
+    CATEGORIAS_ADERECOS: 'confeiteiro_categorias_aderecos',
+    COMPRAS_ADERECOS: 'confeiteiro_compras_aderecos',
+    AGENDAS_SEMANAIS: 'confeiteiro_agendas_semanais',
 };
 
 // Seed data
@@ -613,7 +685,14 @@ class StorageService {
     deleteSabor(id: string) { this.deleteItem<Sabor>(STORAGE_KEYS.SABORES, id); }
 
     // Fornecedores
-    getFornecedores() { return this.getList<Fornecedor>(STORAGE_KEYS.FORNECEDORES); }
+    getFornecedores(): Fornecedor[] {
+        return this.getList<Fornecedor>(STORAGE_KEYS.FORNECEDORES)
+            .filter(f => f.ativo !== false)
+            .sort((a, b) => (a.nomeFantasia || '').localeCompare(b.nomeFantasia || ''));
+    }
+    getFornecedorById(id: string): Fornecedor | undefined {
+        return this.getList<Fornecedor>(STORAGE_KEYS.FORNECEDORES).find(f => f.id === id);
+    }
     saveFornecedor(fornecedor: Fornecedor) { this.saveItem(STORAGE_KEYS.FORNECEDORES, fornecedor); }
     deleteFornecedor(id: string) { this.deleteItem<Fornecedor>(STORAGE_KEYS.FORNECEDORES, id); }
 
@@ -756,6 +835,109 @@ class StorageService {
     }
     saveContaPagar(conta: ContaPagar) { this.saveItem(STORAGE_KEYS.CONTAS_PAGAR, conta); }
     deleteContaPagar(id: string) { this.deleteItem<ContaPagar>(STORAGE_KEYS.CONTAS_PAGAR, id); }
+
+    // --- Módulo 8: Adereços/Materiais Terceirizados ---
+
+    // Categorias de Adereços
+    getCategoriasAderecos(): CategoriaAdereco[] {
+        const list = this.getList<CategoriaAdereco>(STORAGE_KEYS.CATEGORIAS_ADERECOS);
+        if (list.length === 0) {
+            // Seed inicial
+            const seed: CategoriaAdereco[] = [
+                { id: '1', nome: 'Topos de Bolo', descricao: 'Topos decorativos para bolos' },
+                { id: '2', nome: 'Flores', descricao: 'Flores naturais ou artificiais' },
+                { id: '3', nome: 'Kits Decorativos', descricao: 'Kits temáticos para festas' },
+                { id: '4', nome: 'Embalagens Especiais', descricao: 'Caixas e embalagens premium' },
+                { id: '5', nome: 'Velas e Faíscas', descricao: 'Velas e sparklers' },
+            ];
+            this.setItem(STORAGE_KEYS.CATEGORIAS_ADERECOS, seed);
+            return seed;
+        }
+        return list;
+    }
+    saveCategoriaAdereco(cat: CategoriaAdereco) { this.saveItem(STORAGE_KEYS.CATEGORIAS_ADERECOS, cat); }
+    deleteCategoriaAdereco(id: string) { this.deleteItem<CategoriaAdereco>(STORAGE_KEYS.CATEGORIAS_ADERECOS, id); }
+
+    // Adereços
+    getAderecos(): Adereco[] {
+        return this.getList<Adereco>(STORAGE_KEYS.ADERECOS)
+            .filter(a => a.ativo !== false)
+            .sort((a, b) => a.nome.localeCompare(b.nome));
+    }
+    getAllAderecos(): Adereco[] {
+        return this.getList<Adereco>(STORAGE_KEYS.ADERECOS);
+    }
+    getAderecoById(id: string): Adereco | undefined {
+        return this.getList<Adereco>(STORAGE_KEYS.ADERECOS).find(a => a.id === id);
+    }
+    getAderecosComEstoqueBaixo(): Adereco[] {
+        return this.getAderecos().filter(a => a.estoqueAtual <= a.estoqueMinimo);
+    }
+    saveAdereco(adereco: Adereco) { this.saveItem(STORAGE_KEYS.ADERECOS, adereco); }
+    deleteAdereco(id: string) { this.deleteItem<Adereco>(STORAGE_KEYS.ADERECOS, id); }
+
+    // Compras de Adereços
+    getComprasAderecos(): CompraAderecos[] {
+        return this.getList<CompraAderecos>(STORAGE_KEYS.COMPRAS_ADERECOS)
+            .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+    }
+    getCompraAderecoById(id: string): CompraAderecos | undefined {
+        return this.getList<CompraAderecos>(STORAGE_KEYS.COMPRAS_ADERECOS).find(c => c.id === id);
+    }
+    saveCompraAderecos(compra: CompraAderecos) {
+        // Auto-generate number if not set
+        if (!compra.numero) {
+            const all = this.getComprasAderecos();
+            compra.numero = all.length > 0 ? Math.max(...all.map(c => c.numero || 0)) + 1 : 1;
+        }
+        this.saveItem(STORAGE_KEYS.COMPRAS_ADERECOS, compra);
+    }
+    deleteCompraAderecos(id: string) { this.deleteItem<CompraAderecos>(STORAGE_KEYS.COMPRAS_ADERECOS, id); }
+
+    // Atualizar estoque ao receber compra
+    receberCompraAderecos(compraId: string) {
+        const compra = this.getCompraAderecoById(compraId);
+        if (!compra) return;
+
+        compra.itens.forEach(item => {
+            const adereco = this.getAderecoById(item.aderecoId);
+            if (adereco) {
+                adereco.estoqueAtual += item.quantidade;
+                adereco.precoMedio = item.precoUnitario; // Simplificado
+                adereco.atualizadoEm = new Date().toISOString();
+                this.saveAdereco(adereco);
+            }
+        });
+
+        compra.status = 'Recebido';
+        compra.atualizadoEm = new Date().toISOString();
+        this.saveCompraAderecos(compra);
+    }
+
+    // Agendas Semanais
+    getAgendasSemanais(): AgendaSemanal[] {
+        return this.getList<AgendaSemanal>(STORAGE_KEYS.AGENDAS_SEMANAIS)
+            .sort((a, b) => new Date(b.semanaInicio).getTime() - new Date(a.semanaInicio).getTime());
+    }
+    getAgendaSemanalAtual(): AgendaSemanal | undefined {
+        const hoje = new Date();
+        return this.getAgendasSemanais().find(a => {
+            const inicio = new Date(a.semanaInicio);
+            const fim = new Date(a.semanaFim);
+            return hoje >= inicio && hoje <= fim;
+        });
+    }
+    saveAgendaSemanal(agenda: AgendaSemanal) { this.saveItem(STORAGE_KEYS.AGENDAS_SEMANAIS, agenda); }
+    fecharAgendaSemanal(id: string, usuario: string) {
+        const agenda = this.getAgendasSemanais().find(a => a.id === id);
+        if (agenda) {
+            agenda.status = 'Fechada';
+            agenda.fechadoEm = new Date().toISOString();
+            agenda.fechadoPor = usuario;
+            this.saveAgendaSemanal(agenda);
+        }
+    }
+
 }
 
 export const storage = new StorageService();

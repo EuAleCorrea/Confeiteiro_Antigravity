@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Printer, Share2, Copy, FileCheck, Trash2, Calendar, MapPin, DollarSign } from "lucide-react";
+import { ArrowLeft, Printer, Share2, Copy, FileCheck, Trash2, Calendar, MapPin, DollarSign, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Dialog } from "@/components/ui/Dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { storage, Orcamento } from "@/lib/storage";
@@ -16,62 +17,61 @@ export default function OrcamentoDetalhesClient() {
     const [orcamento, setOrcamento] = useState<Orcamento | null>(null);
     const [activeTab, setActiveTab] = useState<'resumo' | 'termos' | 'historico'>('resumo');
 
+    // Modal States
+    const [deleteModal, setDeleteModal] = useState(false);
+    const [convertModal, setConvertModal] = useState(false);
+    const [duplicateModal, setDuplicateModal] = useState(false);
+    const [successModal, setSuccessModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+
     useEffect(() => {
         if (!id) return;
         const found = storage.getOrcamentoById(id);
         if (!found) {
-            // For static export fallback, we might not have the ID yet if it's the placeholder build ID
-            // but normally at runtime, the real ID will be in the URL.
-            // If it's the placeholder ID or explicitly not found, don't alert immediately to avoid flashing.
             if (id !== "placeholder") {
-                // alert("Orçamento não encontrado");
-                // router.push('/orcamentos');
+                // Handle not found gracefully
             }
         } else {
             setOrcamento(found);
         }
     }, [id, router]);
 
-    const handleDelete = () => {
-        if (confirm("Tem certeza que deseja excluir este orçamento?")) {
-            storage.deleteOrcamento(id);
-            router.push('/orcamentos');
-        }
+    const confirmDelete = () => {
+        storage.deleteOrcamento(id);
+        setDeleteModal(false);
+        router.push('/orcamentos');
     };
 
-    const handleConvert = () => {
+    const confirmConvert = () => {
         if (!orcamento) return;
-        if (confirm("Confirmar conversão em PEDIDO? Isso irá reservar a data na agenda.")) {
-            const updated = {
-                ...orcamento,
-                status: 'Convertido' as const,
-                historico: [...orcamento.historico, {
-                    data: new Date().toISOString(),
-                    acao: 'Convertido em Pedido',
-                    usuario: 'Admin'
-                }]
-            };
-            storage.saveOrcamento(updated);
-            setOrcamento(updated);
-            alert("Orçamento convertido com sucesso!");
-        }
+        const updated = {
+            ...orcamento,
+            status: 'Convertido' as const,
+            historico: [...orcamento.historico, {
+                data: new Date().toISOString(),
+                acao: 'Convertido em Pedido',
+                usuario: 'Admin'
+            }]
+        };
+        storage.saveOrcamento(updated);
+        setOrcamento(updated);
+        setConvertModal(false);
+        setSuccessModal({ open: true, message: 'Orçamento convertido em pedido com sucesso!' });
     };
 
-    const handleDuplicate = () => {
+    const confirmDuplicate = () => {
         if (!orcamento) return;
-        if (confirm("Duplicar este orçamento?")) {
-            const newOrcamento = {
-                ...orcamento,
-                id: crypto.randomUUID(),
-                numero: 0,
-                status: 'Pendente' as const,
-                dataCriacao: new Date().toISOString(),
-                historico: [{ data: new Date().toISOString(), acao: 'Orçamento Duplicado', usuario: 'Admin' }]
-            };
-            storage.saveOrcamento(newOrcamento);
-            alert("Orçamento duplicado!");
-            router.push('/orcamentos');
-        }
+        const newOrcamento = {
+            ...orcamento,
+            id: crypto.randomUUID(),
+            numero: 0,
+            status: 'Pendente' as const,
+            dataCriacao: new Date().toISOString(),
+            historico: [{ data: new Date().toISOString(), acao: 'Orçamento Duplicado', usuario: 'Admin' }]
+        };
+        storage.saveOrcamento(newOrcamento);
+        setDuplicateModal(false);
+        setSuccessModal({ open: true, message: 'Orçamento duplicado com sucesso!' });
+        setTimeout(() => router.push('/orcamentos'), 1500);
     };
 
     const handlePrint = () => {
@@ -117,15 +117,15 @@ export default function OrcamentoDetalhesClient() {
                     <Button variant="outline" size="sm" onClick={handleWhatsApp} title="Enviar WhatsApp">
                         <Share2 size={16} className="mr-2" /> WhatsApp
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handleDuplicate} title="Duplicar">
+                    <Button variant="outline" size="sm" onClick={() => setDuplicateModal(true)} title="Duplicar">
                         <Copy size={16} className="mr-2" /> Duplicar
                     </Button>
                     {orcamento.status !== 'Convertido' && (
-                        <Button variant="primary" size="sm" onClick={handleConvert} className="bg-success text-white">
+                        <Button variant="primary" size="sm" onClick={() => setConvertModal(true)} className="bg-success text-white">
                             <FileCheck size={16} className="mr-2" /> Converter em Pedido
                         </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="text-error" onClick={handleDelete} title="Excluir">
+                    <Button variant="ghost" size="icon" className="text-error" onClick={() => setDeleteModal(true)} title="Excluir">
                         <Trash2 size={18} />
                     </Button>
                 </div>
@@ -288,6 +288,96 @@ export default function OrcamentoDetalhesClient() {
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog
+                isOpen={deleteModal}
+                onClose={() => setDeleteModal(false)}
+                title="Excluir Orçamento"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-secondary">Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.</p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setDeleteModal(false)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={confirmDelete} className="flex-1 bg-error hover:bg-error/90 text-white">
+                            Excluir
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Convert to Order Modal */}
+            <Dialog
+                isOpen={convertModal}
+                onClose={() => setConvertModal(false)}
+                title="Converter em Pedido"
+                className="max-w-md"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                        <FileCheck size={32} className="text-success" />
+                    </div>
+                    <div className="space-y-2">
+                        <p className="font-medium">Confirmar conversão em PEDIDO?</p>
+                        <p className="text-sm text-text-secondary">Isso irá reservar a data na agenda e criar um novo pedido.</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setConvertModal(false)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={confirmConvert} className="flex-1 bg-success hover:bg-success-darker text-white">
+                            Converter em Pedido
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Duplicate Modal */}
+            <Dialog
+                isOpen={duplicateModal}
+                onClose={() => setDuplicateModal(false)}
+                title="Duplicar Orçamento"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+                        <Copy size={32} className="text-purple-600" />
+                    </div>
+                    <p className="text-text-secondary">Criar uma cópia deste orçamento?</p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setDuplicateModal(false)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={confirmDuplicate} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                            Duplicar
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Success Modal */}
+            <Dialog
+                isOpen={successModal.open}
+                onClose={() => setSuccessModal({ open: false, message: '' })}
+                title="Sucesso"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle size={32} className="text-success" />
+                    </div>
+                    <p className="text-text-primary font-medium">{successModal.message}</p>
+                    <Button onClick={() => setSuccessModal({ open: false, message: '' })} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
         </div>
     );
 }
