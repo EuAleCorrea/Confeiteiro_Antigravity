@@ -21,6 +21,7 @@ export default function NovoOrcamentoPage() {
 
     // Central State for the Wizard
     const [orcamento, setOrcamento] = useState<Partial<Orcamento>>({
+        id: crypto.randomUUID(),
         itens: [],
         status: 'Pendente',
         dataCriacao: new Date().toISOString(),
