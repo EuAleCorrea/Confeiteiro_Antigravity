@@ -15,13 +15,14 @@ import { TabHistorico } from "@/components/pedidos/details/TabHistorico";
 import { TabProducao } from "@/components/pedidos/details/TabProducao";
 import { TabEntrega } from "@/components/pedidos/details/TabEntrega";
 import { TabFinanceiro } from "@/components/pedidos/details/TabFinanceiro";
+import { TabAderecos } from "@/components/pedidos/details/TabAderecos";
 
 export default function PedidoDetalhesClient() {
     const params = useParams();
     const router = useRouter();
     const id = params.id as string;
     const [pedido, setPedido] = useState<Pedido | null>(null);
-    const [activeTab, setActiveTab] = useState<'resumo' | 'producao' | 'entrega' | 'financeiro' | 'historico'>('resumo');
+    const [activeTab, setActiveTab] = useState<'resumo' | 'aderecos' | 'producao' | 'entrega' | 'financeiro' | 'historico'>('resumo');
 
     useEffect(() => {
         if (id) {
@@ -61,6 +62,7 @@ export default function PedidoDetalhesClient() {
 
     const tabs = [
         { id: 'resumo', label: 'Resumo' },
+        { id: 'aderecos', label: 'Adereços' },
         { id: 'producao', label: 'Produção' },
         { id: 'entrega', label: 'Entrega' },
         { id: 'financeiro', label: 'Financeiro' },
@@ -134,6 +136,7 @@ export default function PedidoDetalhesClient() {
             {/* Tab Content */}
             <div className="min-h-[400px]">
                 {activeTab === 'resumo' && <TabResumo pedido={pedido} />}
+                {activeTab === 'aderecos' && <TabAderecos pedido={pedido} onUpdate={setPedido} />}
                 {activeTab === 'producao' && <TabProducao pedido={pedido} />}
                 {activeTab === 'entrega' && <TabEntrega pedido={pedido} />}
                 {activeTab === 'financeiro' && <TabFinanceiro pedido={pedido} />}

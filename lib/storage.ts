@@ -272,6 +272,9 @@ export interface Pedido {
         detalhes?: string;
     }[];
 
+    // Adereços vinculados
+    aderecos?: AderecoPedido[];
+
     // Metadados
     criadoPor?: { id: string; nome: string; };
     atualizadoEm: string;
