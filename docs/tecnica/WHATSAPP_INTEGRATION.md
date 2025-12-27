@@ -115,6 +115,12 @@ O frontend trata todos os casos com fallback em cascata.
 - Timestamps convertidos de segundos para milissegundos
 - Base64 do QR Code prefixado automaticamente se necessário
 
+### Status da Instância
+A API Evolution v2 pode retornar status em cache no endpoint `fetchInstances`. Para garantir precisão:
+1.  Listamos as instâncias.
+2.  Para cada uma, fazemos uma chamada paralela para `/instance/connectionState/{name}`.
+3.  O status real ("open", "close", "connecting") é então mesclado no objeto da instância.
+
 ## 8. Pontos de Atenção para Desenvolvedores
 
 - **Método HTTP:** Endpoints de busca usam **POST**, não GET
@@ -123,6 +129,7 @@ O frontend trata todos os casos com fallback em cascata.
 - **ID do Chat:** Usar `remoteJid`, não `id` (pode ser null)
 - **Nome do Contato:** Usar `pushName`, não `name`
 - **Static Export:** Qualquer nova rota dinâmica deve ter `generateStaticParams` no Server Component.
+- **Status Real-time:** Não confiar no status de `fetchInstances`, usar `getConnectionState`.
 
 ## 9. Próximos Passos (To-Do)
 
@@ -132,6 +139,9 @@ O frontend trata todos os casos com fallback em cascata.
 - [ ] **Webhooks:** Receber mensagens em tempo real (atualmente usa polling)
 
 ## 10. Histórico de Correções
+
+### 27/12/2024 (Status Fix)
+- ✅ Fix Status Instância: Implementado verificação paralela de `connectionState` ao listar instâncias, corrigindo bug de "Falso Desconectado".
 
 ### 27/12/2024 (Refatoração UI e Build Fix)
 - ✅ Fix Cloudflare Build: Adicionado `output: 'export'` e refatorado rotas dinâmicas para Static Export.

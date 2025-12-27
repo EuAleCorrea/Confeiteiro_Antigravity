@@ -65,9 +65,24 @@ export function WhatsAppSettings() {
             const activeName = nameFilter || config.instanceName;
             const data = await evolutionAPI.fetchInstances(activeName);
 
+            // Fetch real-time status for each instance
+            const updatedData = await Promise.all(data.map(async (instance) => {
+                try {
+                    const stateData = await evolutionAPI.getConnectionState(instance.instanceName);
+                    // Normalize status
+                    let realStatus = stateData?.instance?.state || 'close';
+                    if (realStatus === 'connected') realStatus = 'open';
+
+                    return { ...instance, status: realStatus as any };
+                } catch (e) {
+                    // Fallback to existing status if check fails
+                    return instance;
+                }
+            }));
+
             // Filtro adicional de segurança caso a API retorne mais do que o solicitado
             if (activeName) {
-                setInstances(data.filter(i => i.instanceName === activeName));
+                setInstances(updatedData.filter(i => i.instanceName === activeName));
             } else {
                 // Se não houver nome configurado, não mostramos nada (conforme pedido do usuário)
                 setInstances([]);
