@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, ShoppingCart, Package, AlertTriangle, CheckCircle, Clock, Truck, Eye, Calendar, DollarSign } from "lucide-react";
+import Link from "next/link";
+import { Plus, Search, ShoppingCart, Package, AlertTriangle, CheckCircle, Clock, Truck, Eye, Calendar, DollarSign, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
@@ -129,12 +130,19 @@ export default function ComprasAderecosPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-                        <ShoppingCart className="text-primary" size={28} />
-                        Compras de Adereços
-                    </h1>
-                    <p className="text-text-secondary">Registre e acompanhe compras de materiais</p>
+                <div className="flex items-center gap-4">
+                    <Link href="/aderecos">
+                        <Button variant="ghost" size="icon" className="rounded-full">
+                            <ArrowLeft size={20} />
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
+                            <ShoppingCart className="text-primary" size={28} />
+                            Compras de Adereços
+                        </h1>
+                        <p className="text-text-secondary">Registre e acompanhe compras de materiais</p>
+                    </div>
                 </div>
                 <Button onClick={openCreateModal}>
                     <Plus size={20} className="mr-2" />
