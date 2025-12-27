@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback, use } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -35,14 +35,18 @@ function formatPhoneNumber(jid: string): string {
     return number;
 }
 
-// Helper to format timestamp
+// Helper to format timestamp (expects milliseconds)
 function formatTime(timestamp: string | number): string {
-    const date = new Date(Number(timestamp) * 1000);
+    const ts = Number(timestamp);
+    // If timestamp is in seconds (less than year 2000 in ms), convert to ms
+    const date = new Date(ts < 1e12 ? ts * 1000 : ts);
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatDate(timestamp: string | number): string {
-    const date = new Date(Number(timestamp) * 1000);
+    const ts = Number(timestamp);
+    // If timestamp is in seconds (less than year 2000 in ms), convert to ms
+    const date = new Date(ts < 1e12 ? ts * 1000 : ts);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -70,10 +74,10 @@ function hasMedia(message: WhatsAppMessage['message']): 'image' | 'audio' | 'vid
     return null;
 }
 
-export default function ChatPage() {
-    const params = useParams();
+export default function ChatPage({ params }: { params: Promise<{ instanceName: string }> }) {
+    const resolvedParams = use(params);
     const router = useRouter();
-    const instanceName = params.instanceName as string;
+    const instanceName = resolvedParams.instanceName;
 
     const [chats, setChats] = useState<WhatsAppChat[]>([]);
     const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
@@ -84,6 +88,7 @@ export default function ChatPage() {
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [sending, setSending] = useState(false);
     const [connectionError, setConnectionError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -97,20 +102,48 @@ export default function ChatPage() {
         scrollToBottom();
     }, [messages]);
 
+    // Check real connection status before giving up
+    const verifyConnection = async (): Promise<boolean> => {
+        try {
+            const data = await evolutionAPI.getConnectionState(instanceName) as any;
+            const state = data?.instance?.state || data?.state || data?.status;
+            const normalizedState = typeof state === 'string' ? state.toLowerCase() : '';
+            return normalizedState === 'open' || normalizedState === 'connected';
+        } catch {
+            return false;
+        }
+    };
+
     // Load chats
     const loadChats = useCallback(async () => {
         try {
-            setConnectionError(false);
             const data = await evolutionAPI.fetchChats(instanceName);
             // Sort by last message timestamp
             const sorted = data.sort((a, b) =>
                 (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0)
             );
             setChats(sorted);
+            setConnectionError(false);
+            setRetryCount(0);
         } catch (error: any) {
             console.error('Erro ao carregar chats:', error);
-            if (error.status === 404 || error.status === 401) {
-                setConnectionError(true);
+
+            // Verifica se realmente estamos desconectados antes de mostrar erro
+            const isConnected = await verifyConnection();
+
+            if (!isConnected) {
+                if (error.status === 404 || error.status === 401) {
+                    setRetryCount(prev => {
+                        const next = prev + 1;
+                        if (next >= 3) setConnectionError(true);
+                        return next;
+                    });
+                }
+            } else {
+                // Se está conectado mas falhou ao buscar chats, reseta contagem de erro
+                // Provavelmente está sincronizando ou a API de chats falhou temporariamente
+                console.log('Instância conectada, mas falha ao buscar chats. Tentando novamente em breve.');
+                setRetryCount(0);
             }
         } finally {
             setLoadingChats(false);
@@ -203,8 +236,8 @@ export default function ChatPage() {
 
     // Filter chats by search
     const filteredChats = chats.filter(chat =>
-        chat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        chat.id.includes(searchQuery)
+        chat?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        chat?.id?.includes(searchQuery)
     );
 
     // Find linked client
@@ -319,7 +352,14 @@ export default function ChatPage() {
                                                     {chat.lastMessage?.fromMe && (
                                                         <CheckCheck size={14} className="inline mr-1 text-blue-500" />
                                                     )}
-                                                    {chat.lastMessage?.message || 'Sem mensagens'}
+                                                    {typeof chat.lastMessage?.message === 'string'
+                                                        ? chat.lastMessage.message
+                                                        : chat.lastMessage?.message?.conversation ||
+                                                        chat.lastMessage?.message?.extendedTextMessage?.text ||
+                                                        (chat.lastMessage?.message?.imageMessage ? '📷 Imagem' : '') ||
+                                                        (chat.lastMessage?.message?.audioMessage ? '🎤 Áudio' : '') ||
+                                                        (chat.lastMessage?.message?.videoMessage ? '🎬 Vídeo' : '') ||
+                                                        'Sem mensagens'}
                                                 </p>
                                                 {chat.unreadCount > 0 && (
                                                     <span className="bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
@@ -366,109 +406,110 @@ export default function ChatPage() {
                             </div>
 
                             {/* Messages */}
-                            <div className="flex-1 overflow-y-auto p-4 bg-[#e5ddd5] bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3Oeli0AAABra2ueli4AAAD///+eli36+vry8vLq6uri4uLa2trS0tLKysq6urqysrKqqqqdnZ2RVx7qAAAADnRSTlP///////////////8A////VafIkAAAAqFJREFUSMftlYuSgjAMRQOtPERABd//Q7dJW+jKuuPO7Li73XGnhZzcJElhNvtfXMsLY2wlCddLx+Lb+J7TM/eFjpn3Qv7sDxzXN/t9/sN7E8wfOq/r'));"] space-y-2">
-                            {loadingMessages ? (
-                                <div className="flex items-center justify-center h-full">
-                                    <Loader2 className="animate-spin text-primary" size={32} />
-                                </div>
-                            ) : messages.length === 0 ? (
-                                <div className="flex items-center justify-center h-full text-text-secondary">
-                                    <p>Nenhuma mensagem</p>
-                                </div>
-                            ) : (
-                                messages.map((msg, idx) => {
-                                    const text = getMessageText(msg.message);
-                                    const mediaType = hasMedia(msg.message);
+                            <div className="flex-1 overflow-y-auto p-4 bg-[#e5ddd5] space-y-2">
+                                {loadingMessages ? (
+                                    <div className="flex items-center justify-center h-full">
+                                        <Loader2 className="animate-spin text-primary" size={32} />
+                                    </div>
+                                ) : messages.length === 0 ? (
+                                    <div className="flex items-center justify-center h-full text-text-secondary">
+                                        <p>Nenhuma mensagem</p>
+                                    </div>
+                                ) : (
+                                    messages.map((msg, idx) => {
+                                        const text = getMessageText(msg.message);
+                                        const mediaType = hasMedia(msg.message);
 
-                                    return (
-                                        <div
-                                            key={msg.key.id || idx}
-                                            className={cn(
-                                                "flex",
-                                                msg.key.fromMe ? "justify-end" : "justify-start"
-                                            )}
-                                        >
+                                        return (
                                             <div
+                                                key={msg.key.id || idx}
                                                 className={cn(
-                                                    "max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
-                                                    msg.key.fromMe
-                                                        ? "bg-[#dcf8c6] rounded-tr-none"
-                                                        : "bg-white rounded-tl-none"
+                                                    "flex",
+                                                    msg.key.fromMe ? "justify-end" : "justify-start"
                                                 )}
                                             >
-                                                {/* Media Preview */}
-                                                {mediaType === 'image' && msg.message.imageMessage?.url && (
-                                                    <img
-                                                        src={msg.message.imageMessage.url}
-                                                        alt="Imagem"
-                                                        className="max-w-full rounded mb-1"
-                                                    />
-                                                )}
-
-                                                {/* Text */}
-                                                <p className="text-sm text-text-primary whitespace-pre-wrap break-words">
-                                                    {text}
-                                                </p>
-
-                                                {/* Time & Status */}
-                                                <div className="flex items-center justify-end gap-1 mt-1">
-                                                    <span className="text-[10px] text-text-secondary">
-                                                        {formatTime(msg.messageTimestamp)}
-                                                    </span>
-                                                    {msg.key.fromMe && (
-                                                        <CheckCheck size={14} className={cn(
-                                                            msg.status === 'READ' ? 'text-blue-500' : 'text-text-secondary'
-                                                        )} />
+                                                <div
+                                                    className={cn(
+                                                        "max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
+                                                        msg.key.fromMe
+                                                            ? "bg-[#dcf8c6] rounded-tr-none"
+                                                            : "bg-white rounded-tl-none"
                                                     )}
+                                                >
+                                                    {/* Media Preview */}
+                                                    {mediaType === 'image' && msg.message.imageMessage?.url && (
+                                                        <img
+                                                            src={msg.message.imageMessage.url}
+                                                            alt="Imagem"
+                                                            className="max-w-full rounded mb-1"
+                                                        />
+                                                    )}
+
+                                                    {/* Text */}
+                                                    <p className="text-sm text-text-primary whitespace-pre-wrap break-words">
+                                                        {text}
+                                                    </p>
+
+                                                    {/* Time & Status */}
+                                                    <div className="flex items-center justify-end gap-1 mt-1">
+                                                        <span className="text-[10px] text-text-secondary">
+                                                            {formatTime(msg.messageTimestamp)}
+                                                        </span>
+                                                        {msg.key.fromMe && (
+                                                            <CheckCheck size={14} className={cn(
+                                                                msg.status === 'READ' ? 'text-blue-500' : 'text-text-secondary'
+                                                            )} />
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
+                                        );
+                                    })
+                                )}
+                                <div ref={messagesEndRef} />
+                            </div>
 
-                    {/* Input Area */}
-                    <div className="p-3 bg-neutral-100 border-t flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="text-text-secondary">
-                            <Paperclip size={20} />
-                        </Button>
-                        <Input
-                            ref={inputRef}
-                            value={messageText}
-                            onChange={(e) => setMessageText(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Digite uma mensagem..."
-                            className="flex-1 bg-white"
-                            disabled={sending}
-                        />
-                        <Button
-                            onClick={handleSendMessage}
-                            disabled={!messageText.trim() || sending}
-                            size="icon"
-                            className="bg-green-500 hover:bg-green-600"
-                        >
-                            {sending ? (
-                                <Loader2 size={18} className="animate-spin" />
-                            ) : (
-                                <Send size={18} />
-                            )}
-                        </Button>
-                    </div>
-                </>
-                ) : (
-                /* No Chat Selected */
-                <div className="flex-1 flex items-center justify-center bg-neutral-50">
-                    <div className="text-center text-text-secondary">
-                        <MessageCircle size={64} className="mx-auto mb-4 opacity-30" />
-                        <h3 className="font-medium text-text-primary mb-1">WhatsApp Web</h3>
-                        <p className="text-sm">Selecione uma conversa para começar</p>
-                    </div>
-                </div>
+                            {/* Input Area */}
+                            <div className="p-3 bg-neutral-100 border-t flex items-center gap-2">
+                                <Button variant="ghost" size="icon" className="text-text-secondary">
+                                    <Paperclip size={20} />
+                                </Button>
+                                <Input
+                                    ref={inputRef}
+                                    value={messageText}
+                                    onChange={(e) => setMessageText(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Digite uma mensagem..."
+                                    className="flex-1 bg-white"
+                                    disabled={sending}
+                                />
+                                <Button
+                                    onClick={handleSendMessage}
+                                    disabled={!messageText.trim() || sending}
+                                    size="icon"
+                                    className="bg-green-500 hover:bg-green-600"
+                                >
+                                    {sending ? (
+                                        <Loader2 size={18} className="animate-spin" />
+                                    ) : (
+                                        <Send size={18} />
+                                    )}
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        /* No Chat Selected */
+                        <div className="flex-1 flex items-center justify-center bg-neutral-50">
+                            <div className="text-center text-text-secondary">
+                                <MessageCircle size={64} className="mx-auto mb-4 opacity-30" />
+                                <h3 className="font-medium text-text-primary mb-1">WhatsApp Web</h3>
+                                <p className="text-sm">Selecione uma conversa para começar</p>
+                            </div>
+                        </div>
                     )}
+                </div>
             </div>
         </div>
-        </div >
     );
 }
+

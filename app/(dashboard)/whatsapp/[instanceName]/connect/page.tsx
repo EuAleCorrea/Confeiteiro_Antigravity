@@ -1,26 +1,29 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, use } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, QrCode, Loader2, CheckCircle, RefreshCw, Wifi, WifiOff, Smartphone } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle, RefreshCw, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import evolutionAPI, { WhatsAppQRCode } from "@/lib/evolution-api";
 
-export default function ConnectInstancePage() {
-    const params = useParams();
+export default function ConnectInstancePage({ params }: { params: Promise<{ instanceName: string }> }) {
+    const resolvedParams = use(params);
     const router = useRouter();
-    const instanceName = params.instanceName as string;
+    const instanceName = resolvedParams.instanceName;
 
     const [qrCode, setQrCode] = useState<WhatsAppQRCode | null>(null);
-    const [status, setStatus] = useState<'loading' | 'qr' | 'connecting' | 'connected' | 'error'>('loading');
+    const [status, setStatus] = useState<'loading' | 'qr' | 'verifying' | 'connected' | 'error'>('loading');
+    const [refreshing, setRefreshing] = useState(false);
     const [countdown, setCountdown] = useState(30);
     const [errorMessage, setErrorMessage] = useState('');
 
     // Fetch QR Code
-    const fetchQRCode = useCallback(async () => {
-        setStatus('loading');
+    const fetchQRCode = useCallback(async (isRefresh = false) => {
+        if (!isRefresh) setStatus('loading');
+        else setRefreshing(true);
+
         setErrorMessage('');
 
         try {
@@ -32,49 +35,65 @@ export default function ConnectInstancePage() {
             console.error('Erro ao buscar QR Code:', error);
             setErrorMessage(error.message || 'Erro ao gerar QR Code');
             setStatus('error');
+        } finally {
+            setRefreshing(false);
         }
     }, [instanceName]);
 
     // Check connection status
     const checkStatus = useCallback(async () => {
-        try {
-            const data = await evolutionAPI.getConnectionState(instanceName);
-            const state = data.instance.state;
+        if (status === 'connected') return;
 
-            if (state === 'open') {
+        try {
+            const data = await evolutionAPI.getConnectionState(instanceName) as any;
+            const state = data?.instance?.state || data?.state || data?.status;
+
+            console.log('WhatsApp Connection State:', state);
+
+            // Se detectar qualquer atividade de conexão, parar o countdown e mudar status
+            if (['connecting', 'authenticating'].includes(state)) {
+                if (status !== 'verifying') setStatus('verifying');
+                setCountdown(0); // Para o timer
+            }
+            else if (['open', 'CONNECTED'].includes(state)) {
                 setStatus('connected');
-                // Redirect to chat after 2 seconds
                 setTimeout(() => {
                     router.push(`/whatsapp/${instanceName}`);
-                }, 2000);
-            } else if (state === 'connecting') {
-                setStatus('connecting');
+                }, 500);
             }
+            // Se estiver 'close' e nós estavamos 'verifying', talvez tenha falhado
+            else if (state === 'close' && status === 'verifying') {
+                // Não volta imediatamente para não piscar, deixa o polling tentar de novo 
+                // ou o usuário clica em recarregar
+            }
+
         } catch (error) {
             console.error('Erro ao verificar status:', error);
         }
-    }, [instanceName, router]);
+    }, [instanceName, router, status]);
 
     // Initial load
     useEffect(() => {
-        fetchQRCode();
+        fetchQRCode(false);
     }, [fetchQRCode]);
 
     // Polling for status every 2 seconds
     useEffect(() => {
-        if (status === 'qr' || status === 'connecting') {
+        // Poll independente do status (exceto se erro ou loading inicial)
+        if (status !== 'loading' && status !== 'error' && status !== 'connected') {
             const interval = setInterval(checkStatus, 2000);
             return () => clearInterval(interval);
         }
     }, [status, checkStatus]);
 
     // Countdown timer for QR refresh
+    // Só roda se estiver estritamente em 'qr'
     useEffect(() => {
         if (status === 'qr' && countdown > 0) {
             const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
             return () => clearTimeout(timer);
         } else if (countdown === 0 && status === 'qr') {
-            fetchQRCode();
+            fetchQRCode(true);
         }
     }, [countdown, status, fetchQRCode]);
 
@@ -105,16 +124,26 @@ export default function ConnectInstancePage() {
                     )}
 
                     {/* QR Code Display */}
-                    {status === 'qr' && qrCode && (
+                    {(status === 'qr' || status === 'verifying') && qrCode && (
                         <div className="space-y-4">
                             <div className="relative inline-block">
                                 {/* QR Code Image */}
-                                <div className="bg-white p-4 rounded-xl shadow-inner">
+                                <div className="bg-white p-4 rounded-xl shadow-inner relative">
                                     <img
-                                        src={qrCode.code}
+                                        src={qrCode.base64}
                                         alt="QR Code WhatsApp"
-                                        className="w-64 h-64 mx-auto"
+                                        className={`w-64 h-64 mx-auto transition-opacity duration-300 ${(refreshing || status === 'verifying') ? 'opacity-50' : 'opacity-100'}`}
                                     />
+                                    {(refreshing || status === 'verifying') && (
+                                        <div className="absolute inset-0 flex items-center justify-center flex-col gap-2 scale-in-center">
+                                            <Loader2 size={32} className="animate-spin text-primary" />
+                                            {status === 'verifying' && (
+                                                <p className="text-[10px] font-bold text-primary bg-white/90 px-2 py-1 rounded-full shadow-sm border border-primary/20">
+                                                    VALIDANDO CONEXÃO...
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Countdown Badge */}
@@ -145,33 +174,24 @@ export default function ConnectInstancePage() {
                                 </ol>
                             </div>
 
-                            <Button variant="ghost" onClick={fetchQRCode} size="sm">
-                                <RefreshCw size={16} className="mr-2" />
-                                Recarregar QR Code
-                            </Button>
-                        </div>
-                    )}
+                            <div className="flex flex-col gap-2">
+                                <Button variant="ghost" onClick={() => fetchQRCode(true)} size="sm" disabled={refreshing || status === 'verifying'}>
+                                    <RefreshCw size={16} className={`mr-2 ${(refreshing || status === 'verifying') ? 'animate-spin' : ''}`} />
+                                    {refreshing ? 'Atualizando...' : status === 'verifying' ? 'Validando...' : 'Recarregar QR Code'}
+                                </Button>
 
-                    {/* Connecting State */}
-                    {status === 'connecting' && (
-                        <div className="py-12 space-y-4">
-                            <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mx-auto">
-                                <Smartphone size={40} className="text-warning animate-pulse" />
+                                <Button variant="outline" onClick={checkStatus} size="sm" className="w-full">
+                                    <CheckCircle size={16} className="mr-2" />
+                                    Já escaneei o QR Code
+                                </Button>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-text-primary">Conectando...</h3>
-                                <p className="text-sm text-text-secondary">
-                                    Aguarde enquanto sincronizamos seu WhatsApp
-                                </p>
-                            </div>
-                            <Loader2 size={24} className="animate-spin text-primary mx-auto" />
                         </div>
                     )}
 
                     {/* Connected State */}
                     {status === 'connected' && (
                         <div className="py-12 space-y-4">
-                            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto scale-in-center">
                                 <CheckCircle size={40} className="text-success" />
                             </div>
                             <div>
@@ -195,7 +215,7 @@ export default function ConnectInstancePage() {
                                     {errorMessage}
                                 </p>
                             </div>
-                            <Button onClick={fetchQRCode}>
+                            <Button onClick={() => fetchQRCode(false)} size="md">
                                 <RefreshCw size={16} className="mr-2" />
                                 Tentar Novamente
                             </Button>
@@ -205,7 +225,7 @@ export default function ConnectInstancePage() {
             </Card>
 
             {/* Help Text */}
-            {(status === 'qr' || status === 'connecting') && (
+            {(status === 'qr' || status === 'verifying') && (
                 <p className="text-center text-xs text-text-secondary">
                     O QR Code é atualizado automaticamente a cada 30 segundos
                 </p>

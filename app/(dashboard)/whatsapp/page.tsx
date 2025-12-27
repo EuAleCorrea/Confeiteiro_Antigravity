@@ -42,7 +42,7 @@ export default function WhatsAppPage() {
     const [deleteModal, setDeleteModal] = useState<{ open: boolean; instance: WhatsAppInstance | null }>({ open: false, instance: null });
     const [newInstanceName, setNewInstanceName] = useState('');
     const [creating, setCreating] = useState(false);
-    const [config, setConfig] = useState<WhatsAppConfig>({ apiUrl: 'https://apiwp.automacaototal.com', apiKey: '' });
+    const [config, setConfig] = useState<WhatsAppConfig>({ apiUrl: 'https://apiwp.automacaototal.com', apiKey: '', instanceName: '' });
     const [isConfigured, setIsConfigured] = useState(false);
 
     // Load config and instances on mount
@@ -51,18 +51,27 @@ export default function WhatsAppPage() {
         if (savedConfig) {
             setConfig(savedConfig);
             setIsConfigured(true);
-            loadInstances();
+            loadInstances(savedConfig.instanceName);
         } else {
             setLoading(false);
             setConfigModal(true);
         }
     }, []);
 
-    const loadInstances = async () => {
+    const loadInstances = async (nameFilter?: string) => {
         setLoading(true);
         try {
-            const data = await evolutionAPI.fetchInstances();
-            setInstances(data);
+            // Se tivermos um nome configurado, buscamos apenas ele
+            const activeName = nameFilter || config.instanceName;
+            const data = await evolutionAPI.fetchInstances(activeName);
+
+            // Filtro adicional de segurança caso a API retorne mais do que o solicitado
+            if (activeName) {
+                setInstances(data.filter(i => i.instanceName === activeName));
+            } else {
+                // Se não houver nome configurado, não mostramos nada (conforme pedido do usuário)
+                setInstances([]);
+            }
         } catch (error) {
             console.error('Erro ao carregar instâncias:', error);
         } finally {
@@ -87,12 +96,19 @@ export default function WhatsAppPage() {
     const handleCreateInstance = async () => {
         if (!newInstanceName.trim()) return;
 
+        const name = newInstanceName.trim().toLowerCase().replace(/\s+/g, '-');
         setCreating(true);
         try {
-            await evolutionAPI.createInstance(newInstanceName.trim().toLowerCase().replace(/\s+/g, '-'));
+            await evolutionAPI.createInstance(name);
+
+            // Salva o novo nome da instância na configuração local
+            const newConfig = { ...config, instanceName: name };
+            setConfig(newConfig);
+            saveEvolutionConfig(newConfig);
+
             setCreateModal(false);
             setNewInstanceName('');
-            loadInstances();
+            loadInstances(name);
         } catch (error) {
             console.error('Erro ao criar instância:', error);
             alert('Erro ao criar instância. Tente novamente.');
@@ -106,6 +122,14 @@ export default function WhatsAppPage() {
 
         try {
             await evolutionAPI.deleteInstance(deleteModal.instance.instanceName);
+
+            // Se a instância deletada for a configurada, limpa a configuração
+            if (config.instanceName === deleteModal.instance.instanceName) {
+                const newConfig = { ...config, instanceName: '' };
+                setConfig(newConfig);
+                saveEvolutionConfig(newConfig);
+            }
+
             setDeleteModal({ open: false, instance: null });
             loadInstances();
         } catch (error) {
@@ -166,7 +190,7 @@ export default function WhatsAppPage() {
                 <>
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold text-text-primary">Instâncias ({instances.length})</h2>
-                        <Button variant="ghost" size="sm" onClick={loadInstances} disabled={loading}>
+                        <Button variant="ghost" size="sm" onClick={() => loadInstances()} disabled={loading}>
                             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                         </Button>
                     </div>
@@ -221,7 +245,7 @@ export default function WhatsAppPage() {
                                             <div className="flex gap-2">
                                                 {status === 'open' ? (
                                                     <Link href={`/whatsapp/${instance.instanceName}`} className="flex-1">
-                                                        <Button variant="default" size="sm" className="w-full">
+                                                        <Button variant="primary" size="sm" className="w-full">
                                                             <MessageCircle size={16} className="mr-2" />
                                                             Abrir Chat
                                                         </Button>
@@ -318,6 +342,16 @@ export default function WhatsAppPage() {
                             placeholder="Sua chave de API"
                         />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-text-primary mb-2">
+                            Nome da Instância (Opcional)
+                        </label>
+                        <Input
+                            value={config.instanceName}
+                            onChange={(e) => setConfig(prev => ({ ...prev, instanceName: e.target.value }))}
+                            placeholder="Nome para filtrar sua instância"
+                        />
+                    </div>
                     <div className="flex gap-3">
                         {isConfigured && (
                             <Button variant="outline" onClick={() => setConfigModal(false)} className="flex-1">
@@ -356,7 +390,7 @@ export default function WhatsAppPage() {
                         <Button variant="outline" onClick={() => setDeleteModal({ open: false, instance: null })} className="flex-1">
                             Cancelar
                         </Button>
-                        <Button variant="destructive" onClick={handleDeleteInstance} className="flex-1">
+                        <Button variant="danger" onClick={handleDeleteInstance} className="flex-1">
                             Excluir
                         </Button>
                     </div>
