@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎂 Confeiteiro - Sistema de Gestão para Confeitarias
 
-## Getting Started
+Sistema completo para gestão de confeitarias, desenvolvido em Next.js com foco em produtividade e experiência do usuário.
 
-First, run the development server:
+## ✨ Funcionalidades Principais
+
+### 📋 Gestão de Orçamentos
+- Wizard intuitivo para criação de orçamentos
+- Campo de ocasião (Aniversário, Casamento, Formatura, etc.)
+- Geração de PDF profissional
+- Fluxo de status: Pendente → Enviado → Aprovado → Convertido
+
+### 📦 Gestão de Pedidos
+- Conversão automática de orçamento para pedido
+- Controle de pagamento (Pendente, Parcial, Pago)
+- Tabs organizadas: Resumo, Adereços, Produção, Entrega, Financeiro, Histórico
+- Vinculação de adereços decorativos ao pedido
+
+### 🏭 Planejamento de Produção
+- Calendário mensal e visão semanal
+- Lista diária de produção
+- Resumo consolidado por período
+- **Fechar Agenda** - finaliza planejamento semanal
+- Exportação para PDF
+
+### 💎 Módulo de Adereços e Materiais
+- Cadastro de adereços com categorias configuráveis
+- Gestão de fornecedores
+- Controle de estoque com alertas de baixa
+- Sistema de compras com status (Pendente → Recebido → Pago)
+- Atualização automática de estoque ao receber compras
+
+### 👥 Cadastros
+- **Clientes**: CPF opcional, histórico de pedidos
+- **Produtos**: Preço por tamanho (P, M, G, Fatia)
+- **Sabores e Recheios**: Categorização flexível
+- **Insumos**: Controle de estoque e custos
+- **Fornecedores**: Gestão de parceiros
+
+### 💰 Financeiro
+- Fluxo de caixa
+- Controle de pagamentos
+- Contas a pagar (compras de adereços)
+
+### ⚙️ Configurações
+- Termos padrão para orçamentos
+- Categorias de adereços personalizáveis
+- Configurações gerais do sistema
+
+## 🚀 Como Executar
 
 ```bash
+# Instalar dependências
+npm install
+
+# Executar em desenvolvimento
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build para produção
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Tecnologias
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework**: Next.js 15 (App Router)
+- **Estilização**: Tailwind CSS
+- **Ícones**: Lucide React
+- **PDF**: jsPDF + jsPDF-AutoTable
+- **Armazenamento**: LocalStorage (dados persistem no navegador)
 
-## Learn More
+## 📱 Responsividade
 
-To learn more about Next.js, take a look at the following resources:
+O sistema é totalmente responsivo, adaptando-se a:
+- Desktop (sidebar expandida)
+- Tablet (sidebar colapsável)
+- Mobile (navegação otimizada)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📂 Estrutura do Projeto
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+├── (dashboard)/           # Páginas protegidas
+│   ├── dashboard/         # Tela inicial
+│   ├── orcamentos/        # Gestão de orçamentos
+│   ├── pedidos/           # Gestão de pedidos
+│   ├── producao/          # Planejamento de produção
+│   ├── clientes/          # Cadastro de clientes
+│   ├── produtos/          # Cadastro de produtos
+│   ├── aderecos/          # Gestão de adereços
+│   │   └── compras/       # Compras de adereços
+│   ├── fornecedores/      # Gestão de fornecedores
+│   └── ...
+components/
+├── ui/                    # Componentes base (Button, Dialog, etc.)
+├── layout/                # Sidebar, Header
+├── pedidos/               # Componentes de pedidos
+├── orcamentos/            # Componentes de orçamentos
+└── producao/              # Componentes de produção
+lib/
+├── storage.ts             # Gerenciamento de dados (LocalStorage)
+├── pdf-generator.ts       # Geração de PDFs
+└── utils.ts               # Utilitários
+```
 
-## Deploy on Vercel
+## 📝 Licença
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Projeto privado - Todos os direitos reservados.
