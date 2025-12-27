@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Sparkles, Package2, AlertTriangle, Pencil, Trash2, CheckCircle } from "lucide-react";
+import { Plus, Search, Sparkles, Package2, AlertTriangle, Pencil, Trash2, CheckCircle, Truck, Tag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
@@ -19,6 +19,12 @@ export default function AderecosPage() {
     const [editingAdereco, setEditingAdereco] = useState<Adereco | null>(null);
     const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
     const [successModal, setSuccessModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+
+    // Quick-add modals state
+    const [quickCategoriaModal, setQuickCategoriaModal] = useState(false);
+    const [quickFornecedorModal, setQuickFornecedorModal] = useState(false);
+    const [newCategoriaNome, setNewCategoriaNome] = useState('');
+    const [newFornecedorData, setNewFornecedorData] = useState({ nomeFantasia: '', telefone: '' });
 
     // Form state
     const [formData, setFormData] = useState({
@@ -106,6 +112,38 @@ export default function AderecosPage() {
             setDeleteModal({ open: false, id: null });
             setSuccessModal({ open: true, message: 'Adereço excluído!' });
         }
+    }
+
+    // Quick-add handlers
+    function handleQuickCategoriaSave() {
+        if (!newCategoriaNome.trim()) return;
+        const newCat: CategoriaAdereco = {
+            id: crypto.randomUUID(),
+            nome: newCategoriaNome.trim(),
+        };
+        storage.saveCategoriaAdereco(newCat);
+        setCategorias(storage.getCategoriasAderecos());
+        setFormData({ ...formData, categoriaId: newCat.id });
+        setNewCategoriaNome('');
+        setQuickCategoriaModal(false);
+    }
+
+    function handleQuickFornecedorSave() {
+        if (!newFornecedorData.nomeFantasia.trim()) return;
+        const newF: Fornecedor = {
+            id: crypto.randomUUID(),
+            razaoSocial: newFornecedorData.nomeFantasia.trim(),
+            nomeFantasia: newFornecedorData.nomeFantasia.trim(),
+            cnpj: '',
+            categoria: 'Decorações',
+            telefone: newFornecedorData.telefone || '',
+            ativo: true,
+        };
+        storage.saveFornecedor(newF);
+        setFornecedores(storage.getFornecedores());
+        setFormData({ ...formData, fornecedorId: newF.id });
+        setNewFornecedorData({ nomeFantasia: '', telefone: '' });
+        setQuickFornecedorModal(false);
     }
 
     // Filtering
@@ -268,7 +306,7 @@ export default function AderecosPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 title={editingAdereco ? "Editar Adereço" : "Novo Adereço"}
-                className="max-w-lg"
+                className="max-w-2xl"
             >
                 <div className="space-y-4">
                     <div>
@@ -281,30 +319,52 @@ export default function AderecosPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
+                        {/* Categoria com + */}
                         <div>
                             <label className="block text-sm font-medium mb-1">Categoria</label>
-                            <select
-                                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                value={formData.categoriaId}
-                                onChange={(e) => setFormData({ ...formData, categoriaId: e.target.value })}
-                            >
-                                {categorias.map(cat => (
-                                    <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                                ))}
-                            </select>
+                            <div className="flex gap-2">
+                                <select
+                                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                    value={formData.categoriaId}
+                                    onChange={(e) => setFormData({ ...formData, categoriaId: e.target.value })}
+                                >
+                                    {categorias.map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => setQuickCategoriaModal(true)}
+                                    className="flex items-center justify-center w-10 h-10 border-2 border-dashed border-primary/50 rounded-lg text-primary hover:bg-primary/5 transition-colors"
+                                    title="Nova Categoria"
+                                >
+                                    <Plus size={20} />
+                                </button>
+                            </div>
                         </div>
+                        {/* Fornecedor com + */}
                         <div>
                             <label className="block text-sm font-medium mb-1">Fornecedor</label>
-                            <select
-                                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                value={formData.fornecedorId}
-                                onChange={(e) => setFormData({ ...formData, fornecedorId: e.target.value })}
-                            >
-                                <option value="">Nenhum</option>
-                                {fornecedores.map(f => (
-                                    <option key={f.id} value={f.id}>{f.nomeFantasia}</option>
-                                ))}
-                            </select>
+                            <div className="flex gap-2">
+                                <select
+                                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                    value={formData.fornecedorId}
+                                    onChange={(e) => setFormData({ ...formData, fornecedorId: e.target.value })}
+                                >
+                                    <option value="">Nenhum</option>
+                                    {fornecedores.map(f => (
+                                        <option key={f.id} value={f.id}>{f.nomeFantasia}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => setQuickFornecedorModal(true)}
+                                    className="flex items-center justify-center w-10 h-10 border-2 border-dashed border-primary/50 rounded-lg text-primary hover:bg-primary/5 transition-colors"
+                                    title="Novo Fornecedor"
+                                >
+                                    <Plus size={20} />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -391,6 +451,76 @@ export default function AderecosPage() {
                         </Button>
                         <Button onClick={confirmDelete} className="flex-1 bg-error hover:bg-error/90 text-white">
                             Excluir
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Quick Add Category Modal */}
+            <Dialog
+                isOpen={quickCategoriaModal}
+                onClose={() => setQuickCategoriaModal(false)}
+                title="Nova Categoria de Adereço"
+                className="max-w-sm"
+            >
+                <div className="space-y-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                        <Tag size={24} className="text-primary" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Nome da Categoria *</label>
+                        <Input
+                            value={newCategoriaNome}
+                            onChange={(e) => setNewCategoriaNome(e.target.value)}
+                            placeholder="Ex: Toppers, Laços, Fitas..."
+                            autoFocus
+                        />
+                    </div>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setQuickCategoriaModal(false)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleQuickCategoriaSave} className="flex-1" disabled={!newCategoriaNome.trim()}>
+                            Salvar e Usar
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Quick Add Fornecedor Modal */}
+            <Dialog
+                isOpen={quickFornecedorModal}
+                onClose={() => setQuickFornecedorModal(false)}
+                title="Novo Fornecedor"
+                className="max-w-md"
+            >
+                <div className="space-y-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                        <Truck size={24} className="text-primary" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Nome do Fornecedor *</label>
+                        <Input
+                            value={newFornecedorData.nomeFantasia}
+                            onChange={(e) => setNewFornecedorData({ ...newFornecedorData, nomeFantasia: e.target.value })}
+                            placeholder="Ex: Loja de Decorações XYZ"
+                            autoFocus
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Telefone</label>
+                        <Input
+                            value={newFornecedorData.telefone}
+                            onChange={(e) => setNewFornecedorData({ ...newFornecedorData, telefone: e.target.value })}
+                            placeholder="(00) 00000-0000"
+                        />
+                    </div>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setQuickFornecedorModal(false)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleQuickFornecedorSave} className="flex-1" disabled={!newFornecedorData.nomeFantasia.trim()}>
+                            Salvar e Usar
                         </Button>
                     </div>
                 </div>
