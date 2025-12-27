@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,8 @@ import {
     PanelLeftClose,
     PanelLeft,
     HelpCircle,
-    Sparkles
+    Sparkles,
+    ChevronDown
 } from "lucide-react";
 
 interface SidebarProps {
@@ -34,6 +36,7 @@ interface SidebarProps {
 // Menu organizado pelo fluxo natural de trabalho
 const menuGroups = [
     {
+        id: "principal",
         title: "Principal",
         items: [
             { icon: LayoutDashboard, label: "Dashboard", href: "/" },
@@ -44,6 +47,7 @@ const menuGroups = [
         ]
     },
     {
+        id: "cadastros",
         title: "Cadastros",
         items: [
             { icon: UserCircle, label: "Clientes", href: "/clientes" },
@@ -52,6 +56,7 @@ const menuGroups = [
         ]
     },
     {
+        id: "gestao",
         title: "Gestão",
         items: [
             { icon: Package, label: "Estoque", href: "/estoque" },
@@ -60,6 +65,7 @@ const menuGroups = [
         ]
     },
     {
+        id: "sistema",
         title: "Sistema",
         items: [
             { icon: Settings, label: "Configurações", href: "/configuracoes" },
@@ -68,8 +74,32 @@ const menuGroups = [
     }
 ];
 
+// Função para encontrar qual grupo contém a rota atual
+function findGroupByPath(pathname: string): string {
+    for (const group of menuGroups) {
+        for (const item of group.items) {
+            if (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))) {
+                return group.id;
+            }
+        }
+    }
+    return "principal";
+}
+
 export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
     const pathname = usePathname();
+    const [expandedGroup, setExpandedGroup] = useState<string>("principal");
+
+    // Auto-expand the group that contains the current page
+    useEffect(() => {
+        const currentGroup = findGroupByPath(pathname);
+        setExpandedGroup(currentGroup);
+    }, [pathname]);
+
+    const toggleGroup = (groupId: string) => {
+        // Se clicar no mesmo grupo, fecha. Se clicar em outro, abre esse e fecha o anterior.
+        setExpandedGroup(prev => prev === groupId ? "" : groupId);
+    };
 
     return (
         <>
@@ -125,50 +155,82 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
 
                 {/* Navigation */}
                 <nav className={cn(
-                    "p-2 space-y-4 overflow-y-auto h-[calc(100vh-64px)] scrollbar-thin",
-                    isCollapsed ? "px-2" : "px-4"
+                    "p-2 space-y-1 overflow-y-auto h-[calc(100vh-64px)] scrollbar-thin",
+                    isCollapsed ? "px-2" : "px-3"
                 )}>
-                    {menuGroups.map((group) => (
-                        <div key={group.title} className="space-y-1">
-                            {/* Section Title */}
-                            {!isCollapsed && (
-                                <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider px-3 pt-2 pb-1">
-                                    {group.title}
-                                </p>
-                            )}
-                            {isCollapsed && group.title !== "Principal" && (
-                                <div className="border-t border-border my-2" />
-                            )}
+                    {menuGroups.map((group) => {
+                        const isExpanded = expandedGroup === group.id;
+                        const hasActiveItem = group.items.some(
+                            item => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+                        );
 
-                            {/* Menu Items */}
-                            {group.items.map((item) => {
-                                const isActive = pathname === item.href;
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        title={isCollapsed ? item.label : undefined}
-                                        onClick={onClose}
+                        return (
+                            <div key={group.id} className="space-y-0.5">
+                                {/* Section Title - Clickable Accordion Header */}
+                                {!isCollapsed ? (
+                                    <button
+                                        onClick={() => toggleGroup(group.id)}
                                         className={cn(
-                                            "flex items-center rounded-xl transition-colors",
-                                            isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5",
-                                            isActive
-                                                ? "bg-primary/10 text-primary font-medium"
-                                                : "text-text-secondary hover:bg-neutral-100 hover:text-text-primary"
+                                            "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold uppercase tracking-wider transition-colors",
+                                            hasActiveItem
+                                                ? "text-primary"
+                                                : "text-text-secondary hover:text-text-primary hover:bg-neutral-50"
                                         )}
                                     >
-                                        <item.icon size={20} className={cn(
-                                            isActive ? "text-primary" : "",
-                                            isCollapsed ? "flex-shrink-0" : ""
-                                        )} />
-                                        {!isCollapsed && <span className="truncate">{item.label}</span>}
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    ))}
+                                        <span>{group.title}</span>
+                                        <ChevronDown
+                                            size={16}
+                                            className={cn(
+                                                "transition-transform duration-200",
+                                                isExpanded ? "rotate-180" : "rotate-0"
+                                            )}
+                                        />
+                                    </button>
+                                ) : (
+                                    group.id !== "principal" && (
+                                        <div className="border-t border-border my-2" />
+                                    )
+                                )}
+
+                                {/* Menu Items - Collapsible */}
+                                <div
+                                    className={cn(
+                                        "space-y-0.5 overflow-hidden transition-all duration-200",
+                                        !isCollapsed && (isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"),
+                                        isCollapsed && "max-h-96 opacity-100" // Always show when collapsed
+                                    )}
+                                >
+                                    {group.items.map((item) => {
+                                        const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                title={isCollapsed ? item.label : undefined}
+                                                onClick={onClose}
+                                                className={cn(
+                                                    "flex items-center rounded-xl transition-colors",
+                                                    isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-2.5 ml-2",
+                                                    isActive
+                                                        ? "bg-primary/10 text-primary font-medium"
+                                                        : "text-text-secondary hover:bg-neutral-100 hover:text-text-primary"
+                                                )}
+                                            >
+                                                <item.icon size={20} className={cn(
+                                                    isActive ? "text-primary" : "",
+                                                    isCollapsed ? "flex-shrink-0" : ""
+                                                )} />
+                                                {!isCollapsed && <span className="truncate">{item.label}</span>}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </nav>
             </aside>
         </>
     );
 }
+
