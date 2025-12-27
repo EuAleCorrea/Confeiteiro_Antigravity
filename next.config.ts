@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // output: 'export', // Uncomment for static export/deploy. Comment during dev.
+  output: 'export', // Required for Cloudflare Pages static deployment
   images: {
     unoptimized: true,
   },
