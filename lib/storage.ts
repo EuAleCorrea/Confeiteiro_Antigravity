@@ -712,9 +712,26 @@ class StorageService {
     saveConfiguracoes(config: Configuracoes) { this.setItem(STORAGE_KEYS.CONFIGURACOES, config); }
 
     // Orcamentos
-    getOrcamentos() { return this.getList<Orcamento>(STORAGE_KEYS.ORCAMENTOS); }
+    getOrcamentos() {
+        const list = this.getList<Orcamento>(STORAGE_KEYS.ORCAMENTOS);
+        // Migration: fix orcamentos with missing/invalid IDs
+        let needsSave = false;
+        list.forEach(o => {
+            if (!o.id || o.id === 'undefined') {
+                o.id = crypto.randomUUID();
+                needsSave = true;
+            }
+        });
+        if (needsSave) {
+            this.setItem(STORAGE_KEYS.ORCAMENTOS, list);
+        }
+        return list;
+    }
     getOrcamentoById(id: string) { const list = this.getOrcamentos(); return list.find(o => o.id === id); }
     saveOrcamento(orcamento: Orcamento) {
+        if (!orcamento.id) {
+            orcamento.id = crypto.randomUUID();
+        }
         if (!orcamento.numero) {
             const nextNum = this.getItem<number>(STORAGE_KEYS.NEXT_ORCAMENTO_NUM, 25338);
             orcamento.numero = nextNum;
