@@ -1,6 +1,6 @@
 # Sistema de Gestão para Confeitaria
 
-**Versão:** 1.0  
+**Versão:** 2.0  
 **Última Atualização:** Dezembro 2024
 
 ## 📋 Índice
@@ -12,17 +12,19 @@
 
 ## 🎯 Visão Geral
 
-Sistema completo de gestão para confeitarias desenvolvido em **Next.js 14** com **TypeScript** e **Tailwind CSS**. O sistema oferece controle total sobre orçamentos, pedidos, produção, estoque, clientes e finanças.
+Sistema completo de gestão para confeitarias desenvolvido em **Next.js 15** com **TypeScript** e **Tailwind CSS**. O sistema oferece controle total sobre orçamentos, pedidos, produção, estoque, clientes, adereços e finanças.
 
 ### **Funcionalidades Principais:**
 
-✅ **Gestão de Produtos** - Cadastro com preços por tamanho (P/M/G), categorias e sabores  
-✅ **Orçamentos** - Criação, envio e aprovação automática para pedidos  
-✅ **Pedidos** - Múltiplas visualizações (Kanban, Calendário, Lista)  
-✅ **Produção** - Planejamento, resumo agregado e exportação PDF  
-✅ **Clientes** - Cadastro completo com busca CEP automática  
-✅ **Estoque** - Controle de insumos e alertas  
-✅ **Finanças** - Fluxo de caixa e relatórios
+✅ **Gestão de Produtos** - Cadastro com preços por tamanho (P/M/G/Fatia), categorias e sabores  
+✅ **Orçamentos** - Wizard completo, campo ocasião, PDF profissional, fluxo Pendente→Enviado→Aprovado  
+✅ **Pedidos** - Conversão automática, tabs organizadas, vinculação de adereços  
+✅ **Produção** - Calendário, visão semanal, resumo agregado, fechar agenda, exportação PDF  
+✅ **Adereços** - Cadastro com categorias, controle de estoque, compras com status, alertas  
+✅ **Fornecedores** - Gestão completa de parceiros e fornecedores de materiais  
+✅ **Clientes** - Cadastro flexível (CPF opcional), busca CEP automática  
+✅ **Estoque** - Controle de insumos e alertas de estoque baixo  
+✅ **Finanças** - Fluxo de caixa, contas a pagar
 
 ## 🚀 Início Rápido
 

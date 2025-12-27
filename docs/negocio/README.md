@@ -190,11 +190,52 @@ Pendente → [Botão "Enviar"] → Enviado → [Botão "Aprovar"] → Aprovado
 - ✅ Fluxo de caixa mensal
 - ✅ Relatórios por período
 - ✅ Vinculação com pedidos
+- ✅ Contas a pagar (compras de adereços)
 
 **Visões:**
 - Fluxo de Caixa
 - Relatórios mensais/anuais
 - Gráficos de faturamento
+
+---
+
+### **9. Gestão de Adereços e Materiais** (NOVO)
+
+**Objetivo:** Gerenciar topos, flores, kits decorativos e outros materiais terceirizados
+
+**Funcionalidades:**
+- ✅ Cadastro de adereços com categorias configuráveis
+- ✅ Controle de estoque atual e mínimo
+- ✅ Alertas de estoque baixo no dashboard
+- ✅ Vinculação de adereços a pedidos
+- ✅ Marcar adereços como "Separado" para o pedido
+
+**Sistema de Compras:**
+- ✅ Registro de compras em lote
+- ✅ Status: Pendente → Recebido → Pago
+- ✅ Atualização automática de estoque ao receber
+- ✅ Histórico de compras por fornecedor
+
+**Fluxo:**
+```
+1. Cadastrar adereços em "Adereços"
+2. Registrar compras em "Adereços → Compras"
+3. Marcar como "Recebido" (atualiza estoque)
+4. Marcar como "Pago"
+5. Vincular adereços aos pedidos (aba Adereços do pedido)
+```
+
+---
+
+### **10. Gestão de Fornecedores** (NOVO)
+
+**Objetivo:** Manter cadastro de fornecedores de materiais
+
+**Funcionalidades:**
+- ✅ Cadastro completo (nome, CNPJ, telefone, e-mail)
+- ✅ Categorização por tipo de material
+- ✅ Vinculação com compras de adereços
+- ✅ Ativar/desativar fornecedores
 
 ---
 
