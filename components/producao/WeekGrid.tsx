@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Pedido } from "@/lib/storage";
+import { Pedido, AgendaSemanal, storage } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { format, addDays, isSameDay, addWeeks, subWeeks, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ProductionCard } from "./ProductionCard";
-import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Lock, CheckCircle } from "lucide-react";
+import { Dialog } from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
 
 interface WeekGridProps {
     startDate: Date;
@@ -15,6 +17,8 @@ interface WeekGridProps {
 
 export function WeekGrid({ startDate: initialStartDate, orders, selectedDate, onSelectDate }: WeekGridProps) {
     const [weekStart, setWeekStart] = useState<Date>(initialStartDate);
+    const [fecharModalOpen, setFecharModalOpen] = useState(false);
+    const [successModalOpen, setSuccessModalOpen] = useState(false);
 
     // Generate 7 days from weekStart
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -33,6 +37,28 @@ export function WeekGrid({ startDate: initialStartDate, orders, selectedDate, on
     // Week summary
     const weekOrders = days.flatMap(d => getOrdersForDay(d));
     const totalItems = weekOrders.reduce((sum, o) => sum + o.itens.length, 0);
+
+    // Check if agenda is already closed
+    const agendas = storage.getAgendasSemanais();
+    const weekStartStr = days[0].toISOString().split('T')[0];
+    const weekEndStr = days[6].toISOString().split('T')[0];
+    const existingAgenda = agendas.find(a => a.semanaInicio === weekStartStr);
+    const isAgendaFechada = existingAgenda?.status === 'Fechada';
+
+    // Fechar Agenda
+    const handleFecharAgenda = () => {
+        const agenda: AgendaSemanal = {
+            id: existingAgenda?.id || crypto.randomUUID(),
+            semanaInicio: weekStartStr,
+            semanaFim: weekEndStr,
+            status: 'Fechada',
+            fechadoEm: new Date().toISOString(),
+            fechadoPor: 'Usuario',
+        };
+        storage.saveAgendaSemanal(agenda);
+        setFecharModalOpen(false);
+        setSuccessModalOpen(true);
+    };
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
@@ -78,8 +104,81 @@ export function WeekGrid({ startDate: initialStartDate, orders, selectedDate, on
                         <span className="text-neutral-500">Itens: </span>
                         <span className="font-bold text-orange-600">{totalItems}</span>
                     </div>
+                    {isAgendaFechada ? (
+                        <div className="px-3 py-1.5 rounded-lg bg-success/10 text-success font-medium text-xs flex items-center gap-1">
+                            <Lock size={14} /> Agenda Fechada
+                        </div>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFecharModalOpen(true)}
+                            className="flex items-center gap-2"
+                        >
+                            <Lock size={14} /> Fechar Agenda
+                        </Button>
+                    )}
                 </div>
             </div>
+
+            {/* Fechar Agenda Modal */}
+            <Dialog
+                isOpen={fecharModalOpen}
+                onClose={() => setFecharModalOpen(false)}
+                title="Fechar Agenda Semanal"
+                className="max-w-md"
+            >
+                <div className="space-y-4">
+                    <div className="text-center">
+                        <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Lock size={32} className="text-warning-darker" />
+                        </div>
+                        <h3 className="font-bold text-lg">Confirmar fechamento?</h3>
+                        <p className="text-text-secondary mt-2">
+                            Ao fechar a agenda semanal de <strong>{format(days[0], "dd/MM", { locale: ptBR })}</strong> a <strong>{format(days[6], "dd/MM", { locale: ptBR })}</strong>,
+                            você está confirmando que a produção desta semana foi planejada.
+                        </p>
+                    </div>
+                    <div className="bg-neutral-50 p-3 rounded-lg">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span className="text-text-secondary">Pedidos:</span>
+                                <span className="font-bold ml-2">{weekOrders.length}</span>
+                            </div>
+                            <div>
+                                <span className="text-text-secondary">Itens:</span>
+                                <span className="font-bold ml-2">{totalItems}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setFecharModalOpen(false)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleFecharAgenda} className="flex-1">
+                            Fechar Agenda
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Success Modal */}
+            <Dialog
+                isOpen={successModalOpen}
+                onClose={() => setSuccessModalOpen(false)}
+                title="Sucesso"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle size={32} className="text-success" />
+                    </div>
+                    <p className="text-text-primary font-medium">Agenda semanal fechada com sucesso!</p>
+                    <Button onClick={() => setSuccessModalOpen(false)} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
 
             {/* Header: Days of Week */}
             <div className="grid grid-cols-7 border-b border-neutral-200 bg-neutral-50/50 shrink-0">
