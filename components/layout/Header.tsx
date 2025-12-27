@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, User, Search, Settings, HelpCircle, Sliders, LogOut, X, FileText, ShoppingBag, Package, Truck } from "lucide-react";
+import { Menu, User, Search, Settings, HelpCircle, Sliders, LogOut, X, FileText, ShoppingBag, Package, Truck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { NotificationPanel } from "./NotificationPanel";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -77,7 +77,15 @@ export function Header({ onMenuClick }: HeaderProps) {
                     </button>
                 </div>
 
+
                 <div className="flex items-center gap-2">
+                    {/* WhatsApp Shortcut */}
+                    <Link href="/whatsapp/default">
+                        <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors">
+                            <MessageCircle size={20} />
+                        </div>
+                    </Link>
+
                     {/* Notifications */}
                     <NotificationPanel />
 

@@ -1,19 +1,32 @@
 "use client";
 
+import { Suspense } from "react";
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { storage, Configuracoes } from "@/lib/storage";
+import { WhatsAppSettings } from "@/components/settings/WhatsAppSettings";
 
-export default function ConfiguracoesPage() {
+import { useSearchParams } from "next/navigation";
+
+
+function ConfiguracoesContent() {
     const [config, setConfig] = useState<Configuracoes>(storage.getConfiguracoes());
-    const [activeTab, setActiveTab] = useState<'Empresa' | 'Negócio' | 'Termos'>('Empresa');
+    const [activeTab, setActiveTab] = useState<'Empresa' | 'Negócio' | 'Termos' | 'WhatsApp'>('Empresa');
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         // Load config on mount
         setConfig(storage.getConfiguracoes());
-    }, []);
+
+        // Check for tab param
+        const tabParam = searchParams.get('tab');
+        if (tabParam === 'WhatsApp') {
+            setActiveTab('WhatsApp');
+        }
+    }, [searchParams]);
 
     function handleSave(e: React.FormEvent) {
         e.preventDefault();
@@ -57,12 +70,12 @@ export default function ConfiguracoesPage() {
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Sidebar Navigation */}
                 <div className="w-full lg:w-64 space-y-1">
-                    {['Empresa', 'Negócio', 'Termos'].map((tab) => (
+                    {['Empresa', 'Negócio', 'Termos', 'WhatsApp'].map((tab) => (
                         <button
                             key={tab}
                             className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === tab
-                                    ? "bg-primary text-white shadow-md"
-                                    : "text-text-secondary hover:bg-neutral-100 hover:text-text-primary"
+                                ? "bg-primary text-white shadow-md"
+                                : "text-text-secondary hover:bg-neutral-100 hover:text-text-primary"
                                 }`}
                             onClick={() => setActiveTab(tab as any)}
                         >
@@ -158,6 +171,7 @@ export default function ConfiguracoesPage() {
                                     </div>
                                 )}
 
+
                                 {activeTab === 'Termos' && (
                                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                         <h2 className="text-lg font-semibold border-b border-border pb-2">Termos e Políticas</h2>
@@ -181,6 +195,13 @@ export default function ConfiguracoesPage() {
                                     </div>
                                 )}
 
+                                {activeTab === 'WhatsApp' && (
+                                    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                        <WhatsAppSettings />
+                                    </div>
+                                )}
+
+
                                 <div className="flex justify-end pt-4">
                                     <Button type="submit" size="lg">Salvar Configurações</Button>
                                 </div>
@@ -190,5 +211,13 @@ export default function ConfiguracoesPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ConfiguracoesPage() {
+    return (
+        <Suspense fallback={<div className="p-6 text-center">Carregando configurações...</div>}>
+            <ConfiguracoesContent />
+        </Suspense>
     );
 }

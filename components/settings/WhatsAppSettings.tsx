@@ -34,7 +34,7 @@ const statusConfig: Record<ConnectionStatus, { label: string; color: string; ico
     open: { label: 'Conectado', color: 'bg-success/10 text-success', icon: Wifi },
 };
 
-export default function WhatsAppPage() {
+export function WhatsAppSettings() {
     const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
     const [loading, setLoading] = useState(true);
     const [createModal, setCreateModal] = useState(false);
@@ -153,8 +153,8 @@ export default function WhatsAppPage() {
                         <MessageCircle className="text-green-600" size={28} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-text-primary">WhatsApp</h1>
-                        <p className="text-text-secondary">Gerencie suas conexões e conversas</p>
+                        <h2 className="text-xl font-bold text-text-primary">Conexão WhatsApp</h2>
+                        <p className="text-text-secondary">Gerencie suas conexões e instâncias</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -214,7 +214,7 @@ export default function WhatsAppPage() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {instances.map((instance) => {
                                 const status = getInstanceStatus(instance);
                                 const statusInfo = statusConfig[status];
@@ -316,7 +316,7 @@ export default function WhatsAppPage() {
             {/* Config Modal */}
             <Dialog
                 isOpen={configModal}
-                onClose={() => isConfigured && setConfigModal(false)}
+                onClose={() => setConfigModal(false)}
                 title="Configurar Evolution API"
                 className="max-w-md"
             >

@@ -14,11 +14,20 @@ O módulo permite que o usuário conecte sua instância do WhatsApp para visuali
 ## 2. Estrutura de Arquivos
 
 - `lib/evolution-api.ts`: Singleton service que centraliza todas as chamadas HTTP à Evolution API.
-- `app/(dashboard)/whatsapp/page.tsx`: Dashboard principal. Gerencia instâncias (criar, deletar, abrir).
-- `app/(dashboard)/whatsapp/[instanceName]/connect/page.tsx`: Tela de conexão via QR Code.
-- `app/(dashboard)/whatsapp/[instanceName]/page.tsx`: Interface de Chat (lista de conversas e mensagens).
+- `components/settings/WhatsAppSettings.tsx`: Componente de gestão e configuração de instâncias (integrado em Configurações).
+- `app/(dashboard)/configuracoes/page.tsx`: Página de Configurações que hospeda a aba "WhatsApp".
+- `app/(dashboard)/whatsapp/[instanceName]/connect/page.tsx` e `client-page.tsx`: Tela de conexão via QR Code (Static Export).
+- `app/(dashboard)/whatsapp/[instanceName]/page.tsx` e `client-page.tsx`: Interface de Chat (Static Export).
 
-## 3. Configuração
+## 3. Compatibilidade com Static Export (Cloudflare Pages)
+
+Para suportar o deploy no Cloudflare Pages com `output: 'export'`, as rotas dinâmicas foram refatoradas:
+
+- **Estratégia:** Separação entre Wrapper (Server Component com `generateStaticParams`) e Logic (Client Component).
+- **Parâmetro Padrão:** O `generateStaticParams` exporta `{ instanceName: 'default' }` para garantir a geração da página estática base.
+- **Client Side:** O componente cliente lida com a hidratação e lógica dinâmica.
+
+## 4. Configuração
 
 ### Variáveis de Ambiente
 A configuração da API utiliza variáveis de ambiente com fallback para localStorage:
@@ -34,12 +43,11 @@ NEXT_PUBLIC_EVOLUTION_API_KEY=sua_api_key_aqui
 2. **localStorage** (`evolution_config`) usado apenas para `instanceName`
 3. A função `loadEvolutionConfig()` mescla ambas as fontes
 
-### Filtragem de Instância
-- O usuário define o nome da sua instância nas configurações
-- O método `fetchInstances` retorna apenas a instância correspondente
-- Instâncias desconhecidas são ignoradas por segurança
+### Navegação
+- **Header:** Ícone de acesso rápido que verifica o localStorage. Se houver instância, abre o chat; caso contrário, abre as configurações.
+- **Configurações:** Toda a gestão (criar/deletar) feita na aba "WhatsApp" em `/configuracoes`.
 
-## 4. Fluxo de Conexão (Otimizado)
+## 5. Fluxo de Conexão (Otimizado)
 
 ### Criação Automática de Instância
 O método `connectInstance()` agora inclui `ensureInstanceExists()`:
@@ -53,7 +61,7 @@ O método `connectInstance()` agora inclui `ensureInstanceExists()`:
 3. **Botão Manual:** "Já escaneei o QR Code" para verificação forçada
 4. **Validação Final:** Redirecionamento só com `state: 'open'`
 
-## 5. Interface de Chat
+## 6. Interface de Chat
 
 ### Endpoints da API (POST obrigatório na v2)
 
@@ -95,7 +103,7 @@ O campo `lastMessage.message` pode ser:
 
 O frontend trata todos os casos com fallback em cascata.
 
-## 6. Tratamento de Erros
+## 7. Tratamento de Erros
 
 ### Retry Logic
 1. Se busca de chats falhar, verifica conexão real via `/connectionState`
@@ -107,24 +115,31 @@ O frontend trata todos os casos com fallback em cascata.
 - Timestamps convertidos de segundos para milissegundos
 - Base64 do QR Code prefixado automaticamente se necessário
 
-## 7. Pontos de Atenção para Desenvolvedores
+## 8. Pontos de Atenção para Desenvolvedores
 
 - **Método HTTP:** Endpoints de busca usam **POST**, não GET
 - **Estrutura Aninhada:** `findMessages` retorna `{messages: {records: []}}`
 - **Timestamp:** API retorna segundos, frontend espera milissegundos
 - **ID do Chat:** Usar `remoteJid`, não `id` (pode ser null)
 - **Nome do Contato:** Usar `pushName`, não `name`
+- **Static Export:** Qualquer nova rota dinâmica deve ter `generateStaticParams` no Server Component.
 
-## 8. Próximos Passos (To-Do)
+## 9. Próximos Passos (To-Do)
 
 - [ ] **Integração com Clientes:** Exibir modal com dados do cliente ao selecionar chat
 - [ ] **Mídia:** Implementar upload e envio de imagens/áudio
 - [ ] **Pedidos:** Criar pedido diretamente a partir de conversa
 - [ ] **Webhooks:** Receber mensagens em tempo real (atualmente usa polling)
 
-## 9. Histórico de Correções
+## 10. Histórico de Correções
 
-### 27/12/2024
+### 27/12/2024 (Refatoração UI e Build Fix)
+- ✅ Fix Cloudflare Build: Adicionado `output: 'export'` e refatorado rotas dinâmicas para Static Export.
+- ✅ UI Refactor: Movida gestão de instâncias para a página de Configurações.
+- ✅ UI Refactor: Adicionado ícone de atalho no Header com lógica de link dinâmico.
+- ✅ UI Cleanup: Removido item do sidebar e modal com bug de fechamento.
+
+### 27/12/2024 (Inicial)
 - ✅ Corrigido endpoints para usar POST em vez de GET
 - ✅ Adicionado `ensureInstanceExists()` para criar instância automaticamente
 - ✅ Configuração via variáveis de ambiente (`.env.local`)
@@ -133,4 +148,5 @@ O frontend trata todos os casos com fallback em cascata.
 - ✅ Extração de `data.messages.records` para mensagens
 - ✅ Tratamento de `lastMessage.message` como objeto
 - ✅ Null safety em filtros e renderização
+
 

@@ -60,7 +60,6 @@ const menuGroups = [
         id: "gestao",
         title: "Gestão",
         items: [
-            { icon: MessageCircle, label: "WhatsApp", href: "/whatsapp" },
             { icon: Package, label: "Estoque", href: "/estoque" },
             { icon: Truck, label: "Fornecedores", href: "/fornecedores" },
             { icon: DollarSign, label: "Financeiro", href: "/financeiro" },
