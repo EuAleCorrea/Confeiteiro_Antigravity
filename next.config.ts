@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // output: 'export', // Removed to allow NextAuth.js (Google Login) to work with server-side features
+  output: 'export', // Required for Cloudflare Pages static deployment
   images: {
     unoptimized: true,
   },
