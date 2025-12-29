@@ -40,7 +40,7 @@ export function ImportGoogleContactsModal({
     const [existingClients, setExistingClients] = useState<Cliente[]>([]);
 
     useEffect(() => {
-        if (isOpen && session?.accessToken) {
+        if (isOpen && (session as any)?.accessToken) {
             loadGoogleContacts(true);
             setExistingClients(storage.getClientes());
         }
