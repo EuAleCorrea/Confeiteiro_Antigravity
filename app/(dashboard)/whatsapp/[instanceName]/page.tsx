@@ -1,7 +1,4 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import WhatsAppRedirect from "./WhatsAppRedirect";
 
 // Required for static export
 export function generateStaticParams() {
@@ -9,15 +6,5 @@ export function generateStaticParams() {
 }
 
 export default function Page() {
-    const router = useRouter();
-
-    useEffect(() => {
-        router.replace('/configuracoes?tab=WhatsApp');
-    }, [router]);
-
-    return (
-        <div className="flex items-center justify-center h-screen">
-            <p className="text-text-secondary">Redirecionando...</p>
-        </div>
-    );
+    return <WhatsAppRedirect />;
 }
