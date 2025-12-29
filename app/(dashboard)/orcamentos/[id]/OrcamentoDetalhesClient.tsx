@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Printer, Share2, Copy, FileCheck, Trash2, Calendar, MapPin, DollarSign, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Printer, Share2, Copy, FileCheck, Trash2, Calendar, MapPin, DollarSign, AlertTriangle, CheckCircle, Smartphone, Send, Loader2, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import { storage, Orcamento } from "@/lib/storage";
+import evolutionAPI, { loadEvolutionConfig } from "@/lib/evolution-api";
+import { generateQuotePDFBase64 } from "@/lib/pdf-generator";
 import Link from "next/link";
 
 export default function OrcamentoDetalhesClient() {
@@ -15,13 +18,20 @@ export default function OrcamentoDetalhesClient() {
     const router = useRouter();
     const id = params.id as string;
     const [orcamento, setOrcamento] = useState<Orcamento | null>(null);
-    const [activeTab, setActiveTab] = useState<'resumo' | 'termos' | 'historico'>('resumo');
+    const [activeTab, setActiveTab] = useState<'resumo' | 'terms' | 'historico'>('resumo');
 
     // Modal States
     const [deleteModal, setDeleteModal] = useState(false);
     const [convertModal, setConvertModal] = useState(false);
     const [duplicateModal, setDuplicateModal] = useState(false);
     const [successModal, setSuccessModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+
+    // WhatsApp States
+    const [whatsappModal, setWhatsappModal] = useState(false);
+    const [whatsappLoading, setWhatsappLoading] = useState(false);
+    const [whatsappData, setWhatsappData] = useState({ phone: '', message: '' });
+    const [sendPdfAttachment, setSendPdfAttachment] = useState(true);
+    const [resendConfirmModal, setResendConfirmModal] = useState<{ open: boolean; previousSends: number; lastSendDate: string; lastSendType: string }>({ open: false, previousSends: 0, lastSendDate: '', lastSendType: '' });
 
     useEffect(() => {
         if (!id) return;
@@ -32,8 +42,30 @@ export default function OrcamentoDetalhesClient() {
             }
         } else {
             setOrcamento(found);
+            // Pre-fill WhatsApp data
+            if (found) {
+                // Format phone: remove non-digits and add 55 prefix if needed
+                let phone = found.cliente.telefone.replace(/\D/g, '');
+                if (!phone.startsWith('55')) {
+                    phone = '55' + phone;
+                }
+                setWhatsappData({
+                    phone: phone,
+                    message: `Olá ${found.cliente.nome}, segue o seu orçamento #${found.numero} no valor de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(found.valorTotal)}.\n\nFicamos à disposição para quaisquer dúvidas!`
+                });
+            }
         }
     }, [id, router]);
+
+    // Auto-close success modal after 3 seconds
+    useEffect(() => {
+        if (successModal.open) {
+            const timer = setTimeout(() => {
+                setSuccessModal({ open: false, message: '' });
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [successModal.open]);
 
     const confirmDelete = () => {
         storage.deleteOrcamento(id);
@@ -78,11 +110,132 @@ export default function OrcamentoDetalhesClient() {
         window.open(`/print/orcamento/${id}`, '_blank');
     };
 
-    const handleWhatsApp = () => {
+    const handleWhatsAppClick = () => {
         if (!orcamento) return;
-        const phone = orcamento.cliente.telefone.replace(/\D/g, '');
-        const text = encodeURIComponent(`Olá ${orcamento.cliente.nome}! Segue seu orçamento #${orcamento.numero}.`);
-        window.open(`https://wa.me/55${phone}?text=${text}`, '_blank');
+
+        // Check if already sent before
+        const previousSends = orcamento.enviosWhatsApp?.length || 0;
+
+        if (previousSends > 0) {
+            const lastSend = orcamento.enviosWhatsApp![previousSends - 1];
+            const lastSendDate = new Date(lastSend.data).toLocaleString('pt-BR');
+
+            // Show custom confirmation modal
+            setResendConfirmModal({
+                open: true,
+                previousSends,
+                lastSendDate,
+                lastSendType: lastSend.tipo
+            });
+            return;
+        }
+
+        openWhatsAppModal();
+    };
+
+    const openWhatsAppModal = () => {
+        setSendPdfAttachment(true);
+        setWhatsappModal(true);
+    };
+
+    const confirmResend = () => {
+        setResendConfirmModal({ open: false, previousSends: 0, lastSendDate: '', lastSendType: '' });
+        openWhatsAppModal();
+    };
+
+    const sendWhatsApp = async () => {
+        if (!orcamento) return;
+        setWhatsappLoading(true);
+        try {
+            const config = loadEvolutionConfig();
+            const instanceName = config?.instanceName;
+
+            if (!instanceName || !config?.apiKey) {
+                alert('WhatsApp não configurado. Vá em Configurações > WhatsApp.');
+                setWhatsappLoading(false);
+                return;
+            }
+
+            // 1. Validate number
+            const validation = await evolutionAPI.validateNumber(instanceName, whatsappData.phone);
+
+            if (!validation.exists) {
+                if (!confirm('Este número não parece estar registrado no WhatsApp. Deseja tentar enviar mesmo assim?')) {
+                    setWhatsappLoading(false);
+                    return;
+                }
+            }
+
+            // 2. Send PDF attachment first (if enabled)
+            if (sendPdfAttachment) {
+                try {
+                    const pdfBase64 = generateQuotePDFBase64(orcamento);
+                    const fileName = `Orcamento-${orcamento.numero}.pdf`;
+
+                    await evolutionAPI.sendDocument(
+                        instanceName,
+                        whatsappData.phone,
+                        pdfBase64,
+                        fileName,
+                        `📄 Orçamento #${orcamento.numero}`
+                    );
+                } catch (pdfError) {
+                    console.error('Erro ao enviar PDF:', pdfError);
+                    // Continue with text message even if PDF fails
+                }
+            }
+
+            // 3. Send Text Message
+            const response = await evolutionAPI.sendTextMessage(instanceName, whatsappData.phone, whatsappData.message);
+
+            if (response.status === 'PENDING' || response.status === 'SENT' || response.key) {
+                // Determine send type
+                const sendType = sendPdfAttachment ? 'PDF+Texto' : 'Texto';
+
+                // Calculate next send number
+                const existingEnvios = orcamento.enviosWhatsApp || [];
+                const nextEnvioNum = existingEnvios.length + 1;
+
+                // Create new envio record
+                const newEnvio = {
+                    numero: nextEnvioNum,
+                    data: new Date().toISOString(),
+                    tipo: sendType as 'PDF' | 'Texto' | 'PDF+Texto',
+                    telefone: whatsappData.phone
+                };
+
+                // Add to both history and enviosWhatsApp
+                const updated = {
+                    ...orcamento,
+                    status: 'Enviado' as const,
+                    historico: [...orcamento.historico, {
+                        data: new Date().toISOString(),
+                        acao: `Envio #${nextEnvioNum} via WhatsApp (${sendType})`,
+                        usuario: 'Admin'
+                    }],
+                    enviosWhatsApp: [...existingEnvios, newEnvio]
+                };
+
+                storage.saveOrcamento(updated);
+                setOrcamento(updated);
+
+                // Close modal and show success
+                setWhatsappModal(false);
+                setWhatsappLoading(false);
+                setSuccessModal({
+                    open: true,
+                    message: `Orçamento enviado com sucesso!\n\nEnvio #${nextEnvioNum} - ${sendType}`
+                });
+            } else {
+                alert('Erro ao enviar mensagem. Verifique a conexão do WhatsApp.');
+            }
+
+        } catch (error) {
+            console.error('Erro ao enviar WhatsApp:', error);
+            alert('Erro ao enviar mensagem. Verifique se a instância está conectada.');
+        } finally {
+            setWhatsappLoading(false);
+        }
     };
 
     if (!orcamento) {
@@ -114,7 +267,7 @@ export default function OrcamentoDetalhesClient() {
                     <Button variant="outline" size="sm" onClick={handlePrint} title="Imprimir/PDF">
                         <Printer size={16} className="mr-2" /> PDF
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handleWhatsApp} title="Enviar WhatsApp">
+                    <Button variant="outline" size="sm" onClick={handleWhatsAppClick} title="Enviar WhatsApp">
                         <Share2 size={16} className="mr-2" /> WhatsApp
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setDuplicateModal(true)} title="Duplicar">
@@ -140,8 +293,8 @@ export default function OrcamentoDetalhesClient() {
                     Resumo & Itens
                 </button>
                 <button
-                    className={`pb-3 border-b-2 font-medium transition-colors ${activeTab === 'termos' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
-                    onClick={() => setActiveTab('termos')}
+                    className={`pb-3 border-b-2 font-medium transition-colors ${activeTab === 'terms' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+                    onClick={() => setActiveTab('terms')}
                 >
                     Termos & Condições
                 </button>
@@ -250,7 +403,7 @@ export default function OrcamentoDetalhesClient() {
                     </div>
                 )}
 
-                {activeTab === 'termos' && (
+                {activeTab === 'terms' && (
                     <div className="p-8 space-y-6">
                         <div className="prose max-w-none">
                             <h3 className="text-lg font-semibold">Formas de Pagamento</h3>
@@ -288,6 +441,68 @@ export default function OrcamentoDetalhesClient() {
                     </div>
                 )}
             </div>
+
+            {/* WhatsApp Modal */}
+            <Dialog
+                isOpen={whatsappModal}
+                onClose={() => !whatsappLoading && setWhatsappModal(false)}
+                title="Enviar Orçamento via WhatsApp"
+                className="max-w-md"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Número do WhatsApp</label>
+                        <div className="flex gap-2">
+                            <div className="flex items-center justify-center w-10 bg-neutral-100 rounded-md border border-input text-text-secondary">
+                                <Smartphone size={18} />
+                            </div>
+                            <Input
+                                value={whatsappData.phone}
+                                onChange={e => setWhatsappData({ ...whatsappData, phone: e.target.value })}
+                                placeholder="5511999999999"
+                                disabled={whatsappLoading}
+                            />
+                        </div>
+                        <p className="text-xs text-text-secondary mt-1">Dica: Use 55 + DDD + Número</p>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Mensagem</label>
+                        <textarea
+                            className="w-full min-h-[120px] p-3 rounded-md border border-input bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                            value={whatsappData.message}
+                            onChange={e => setWhatsappData({ ...whatsappData, message: e.target.value })}
+                            disabled={whatsappLoading}
+                        />
+                    </div>
+
+                    {/* PDF Attachment Toggle */}
+                    <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                        <input
+                            type="checkbox"
+                            id="sendPdfDetails"
+                            checked={sendPdfAttachment}
+                            onChange={e => setSendPdfAttachment(e.target.checked)}
+                            disabled={whatsappLoading}
+                            className="w-4 h-4 rounded border-neutral-300 text-primary focus:ring-primary"
+                        />
+                        <label htmlFor="sendPdfDetails" className="flex items-center gap-2 text-sm cursor-pointer">
+                            <Paperclip size={16} className="text-text-secondary" />
+                            <span>Anexar PDF do Orçamento</span>
+                        </label>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setWhatsappModal(false)} className="flex-1" disabled={whatsappLoading}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={sendWhatsApp} className="flex-1 bg-success hover:bg-success-darker text-white" disabled={whatsappLoading}>
+                            {whatsappLoading ? <Loader2 size={18} className="animate-spin mr-2" /> : <Send size={18} className="mr-2" />}
+                            {sendPdfAttachment ? 'Enviar com PDF' : 'Enviar Mensagem'}
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
 
             {/* Delete Confirmation Modal */}
             <Dialog
@@ -376,6 +591,50 @@ export default function OrcamentoDetalhesClient() {
                     <Button onClick={() => setSuccessModal({ open: false, message: '' })} className="w-full">
                         OK
                     </Button>
+                </div>
+            </Dialog>
+
+            {/* Resend Confirmation Modal */}
+            <Dialog
+                isOpen={resendConfirmModal.open}
+                onClose={() => setResendConfirmModal({ open: false, previousSends: 0, lastSendDate: '', lastSendType: '' })}
+                title="Reenviar Orçamento"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                        <Share2 size={32} className="text-orange-600" />
+                    </div>
+                    <div className="space-y-2">
+                        <p className="font-medium">Este orçamento já foi enviado!</p>
+                        <p className="text-sm text-text-secondary">
+                            Enviado <strong>{resendConfirmModal.previousSends} vez(es)</strong>
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                            Último envio: <strong>{resendConfirmModal.lastSendDate}</strong>
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                            Tipo: <strong>{resendConfirmModal.lastSendType}</strong>
+                        </p>
+                    </div>
+                    <p className="text-sm text-text-secondary font-medium">
+                        Deseja enviar novamente?
+                    </p>
+                    <div className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => setResendConfirmModal({ open: false, previousSends: 0, lastSendDate: '', lastSendType: '' })}
+                            className="flex-1"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={confirmResend}
+                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                            Sim, Reenviar
+                        </Button>
+                    </div>
                 </div>
             </Dialog>
         </div>

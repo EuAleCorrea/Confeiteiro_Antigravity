@@ -78,14 +78,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                 </div>
 
 
-                <div className="flex items-center gap-2">
-                    {/* WhatsApp Shortcut */}
-                    <Link href="/whatsapp/default">
-                        <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 hover:bg-green-500/20 transition-colors">
-                            <MessageCircle size={20} />
-                        </div>
-                    </Link>
 
+
+                <div className="flex items-center gap-2">
                     {/* Notifications */}
                     <NotificationPanel />
 
@@ -148,7 +143,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                         )}
                     </div>
                 </div>
-            </header>
+            </header >
 
             {/* Search Modal */}
             {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}

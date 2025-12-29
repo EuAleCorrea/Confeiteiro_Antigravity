@@ -7,6 +7,7 @@
 3. [Estrutura de Componentes](./COMPONENTES.md)
 4. [APIs e Storage](./API_STORAGE.md)
 5. [Guia de Desenvolvimento](./CONTRIBUTING.md)
+6. [Pendências e Known Issues](./PENDENCIAS.md)
 
 ## 🏗️ Arquitetura do Sistema
 
@@ -208,3 +209,4 @@ npm run lint
 - [Componentes](./COMPONENTES.md)
 - [API e Storage](./API_STORAGE.md)
 - [Guia de Contribuição](./CONTRIBUTING.md)
+- [Pendências e Known Issues](./PENDENCIAS.md)

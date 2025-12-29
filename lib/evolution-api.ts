@@ -66,6 +66,8 @@ export interface WhatsAppMessage {
             url: string;
             caption?: string;
             mimetype: string;
+            jpegThumbnail?: string;
+            directPath?: string;
         };
         audioMessage?: {
             url: string;
@@ -211,11 +213,15 @@ class EvolutionAPIService {
     }
 
     async getConnectionState(instanceName: string): Promise<{ instance: { instanceName: string; state: 'close' | 'connecting' | 'open' } }> {
-        return this.request(`/instance/connectionState/${instanceName}`);
+        const response = await this.request<any>(`/instance/connectionState/${instanceName}`);
+        console.log(`[ConnectionState] ${instanceName}:`, response);
+        return response;
     }
 
     async fetchInstances(nameOverride?: string): Promise<WhatsAppInstance[]> {
-        const targetName = nameOverride || this.instanceName;
+        // Only filter by name if explicitly provided - do NOT use the cached instanceName
+        // This allows fetching ALL instances when called without parameters
+        const targetName = nameOverride; // Changed: removed || this.instanceName
         const query = targetName ? `?instanceName=${targetName}` : '';
         const response = await this.request<any>(`/instance/fetchInstances${query}`);
 
@@ -246,9 +252,6 @@ class EvolutionAPIService {
             return instances.filter(i => i.instanceName === targetName);
         }
 
-        // Se não houver filtro, e quisermos ser estritos, poderíamos retornar vazio.
-        // Mas para manter a funcionalidade de "escolha", retornamos tudo se nenhum filtro global existir.
-        // No entanto, o usuário pediu para NÃO ver as demais, então se tivermos um nome global, mostramos só ele.
         return instances;
     }
 
@@ -264,20 +267,24 @@ class EvolutionAPIService {
         });
     }
 
+    async restartInstance(instanceName: string): Promise<void> {
+        console.log(`[RestartInstance] Restarting ${instanceName}...`);
+        return this.request(`/instance/restart/${instanceName}`, {
+            method: 'PUT',
+        });
+    }
+
     // Messages
     async sendTextMessage(instanceName: string, number: string, text: string): Promise<SendMessageResponse> {
         // Remove non-digits from number
         const cleanNumber = number.replace(/\D/g, '');
 
+        // Evolution API v2 format
         return this.request(`/message/sendText/${instanceName}`, {
             method: 'POST',
             body: JSON.stringify({
                 number: cleanNumber,
-                options: {
-                    delay: 1200,
-                    presence: 'composing'
-                },
-                textMessage: { text }
+                text: text // Evolution API v2 expects 'text' at root level
             }),
         });
     }
@@ -308,64 +315,150 @@ class EvolutionAPIService {
         });
     }
 
+    // Send Document (PDF, etc) via base64
+    async sendDocument(
+        instanceName: string,
+        number: string,
+        base64File: string, // base64 without data:... prefix
+        fileName: string,
+        caption?: string
+    ): Promise<SendMessageResponse> {
+        const cleanNumber = number.replace(/\D/g, '');
+
+        // Evolution API v2 format - trying different structure
+        return this.request(`/message/sendMedia/${instanceName}`, {
+            method: 'POST',
+            body: JSON.stringify({
+                number: cleanNumber,
+                mediatype: 'document',
+                media: base64File, // Just the base64 string without prefix
+                fileName: fileName,
+                caption: caption || ''
+            }),
+        });
+    }
+
     // Chats
-    async fetchChats(instanceName: string): Promise<WhatsAppChat[]> {
+    async fetchChats(instanceName: string, page: number = 1, limit: number = 20): Promise<WhatsAppChat[]> {
         // Evolution API v2 uses POST for findChats
+        // Pagination usually works with limit/offset or page. Using offset approach compatible with typical APIs
+        const offset = (page - 1) * limit;
+
         const rawData = await this.request<any[]>(`/chat/findChats/${instanceName}`, {
             method: 'POST',
-            body: JSON.stringify({})
+            body: JSON.stringify({
+                limit,
+                offset
+            })
         });
 
         // Map API response to our WhatsAppChat interface
-        return rawData.map((chat: any) => ({
+        return (Array.isArray(rawData) ? rawData : []).map((chat: any) => ({
             id: chat.remoteJid || chat.id || '',
             name: chat.pushName || chat.name || '',
             unreadCount: chat.unreadCount || 0,
             lastMessage: chat.lastMessage ? {
                 message: chat.lastMessage.message,
                 // API returns timestamp in seconds, convert to milliseconds for Date
-                timestamp: (chat.lastMessage.messageTimestamp || 0) * 1000,
-                fromMe: chat.lastMessage.key?.fromMe || false
+                timestamp: (chat.lastMessage.messageTimestamp || chat.lastMessage.timestamp || 0) * 1000,
+                fromMe: chat.lastMessage.key?.fromMe ?? chat.lastMessage.fromMe ?? false
             } : undefined,
             profilePicUrl: chat.profilePicUrl || chat.profilePictureUrl
-        })).filter((chat: WhatsAppChat) => chat.id); // Filter out chats without ID
+        })).filter((chat: WhatsAppChat) =>
+            chat.id &&
+            !chat.id.includes('@lid') &&
+            !chat.id.includes('@broadcast')
+        );
     }
 
     async fetchMessages(instanceName: string, remoteJid: string, limit: number = 50): Promise<WhatsAppMessage[]> {
-        // Evolution API v2 uses POST for findMessages
-        const rawData = await this.request<any>(`/chat/findMessages/${instanceName}`, {
-            method: 'POST',
-            body: JSON.stringify({
-                where: {
-                    key: {
-                        remoteJid: remoteJid
-                    }
-                },
-                limit: limit
-            })
+        // Extract phone number from JID for matching
+        const phoneNumber = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+        const last8Digits = phoneNumber.slice(-8);
+
+        console.log(`[fetchMessages] Looking for messages with phone: ${phoneNumber}, last8: ${last8Digits}`);
+
+        // Strategy: Fetch ALL recent messages without filter, then filter client-side
+        // This works around the LID vs JID issue where messages are stored with different IDs
+        let allRecords: any[] = [];
+
+        try {
+            // Fetch without remoteJid filter to get ALL messages including LID ones
+            const rawData = await this.request<any>(`/chat/findMessages/${instanceName}`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    limit: 500  // Get more messages to ensure we have enough for this chat
+                })
+            });
+
+            const records = rawData?.messages?.records || rawData?.records ||
+                (Array.isArray(rawData?.messages) ? rawData.messages : []) ||
+                (Array.isArray(rawData) ? rawData : []);
+
+            if (Array.isArray(records)) {
+                allRecords = records;
+                console.log(`[fetchMessages] Total messages fetched: ${allRecords.length}`);
+            }
+        } catch (e) {
+            console.error('fetchMessages failed:', e);
+        }
+
+        // Filter messages that belong to this conversation
+        const matchingRecords = allRecords.filter((msg: any) => {
+            const msgJid = msg.key?.remoteJid || '';
+            const participant = msg.participant || msg.key?.participant || '';
+            const senderPn = msg.senderPn || '';
+            const pushName = msg.pushName || '';
+
+            // Direct match on remoteJid
+            if (msgJid === remoteJid) return true;
+
+            // Match by phone number (covers LID case)
+            if (msgJid.includes(last8Digits)) return true;
+            if (participant.includes(last8Digits)) return true;
+            if (senderPn.includes(last8Digits)) return true;
+
+            // Also match if remoteJid contains the full phone number
+            if (msgJid.includes(phoneNumber)) return true;
+
+            return false;
         });
 
-        // API returns nested structure: { messages: { records: [...] } }
-        const records = rawData?.messages?.records || rawData?.records || rawData || [];
+        console.log(`[fetchMessages] Messages matching ${phoneNumber}: ${matchingRecords.length} of ${allRecords.length}`);
 
         // Ensure we have an array
-        if (!Array.isArray(records)) {
-            console.warn('fetchMessages: unexpected response structure', rawData);
+        if (!Array.isArray(matchingRecords) || matchingRecords.length === 0) {
+            console.warn('fetchMessages: no matching messages found');
             return [];
         }
 
+        console.log(`Total messages found: ${matchingRecords.length}`);
+
         // Map to WhatsAppMessage interface
-        return records.map((msg: any) => ({
-            key: {
-                remoteJid: msg.key?.remoteJid || remoteJid,
-                fromMe: msg.key?.fromMe || false,
-                id: msg.key?.id || msg.id || ''
-            },
-            message: msg.message || {},
-            messageTimestamp: msg.messageTimestamp || 0,
-            status: msg.status,
-            pushName: msg.pushName
-        }));
+        return matchingRecords.map((msg: any) => {
+            // Robust fromMe detection - check multiple possible locations
+            // Evolution API may store this in different places depending on message origin
+            let fromMe = false;
+            if (typeof msg.key?.fromMe === 'boolean') {
+                fromMe = msg.key.fromMe;
+            } else if (typeof msg.fromMe === 'boolean') {
+                fromMe = msg.fromMe;
+            } else if (msg.owner === 'me' || msg.owner === true) {
+                fromMe = true;
+            }
+
+            return {
+                key: {
+                    remoteJid: msg.key?.remoteJid || remoteJid,
+                    fromMe: fromMe,
+                    id: msg.key?.id || msg.id || Math.random().toString(36).substring(7)
+                },
+                message: msg.message || (typeof msg.body === 'string' ? { conversation: msg.body } : {}),
+                messageTimestamp: msg.messageTimestamp || msg.timestamp || 0,
+                status: msg.status,
+                pushName: msg.pushName
+            };
+        }).sort((a: any, b: any) => Number(a.messageTimestamp) - Number(b.messageTimestamp));  // Sort by timestamp
     }
 
     // Test connection
@@ -375,6 +468,32 @@ class EvolutionAPIService {
             return true;
         } catch {
             return false;
+        }
+    }
+
+    // Validate Number
+    async validateNumber(instanceName: string, number: string): Promise<{ exists: boolean; jid?: string }> {
+        const cleanNumber = number.replace(/\D/g, '');
+        try {
+            const response = await this.request<any[]>(`/chat/whatsappNumbers/${instanceName}`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    numbers: [cleanNumber]
+                })
+            });
+
+            if (Array.isArray(response) && response.length > 0) {
+                return {
+                    exists: response[0].exists,
+                    jid: response[0].jid
+                };
+            }
+            return { exists: false };
+        } catch (error) {
+            console.error('[validateNumber] Error:', error);
+            // If API fails or endpoint not found, we might want to fail open or closed.
+            // For now, return false to be safe, but log it.
+            return { exists: false };
         }
     }
 }

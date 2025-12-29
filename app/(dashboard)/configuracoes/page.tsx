@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { storage, Configuracoes } from "@/lib/storage";
 import { WhatsAppSettings } from "@/components/settings/WhatsAppSettings";
+import { GoogleSettings } from "@/components/settings/GoogleSettings";
+import { SessionProvider } from "next-auth/react";
 
 import { useSearchParams } from "next/navigation";
 
 
 function ConfiguracoesContent() {
     const [config, setConfig] = useState<Configuracoes>(storage.getConfiguracoes());
-    const [activeTab, setActiveTab] = useState<'Empresa' | 'Negócio' | 'Termos' | 'WhatsApp'>('Empresa');
+    const [activeTab, setActiveTab] = useState<'Empresa' | 'Negócio' | 'Termos' | 'WhatsApp' | 'Google'>('Empresa');
     const searchParams = useSearchParams();
 
     useEffect(() => {
@@ -25,6 +27,8 @@ function ConfiguracoesContent() {
         const tabParam = searchParams.get('tab');
         if (tabParam === 'WhatsApp') {
             setActiveTab('WhatsApp');
+        } else if (tabParam === 'Google') {
+            setActiveTab('Google');
         }
     }, [searchParams]);
 
@@ -70,7 +74,7 @@ function ConfiguracoesContent() {
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Sidebar Navigation */}
                 <div className="w-full lg:w-64 space-y-1">
-                    {['Empresa', 'Negócio', 'Termos', 'WhatsApp'].map((tab) => (
+                    {['Empresa', 'Negócio', 'Termos', 'WhatsApp', 'Google'].map((tab) => (
                         <button
                             key={tab}
                             className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === tab
@@ -201,10 +205,20 @@ function ConfiguracoesContent() {
                                     </div>
                                 )}
 
+                                {activeTab === 'Google' && (
+                                    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                        <SessionProvider>
+                                            <GoogleSettings />
+                                        </SessionProvider>
+                                    </div>
+                                )}
 
-                                <div className="flex justify-end pt-4">
-                                    <Button type="submit" size="lg">Salvar Configurações</Button>
-                                </div>
+
+                                {activeTab !== 'WhatsApp' && activeTab !== 'Google' && (
+                                    <div className="flex justify-end pt-4">
+                                        <Button type="submit" size="lg">Salvar Configurações</Button>
+                                    </div>
+                                )}
                             </form>
                         </CardContent>
                     </Card>

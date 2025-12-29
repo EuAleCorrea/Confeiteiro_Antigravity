@@ -181,6 +181,13 @@ export interface Orcamento {
         acao: string;
         usuario: string;
     }[];
+    // WhatsApp send history
+    enviosWhatsApp?: {
+        numero: number;        // Número do envio (1, 2, 3...)
+        data: string;          // ISO date
+        tipo: 'PDF' | 'Texto' | 'PDF+Texto';
+        telefone: string;      // Número do destinatário
+    }[];
 }
 
 export interface Pedido {

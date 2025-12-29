@@ -1,18 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, History } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, History, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Dialog } from "@/components/ui/Dialog";
 import { storage, Cliente } from "@/lib/storage";
+import { ImportGoogleContactsModal } from "@/components/clientes/ImportGoogleContactsModal";
+import { SessionProvider, useSession } from "next-auth/react";
 
-export default function ClientesPage() {
+function ClientesContent() {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+    const { status: authStatus } = useSession();
 
     // Form State
     const [formData, setFormData] = useState<Partial<Cliente>>({});
@@ -33,7 +37,7 @@ export default function ClientesPage() {
         const cliente: Cliente = {
             id: editingCliente ? editingCliente.id : crypto.randomUUID(),
             nome: formData.nome,
-            cpf: formData.cpf || "", // Ensure string
+            cpf: formData.cpf || "",
             telefone: formData.telefone,
             email: formData.email || "",
             endereco: {
@@ -89,7 +93,7 @@ export default function ClientesPage() {
                         ...prev,
                         endereco: {
                             ...prev.endereco!,
-                            cep: prev.endereco?.cep || cep, // Maintain if edited, or sync? Let's keep input
+                            cep: prev.endereco?.cep || cep,
                             rua: data.logradouro,
                             bairro: data.bairro,
                             cidade: data.localidade,
@@ -118,10 +122,22 @@ export default function ClientesPage() {
                     <h1 className="text-2xl font-bold text-text-primary">Clientes</h1>
                     <p className="text-text-secondary">Gerencie seus clientes e histórico</p>
                 </div>
-                <Button onClick={() => openModal()}>
-                    <Plus size={20} className="mr-2" />
-                    Novo Cliente
-                </Button>
+                <div className="flex gap-2">
+                    {authStatus === "authenticated" && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsGoogleModalOpen(true)}
+                            className="gap-2 border-primary/20 hover:bg-primary/5 text-primary"
+                        >
+                            <Share2 size={18} />
+                            Importar do Google
+                        </Button>
+                    )}
+                    <Button onClick={() => openModal()}>
+                        <Plus size={20} className="mr-2" />
+                        Novo Cliente
+                    </Button>
+                </div>
             </div>
 
             <div className="flex items-center gap-2 bg-surface p-2 rounded-xl border border-border max-w-md">
@@ -167,7 +183,12 @@ export default function ClientesPage() {
                                         <Button variant="ghost" size="icon">
                                             <History size={16} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="text-error hover:text-error" onClick={() => handleDelete(cliente.id)}>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-error hover:text-error"
+                                            onClick={() => handleDelete(cliente.id)}
+                                        >
                                             <Trash2 size={16} />
                                         </Button>
                                     </div>
@@ -178,6 +199,7 @@ export default function ClientesPage() {
                 </TableBody>
             </Table>
 
+            {/* Standard Modal */}
             <Dialog
                 isOpen={isModalOpen}
                 onClose={closeModal}
@@ -284,7 +306,6 @@ export default function ClientesPage() {
                                     <option value="SP">SP</option>
                                     <option value="RJ">RJ</option>
                                     <option value="MG">MG</option>
-                                    {/* Simplify for demo */}
                                 </select>
                             </div>
                         </div>
@@ -296,6 +317,21 @@ export default function ClientesPage() {
                     </div>
                 </form>
             </Dialog>
+
+            {/* Google Import Modal */}
+            <ImportGoogleContactsModal
+                isOpen={isGoogleModalOpen}
+                onClose={() => setIsGoogleModalOpen(false)}
+                onImportSuccess={() => loadClientes()}
+            />
         </div>
+    );
+}
+
+export default function ClientesPage() {
+    return (
+        <SessionProvider>
+            <ClientesContent />
+        </SessionProvider>
     );
 }

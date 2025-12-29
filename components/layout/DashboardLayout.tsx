@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -10,6 +11,8 @@ import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const pathname = usePathname();
+    const isFullWidthPage = pathname?.startsWith('/whatsapp');
 
     // Persist collapsed state in localStorage
     useEffect(() => {
@@ -28,7 +31,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
         <ToastProvider>
             <NotificationProvider>
-                <div className="flex min-h-screen bg-background font-sans text-text-primary">
+                <div className="flex h-screen overflow-hidden bg-background font-sans text-text-primary">
                     <Sidebar
                         isOpen={isSidebarOpen}
                         onClose={() => setIsSidebarOpen(false)}
@@ -36,17 +39,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         onToggleCollapse={handleToggleCollapse}
                     />
 
-                    <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+                    <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} h-full`}>
                         <Header onMenuClick={() => setIsSidebarOpen(true)} />
-                        <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
-                            <div className="mx-auto max-w-6xl">
+                        <main className={`flex-1 relative ${isFullWidthPage ? 'overflow-hidden p-4 lg:p-6' : 'overflow-y-auto p-4 lg:p-8'}`}>
+                            <div className={isFullWidthPage ? 'h-full' : 'mx-auto max-w-6xl'}>
                                 {children}
                             </div>
-                        </main>
 
-                        <footer className="py-6 text-center text-xs text-text-secondary border-t border-border mt-auto">
-                            <p>&copy; 2024 Confeiteiro App. Versão 1.0.0</p>
-                        </footer>
+                            {!isFullWidthPage && (
+                                <footer className="py-6 text-center text-xs text-text-secondary border-t border-border mt-auto">
+                                    <p>&copy; 2024 Confeiteiro App. Versão 1.0.0</p>
+                                </footer>
+                            )}
+                        </main>
                     </div>
 
                     <FloatingActionButton />

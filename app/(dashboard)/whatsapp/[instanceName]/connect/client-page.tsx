@@ -58,7 +58,7 @@ export default function ConnectClientPage({ params }: { params: Promise<{ instan
             else if (['open', 'CONNECTED'].includes(state)) {
                 setStatus('connected');
                 setTimeout(() => {
-                    router.push(`/whatsapp/${instanceName}`);
+                    router.push('/configuracoes?tab=WhatsApp');
                 }, 500);
             }
             // Se estiver 'close' e nós estavamos 'verifying', talvez tenha falhado
@@ -101,7 +101,7 @@ export default function ConnectClientPage({ params }: { params: Promise<{ instan
         <div className="max-w-lg mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Link href="/whatsapp">
+                <Link href="/configuracoes?tab=WhatsApp">
                     <Button variant="ghost" size="icon" className="rounded-full">
                         <ArrowLeft size={20} />
                     </Button>

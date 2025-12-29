@@ -279,3 +279,145 @@ export function generateOrderList(orders: Pedido[]) {
 
     doc.save('lista-pedidos.pdf');
 }
+
+/**
+ * Generates a Quote PDF and returns it as a base64 string (without data: prefix).
+ * Used for WhatsApp document attachments.
+ */
+export function generateQuotePDFBase64(orcamento: Orcamento): string {
+    const doc = new jsPDF();
+    const config = storage.getConfiguracoes();
+    const empresa = config?.empresa || { nome: 'Minha Confeitaria', cnpj: '', telefone: '', endereco: '' };
+
+    // Colors
+    const primaryColor: [number, number, number] = [255, 140, 0]; // Orange
+    const textColor: [number, number, number] = [60, 60, 60];
+
+    // ===== HEADER =====
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 35, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(empresa.nome.toUpperCase(), 14, 18);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    if (empresa.cnpj) doc.text(`CNPJ: ${empresa.cnpj}`, 14, 26);
+
+    // Proposal number and date (right side)
+    doc.setFontSize(12);
+    doc.text(`Proposta Nº ${orcamento.numero}`, 196, 15, { align: 'right' });
+    doc.setFontSize(10);
+    doc.text(`Data: ${new Date(orcamento.dataCriacao).toLocaleDateString('pt-BR')}`, 196, 22, { align: 'right' });
+    doc.text(`Validade: ${new Date(orcamento.dataValidade).toLocaleDateString('pt-BR')}`, 196, 29, { align: 'right' });
+
+    // ===== CLIENT INFO =====
+    doc.setTextColor(...textColor);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Para:', 14, 45);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(orcamento.cliente.nome, 28, 45);
+    doc.setFontSize(10);
+    doc.text(`Tel: ${orcamento.cliente.telefone}`, 14, 52);
+    if (orcamento.cliente.email) doc.text(`Email: ${orcamento.cliente.email}`, 14, 58);
+    if (orcamento.ocasiao) doc.text(`Ocasião: ${orcamento.ocasiao}`, 100, 52);
+
+    // ===== ITEMS TABLE =====
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Itens da proposta comercial', 14, 70);
+
+    const itemsData = orcamento.itens.map(item => [
+        item.nome + (item.tamanho ? ` (${item.tamanho})` : ''),
+        'UN',
+        item.quantidade.toString(),
+        `R$ ${item.precoUnitario.toFixed(2)}`,
+        `R$ ${item.subtotal.toFixed(2)}`
+    ]);
+
+    autoTable(doc, {
+        startY: 74,
+        head: [['Descrição do produto/serviço', 'Un', 'Qtd.', 'Preço un.', 'Preço total']],
+        body: itemsData,
+        theme: 'grid',
+        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+            0: { cellWidth: 80 },
+            1: { cellWidth: 15, halign: 'center' },
+            2: { cellWidth: 15, halign: 'center' },
+            3: { cellWidth: 30, halign: 'right' },
+            4: { cellWidth: 30, halign: 'right' }
+        }
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 8;
+
+    // ===== DECORATION =====
+    if (orcamento.decoracao?.descricao) {
+        doc.setFillColor(245, 245, 245);
+        doc.rect(14, currentY, 182, 20, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('DESCRIÇÃO DA DECORAÇÃO:', 16, currentY + 6);
+        doc.setFont('helvetica', 'normal');
+        doc.text(orcamento.decoracao.descricao.substring(0, 150), 16, currentY + 13, { maxWidth: 175 });
+        currentY += 25;
+    }
+
+    // ===== DELIVERY =====
+    doc.setFont('helvetica', 'bold');
+    doc.text(`TIPO: ${orcamento.entrega?.tipo?.toUpperCase() || 'RETIRADA'}`, 14, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data: ${new Date(orcamento.entrega?.data || '').toLocaleDateString('pt-BR')} às ${orcamento.entrega?.horario || '--:--'}`, 80, currentY);
+    currentY += 6;
+
+    if (orcamento.entrega?.tipo === 'Entrega' && orcamento.entrega?.endereco) {
+        const end = orcamento.entrega.endereco;
+        doc.text(`Endereço: ${end.rua}, ${end.numero} - ${end.bairro}, ${end.cidade}/${end.estado}`, 14, currentY);
+        currentY += 8;
+    }
+
+    // ===== SUMMARY TABLE =====
+    if (currentY > 240) {
+        doc.addPage();
+        currentY = 20;
+    }
+
+    const totalItens = orcamento.itens.reduce((sum, i) => sum + i.subtotal, 0);
+    const frete = orcamento.entrega?.taxa || 0;
+    const totalQtd = orcamento.itens.reduce((sum, i) => sum + i.quantidade, 0);
+
+    autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Nº de Itens', 'Soma das Qtdes', 'Total dos itens', 'Frete', 'Total da proposta']],
+        body: [[
+            orcamento.itens.length.toString(),
+            totalQtd.toString(),
+            `R$ ${totalItens.toFixed(2)}`,
+            `R$ ${frete.toFixed(2)}`,
+            `R$ ${orcamento.valorTotal.toFixed(2)}`
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: [245, 245, 245], textColor: textColor, fontStyle: 'bold', fontSize: 8 },
+        styles: { fontSize: 9, halign: 'center' }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // ===== SIGNATURE =====
+    doc.setFontSize(10);
+    doc.text('Atenciosamente,', 14, currentY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(empresa.nome, 14, currentY + 6);
+
+    // Return base64 without prefix
+    const base64Full = doc.output('datauristring');
+    // Remove "data:application/pdf;filename=generated.pdf;base64," prefix
+    const base64Clean = base64Full.split(',')[1];
+    return base64Clean;
+}

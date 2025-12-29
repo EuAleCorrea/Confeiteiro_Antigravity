@@ -61,34 +61,43 @@ export function WhatsAppSettings() {
     const loadInstances = async (nameFilter?: string) => {
         setLoading(true);
         try {
-            // Se tivermos um nome configurado, buscamos apenas ele
-            const activeName = nameFilter || config.instanceName;
-            const data = await evolutionAPI.fetchInstances(activeName);
+            // IMPORTANT: Only fetch the SPECIFIC instance saved in localStorage
+            // Do NOT fetch all instances - the API is shared across multiple clients
+            const targetName = nameFilter || config.instanceName;
 
-            // Fetch real-time status for each instance
+            // If no instance name is configured, show empty state (user needs to create one)
+            if (!targetName) {
+                setInstances([]);
+                setLoading(false);
+                return;
+            }
+
+            // Fetch only the specific instance by name
+            const data = await evolutionAPI.fetchInstances(targetName);
+
+            // Fetch real-time status for the instance
             const updatedData = await Promise.all(data.map(async (instance) => {
                 try {
                     const stateData = await evolutionAPI.getConnectionState(instance.instanceName);
-                    // Normalize status
                     let realStatus = stateData?.instance?.state || 'close';
-                    if (realStatus === 'connected') realStatus = 'open';
-
+                    if ((realStatus as string) === 'connected') realStatus = 'open';
                     return { ...instance, status: realStatus as any };
                 } catch (e) {
-                    // Fallback to existing status if check fails
                     return instance;
                 }
             }));
 
-            // Filtro adicional de segurança caso a API retorne mais do que o solicitado
-            if (activeName) {
-                setInstances(updatedData.filter(i => i.instanceName === activeName));
-            } else {
-                // Se não houver nome configurado, não mostramos nada (conforme pedido do usuário)
-                setInstances([]);
-            }
+            setInstances(updatedData);
         } catch (error) {
             console.error('Erro ao carregar instâncias:', error);
+            // If instance not found (404), clear it from config so user can create a new one
+            if ((error as any)?.status === 404) {
+                console.log('[WhatsApp] Instance not found, clearing config');
+                const newConfig = { ...config, instanceName: '' };
+                setConfig(newConfig);
+                saveEvolutionConfig(newConfig);
+                setInstances([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -173,11 +182,11 @@ export function WhatsAppSettings() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setConfigModal(true)}>
+                    <Button variant="outline" type="button" onClick={() => setConfigModal(true)}>
                         <Settings size={18} className="mr-2" />
                         Configurar API
                     </Button>
-                    <Button onClick={() => setCreateModal(true)} disabled={!isConfigured}>
+                    <Button type="button" onClick={() => setCreateModal(true)} disabled={!isConfigured}>
                         <Plus size={20} className="mr-2" />
                         Nova Instância
                     </Button>
@@ -193,7 +202,7 @@ export function WhatsAppSettings() {
                         <p className="text-text-secondary mb-4">
                             Para usar o WhatsApp, configure sua API Key da Evolution API.
                         </p>
-                        <Button onClick={() => setConfigModal(true)}>
+                        <Button type="button" onClick={() => setConfigModal(true)}>
                             Configurar Agora
                         </Button>
                     </CardContent>
@@ -205,7 +214,7 @@ export function WhatsAppSettings() {
                 <>
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold text-text-primary">Instâncias ({instances.length})</h2>
-                        <Button variant="ghost" size="sm" onClick={() => loadInstances()} disabled={loading}>
+                        <Button variant="ghost" size="sm" type="button" onClick={() => loadInstances()} disabled={loading}>
                             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                         </Button>
                     </div>
@@ -222,7 +231,7 @@ export function WhatsAppSettings() {
                                 <p className="text-text-secondary text-sm mb-4">
                                     Crie uma instância para conectar seu WhatsApp
                                 </p>
-                                <Button onClick={() => setCreateModal(true)}>
+                                <Button type="button" onClick={() => setCreateModal(true)}>
                                     <Plus size={18} className="mr-2" />
                                     Criar Primeira Instância
                                 </Button>
@@ -259,12 +268,10 @@ export function WhatsAppSettings() {
                                         <CardContent className="pt-0">
                                             <div className="flex gap-2">
                                                 {status === 'open' ? (
-                                                    <Link href={`/whatsapp/${instance.instanceName}`} className="flex-1">
-                                                        <Button variant="primary" size="sm" className="w-full">
-                                                            <MessageCircle size={16} className="mr-2" />
-                                                            Abrir Chat
-                                                        </Button>
-                                                    </Link>
+                                                    <div className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-success bg-success/10 rounded-md border border-success/20 h-9">
+                                                        <Wifi size={16} />
+                                                        Conectado
+                                                    </div>
                                                 ) : (
                                                     <Link href={`/whatsapp/${instance.instanceName}/connect`} className="flex-1">
                                                         <Button variant="outline" size="sm" className="w-full">
@@ -274,6 +281,7 @@ export function WhatsAppSettings() {
                                                     </Link>
                                                 )}
                                                 <Button
+                                                    type="button"
                                                     variant="ghost"
                                                     size="icon"
                                                     className="text-error"
