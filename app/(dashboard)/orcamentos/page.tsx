@@ -24,6 +24,7 @@ export default function OrcamentosPage() {
     const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
     const [approveModal, setApproveModal] = useState<{ open: boolean; orcamento: Orcamento | null }>({ open: false, orcamento: null });
     const [successModal, setSuccessModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+    const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     // WhatsApp States
     const [whatsappModal, setWhatsappModal] = useState(false);
@@ -131,7 +132,8 @@ export default function OrcamentosPage() {
             console.log('[SendWhatsApp] Config:', { instanceName, hasApiKey: !!config?.apiKey });
 
             if (!instanceName || !config?.apiKey) {
-                alert('WhatsApp não configurado. Vá em Configurações > WhatsApp.');
+                setWhatsappModal(false);
+                setErrorModal({ open: true, message: 'WhatsApp não configurado. Vá em Configurações > WhatsApp.' });
                 setWhatsappLoading(false);
                 return;
             }
@@ -213,12 +215,14 @@ export default function OrcamentosPage() {
                     message: `Orçamento enviado com sucesso!\n\nEnvio #${nextEnvioNum} - ${sendType}`
                 });
             } else {
-                alert('Erro ao enviar mensagem. Verifique a conexão do WhatsApp.');
+                setWhatsappModal(false);
+                setErrorModal({ open: true, message: 'Erro ao enviar mensagem. Verifique a conexão do WhatsApp.' });
             }
 
         } catch (error) {
             console.error('Erro ao enviar WhatsApp:', error);
-            alert('Erro ao enviar mensagem. Verifique se a instância está conectada.');
+            setWhatsappModal(false);
+            setErrorModal({ open: true, message: 'Erro ao enviar mensagem. Verifique se a instância está conectada.' });
         } finally {
             setWhatsappLoading(false);
             setSelectedOrcamentoForWhatsapp(null);
@@ -572,6 +576,24 @@ export default function OrcamentosPage() {
                     </div>
                     <p className="text-text-primary font-medium">{successModal.message}</p>
                     <Button onClick={() => setSuccessModal({ open: false, message: '' })} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
+
+            {/* Error Modal */}
+            <Dialog
+                isOpen={errorModal.open}
+                onClose={() => setErrorModal({ open: false, message: '' })}
+                title="Atenção"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">{errorModal.message}</p>
+                    <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
                         OK
                     </Button>
                 </div>
