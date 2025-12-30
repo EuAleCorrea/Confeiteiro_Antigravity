@@ -12,7 +12,8 @@ import {
     MessageCircle,
     QrCode,
     Settings,
-    RefreshCw
+    RefreshCw,
+    AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -44,6 +45,7 @@ export function WhatsAppSettings() {
     const [creating, setCreating] = useState(false);
     const [config, setConfig] = useState<WhatsAppConfig>({ apiUrl: 'https://apiwp.automacaototal.com', apiKey: '', instanceName: '' });
     const [isConfigured, setIsConfigured] = useState(false);
+    const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     // Load config and instances on mount
     useEffect(() => {
@@ -113,7 +115,7 @@ export function WhatsAppSettings() {
         if (success) {
             loadInstances();
         } else {
-            alert('Não foi possível conectar à API. Verifique suas credenciais.');
+            setErrorModal({ open: true, message: 'Não foi possível conectar à API. Verifique suas credenciais.' });
         }
     };
 
@@ -135,7 +137,7 @@ export function WhatsAppSettings() {
             loadInstances(name);
         } catch (error) {
             console.error('Erro ao criar instância:', error);
-            alert('Erro ao criar instância. Tente novamente.');
+            setErrorModal({ open: true, message: 'Erro ao criar instância. Tente novamente.' });
         } finally {
             setCreating(false);
         }
@@ -158,7 +160,7 @@ export function WhatsAppSettings() {
             loadInstances();
         } catch (error) {
             console.error('Erro ao deletar instância:', error);
-            alert('Erro ao deletar instância.');
+            setErrorModal({ open: true, message: 'Erro ao deletar instância.' });
         }
     };
 
@@ -417,6 +419,24 @@ export function WhatsAppSettings() {
                             Excluir
                         </Button>
                     </div>
+                </div>
+            </Dialog>
+
+            {/* Error Modal */}
+            <Dialog
+                isOpen={errorModal.open}
+                onClose={() => setErrorModal({ open: false, message: '' })}
+                title="Atenção"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">{errorModal.message}</p>
+                    <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
+                        OK
+                    </Button>
                 </div>
             </Dialog>
         </div>

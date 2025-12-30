@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
+import { Dialog } from "@/components/ui/Dialog";
+import { CheckCircle } from "lucide-react";
 import { storage, Configuracoes } from "@/lib/storage";
 import { WhatsAppSettings } from "@/components/settings/WhatsAppSettings";
 import { GoogleSettings } from "@/components/settings/GoogleSettings";
@@ -17,6 +19,7 @@ import { useSearchParams } from "next/navigation";
 function ConfiguracoesContent() {
     const [config, setConfig] = useState<Configuracoes>(storage.getConfiguracoes());
     const [activeTab, setActiveTab] = useState<'Empresa' | 'Negócio' | 'Termos' | 'WhatsApp' | 'Google'>('Empresa');
+    const [successModal, setSuccessModal] = useState(false);
     const searchParams = useSearchParams();
 
     useEffect(() => {
@@ -35,7 +38,7 @@ function ConfiguracoesContent() {
     function handleSave(e: React.FormEvent) {
         e.preventDefault();
         storage.saveConfiguracoes(config);
-        alert("Configurações salvas com sucesso!");
+        setSuccessModal(true);
     }
 
     function handleBusinessChange(field: string, value: any) {
@@ -224,6 +227,24 @@ function ConfiguracoesContent() {
                     </Card>
                 </div>
             </div>
+
+            {/* Success Modal */}
+            <Dialog
+                isOpen={successModal}
+                onClose={() => setSuccessModal(false)}
+                title="Sucesso"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle size={32} className="text-success" />
+                    </div>
+                    <p className="text-text-primary font-medium">Configurações salvas com sucesso!</p>
+                    <Button onClick={() => setSuccessModal(false)} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
         </div>
     );
 }

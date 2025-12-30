@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Search, Plus, Minus } from "lucide-react";
+import { X, Search, Plus, Minus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Dialog } from "@/components/ui/Dialog";
 import { storage, Produto, Sabor, ItemOrcamento } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,7 @@ export function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalProps) {
     const [saborMassa, setSaborMassa] = useState('');
     const [saborRecheio, setSaborRecheio] = useState('');
     const [observacoes, setObservacoes] = useState('');
+    const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     useEffect(() => {
         if (isOpen) {
@@ -68,11 +70,11 @@ export function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalProps) {
         const precoNum = parseFloat(preco.replace(',', '.')) || 0;
 
         if (!nome.trim()) {
-            alert('Informe o nome do item');
+            setErrorModal({ open: true, message: 'Informe o nome do item' });
             return;
         }
         if (precoNum <= 0) {
-            alert('Informe um preço válido');
+            setErrorModal({ open: true, message: 'Informe um preço válido' });
             return;
         }
 
@@ -334,6 +336,24 @@ export function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalProps) {
                     </Button>
                 </div>
             </div>
+
+            {/* Error Modal */}
+            <Dialog
+                isOpen={errorModal.open}
+                onClose={() => setErrorModal({ open: false, message: '' })}
+                title="Atenção"
+                className="max-w-sm z-[60]"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">{errorModal.message}</p>
+                    <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
         </div>
     );
 }
