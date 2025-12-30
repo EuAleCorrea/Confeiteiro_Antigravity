@@ -5,8 +5,9 @@ import { storage, Ingrediente, Receita, ConfigProducao } from "@/lib/storage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Dialog } from "@/components/ui/Dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { Plus, Trash2, Edit, Save, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Edit, Save, ArrowLeft, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { TabReceitas } from "@/components/producao/TabReceitas";
@@ -70,6 +71,8 @@ function TabIngredientes() {
     const [currentIng, setCurrentIng] = useState<Partial<Ingrediente>>({
         nome: '', unidade: 'g', categoria: 'Secos'
     });
+    const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+    const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
     useEffect(() => {
         loadData();
@@ -80,7 +83,10 @@ function TabIngredientes() {
     };
 
     const handleSave = () => {
-        if (!currentIng.nome) return alert("Preencha o nome");
+        if (!currentIng.nome) {
+            setErrorModal({ open: true, message: 'Preencha o nome' });
+            return;
+        }
 
         const toSave: Ingrediente = {
             id: currentIng.id || generateId(),
@@ -99,9 +105,14 @@ function TabIngredientes() {
     };
 
     const handleDelete = (id: string) => {
-        if (confirm("Excluir ingrediente?")) {
-            storage.deleteIngrediente(id);
+        setDeleteModal({ open: true, id });
+    };
+
+    const confirmDelete = () => {
+        if (deleteModal.id) {
+            storage.deleteIngrediente(deleteModal.id);
             loadData();
+            setDeleteModal({ open: false, id: null });
         }
     };
 
@@ -222,6 +233,47 @@ function TabIngredientes() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Error Modal */}
+            <Dialog
+                isOpen={errorModal.open}
+                onClose={() => setErrorModal({ open: false, message: '' })}
+                title="Atenção"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">{errorModal.message}</p>
+                    <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
+
+            {/* Delete Confirm Modal */}
+            <Dialog
+                isOpen={deleteModal.open}
+                onClose={() => setDeleteModal({ open: false, id: null })}
+                title="Confirmar Exclusão"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <Trash2 size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">Deseja excluir este ingrediente?</p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setDeleteModal({ open: false, id: null })} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button variant="danger" onClick={confirmDelete} className="flex-1">
+                            Excluir
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
         </div>
     );
 }

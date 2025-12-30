@@ -38,6 +38,7 @@ const colorClasses: Record<string, { bg: string; border: string; text: string; h
 export default function RelatoriosPage() {
     const [showModal, setShowModal] = useState(false);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    const [showInfoModal, setShowInfoModal] = useState(false);
 
     const handleReportClick = (report: Report) => {
         if (report.href) {
@@ -173,7 +174,7 @@ export default function RelatoriosPage() {
                                 </button>
                                 <button
                                     onClick={() => {
-                                        alert('Funcionalidade de exportação em desenvolvimento!');
+                                        setShowInfoModal(true);
                                         setShowModal(false);
                                     }}
                                     className="w-full py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700"
@@ -182,6 +183,24 @@ export default function RelatoriosPage() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Info Modal */}
+            {showInfoModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center space-y-4">
+                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                            <FileText className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <p className="text-neutral-800 font-medium">Funcionalidade de exportação em desenvolvimento!</p>
+                        <button
+                            onClick={() => setShowInfoModal(false)}
+                            className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700"
+                        >
+                            OK
+                        </button>
                     </div>
                 </div>
             )}

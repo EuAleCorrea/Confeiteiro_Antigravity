@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Dialog } from "@/components/ui/Dialog";
 import { Orcamento } from "@/lib/storage";
-import { Truck, Store } from "lucide-react";
+import { Truck, Store, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StepProps {
@@ -27,10 +28,17 @@ export default function StepEntrega({ data, onUpdate, next, back }: StepProps) {
     const [cidade, setCidade] = useState(data.entrega?.endereco?.cidade || '');
 
     const [taxa, setTaxa] = useState(data.entrega?.taxa || 0);
+    const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     function handleNext() {
-        if (!date || !time) return alert("Defina a data e horário.");
-        if (tipoEntrega === 'Entrega' && !rua) return alert("Preencha o endereço de entrega.");
+        if (!date || !time) {
+            setErrorModal({ open: true, message: 'Defina a data e horário.' });
+            return;
+        }
+        if (tipoEntrega === 'Entrega' && !rua) {
+            setErrorModal({ open: true, message: 'Preencha o endereço de entrega.' });
+            return;
+        }
 
         onUpdate({
             entrega: {
@@ -119,6 +127,24 @@ export default function StepEntrega({ data, onUpdate, next, back }: StepProps) {
                 <Button variant="ghost" onClick={back}>Voltar</Button>
                 <Button onClick={handleNext}>Próximo: Decoração</Button>
             </div>
+
+            {/* Error Modal */}
+            <Dialog
+                isOpen={errorModal.open}
+                onClose={() => setErrorModal({ open: false, message: '' })}
+                title="Atenção"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">{errorModal.message}</p>
+                    <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
         </div>
     );
 }

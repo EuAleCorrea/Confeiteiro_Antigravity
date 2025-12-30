@@ -3,11 +3,14 @@ import { storage, ConfigProducao } from "@/lib/storage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Dialog } from "@/components/ui/Dialog";
 import { Toggle } from "@/components/ui/Toggle";
-import { Save, Plus, Trash2 } from "lucide-react";
+import { Save, Plus, Trash2, CheckCircle, AlertTriangle } from "lucide-react";
 
 export function TabGeral() {
     const [config, setConfig] = useState<ConfigProducao | null>(null);
+    const [successModal, setSuccessModal] = useState(false);
+    const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     useEffect(() => {
         setConfig(storage.getConfigProducao());
@@ -16,7 +19,7 @@ export function TabGeral() {
     const handleSave = () => {
         if (config) {
             storage.saveConfigProducao(config);
-            alert("Configurações salvas!");
+            setSuccessModal(true);
         }
     };
 
@@ -31,7 +34,10 @@ export function TabGeral() {
     const addLayerConfig = () => {
         if (!config) return;
         const newDiametro = 20; // Default
-        if (config.recheioPorCamada.some(l => l.diametro === newDiametro)) return alert("Diâmetro já existe");
+        if (config.recheioPorCamada.some(l => l.diametro === newDiametro)) {
+            setErrorModal({ open: true, message: 'Diâmetro já existe' });
+            return;
+        }
 
         setConfig({
             ...config,
@@ -158,6 +164,42 @@ export function TabGeral() {
                     <Save size={20} className="mr-2" /> Salvar Todas Configurações
                 </Button>
             </div>
+
+            {/* Success Modal */}
+            <Dialog
+                isOpen={successModal}
+                onClose={() => setSuccessModal(false)}
+                title="Sucesso"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle size={32} className="text-success" />
+                    </div>
+                    <p className="text-text-primary font-medium">Configurações salvas!</p>
+                    <Button onClick={() => setSuccessModal(false)} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
+
+            {/* Error Modal */}
+            <Dialog
+                isOpen={errorModal.open}
+                onClose={() => setErrorModal({ open: false, message: '' })}
+                title="Atenção"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">{errorModal.message}</p>
+                    <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
         </div>
     );
 }

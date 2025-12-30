@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
 import { Ingrediente, Movimentacao, storage } from "@/lib/storage";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, AlertTriangle } from "lucide-react";
 
 interface StockExitFormProps {
     isOpen: boolean;
@@ -30,6 +30,7 @@ export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExi
         motivo: 'Perda',
         observacoes: ''
     });
+    const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     useEffect(() => {
         if (isOpen) {
@@ -69,7 +70,7 @@ export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExi
             const prevQtd = ing.estoqueAtual || 0;
 
             if (qtd > prevQtd) {
-                alert(`Erro: Estoque insuficiente para ${ing.nome}. Disponível: ${prevQtd}`);
+                setErrorModal({ open: true, message: `Estoque insuficiente para ${ing.nome}. Disponível: ${prevQtd}` });
                 hasError = true;
                 return;
             }
@@ -103,7 +104,7 @@ export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExi
         }
     };
 
-    return (
+    return (<>
         <Dialog
             isOpen={isOpen}
             onClose={onClose}
@@ -202,5 +203,23 @@ export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExi
                 </div>
             </form>
         </Dialog>
-    );
+
+        {/* Error Modal */}
+        <Dialog
+            isOpen={errorModal.open}
+            onClose={() => setErrorModal({ open: false, message: '' })}
+            title="Atenção"
+            className="max-w-sm z-[60]"
+        >
+            <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                    <AlertTriangle size={32} className="text-error" />
+                </div>
+                <p className="text-text-primary font-medium">{errorModal.message}</p>
+                <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
+                    OK
+                </Button>
+            </div>
+        </Dialog>
+    </>);
 }

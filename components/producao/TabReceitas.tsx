@@ -3,8 +3,9 @@ import { storage, Ingrediente, Receita } from "@/lib/storage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Dialog } from "@/components/ui/Dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { Plus, Trash2, Edit, Save, ArrowLeft, X } from "lucide-react";
+import { Plus, Trash2, Edit, Save, ArrowLeft, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Simple ID generator
@@ -32,6 +33,8 @@ export function TabReceitas() {
     });
 
     const [selectedIngId, setSelectedIngId] = useState('');
+    const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+    const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
     useEffect(() => {
         loadData();
@@ -43,8 +46,14 @@ export function TabReceitas() {
     };
 
     const handleSave = () => {
-        if (!currentReceita.nome) return alert("Preencha o nome");
-        if ((currentReceita.ingredientes?.length || 0) === 0) return alert("Adicione pelo menos um ingrediente");
+        if (!currentReceita.nome) {
+            setErrorModal({ open: true, message: 'Preencha o nome' });
+            return;
+        }
+        if ((currentReceita.ingredientes?.length || 0) === 0) {
+            setErrorModal({ open: true, message: 'Adicione pelo menos um ingrediente' });
+            return;
+        }
 
         const toSave: Receita = {
             id: currentReceita.id || generateId(),
@@ -100,9 +109,14 @@ export function TabReceitas() {
     };
 
     const handleDelete = (id: string) => {
-        if (confirm("Excluir receita?")) {
-            storage.deleteReceita(id);
+        setDeleteModal({ open: true, id });
+    };
+
+    const confirmDelete = () => {
+        if (deleteModal.id) {
+            storage.deleteReceita(deleteModal.id);
             loadData();
+            setDeleteModal({ open: false, id: null });
         }
     };
 
@@ -113,7 +127,8 @@ export function TabReceitas() {
 
         // Check duplicate
         if (currentReceita.ingredientes?.find(i => i.ingredienteId === selectedIngId)) {
-            return alert("Ingrediente já adicionado");
+            setErrorModal({ open: true, message: 'Ingrediente já adicionado' });
+            return;
         }
 
         const newIng = {
@@ -367,6 +382,47 @@ export function TabReceitas() {
                     </div>
                 )}
             </div>
+
+            {/* Error Modal */}
+            <Dialog
+                isOpen={errorModal.open}
+                onClose={() => setErrorModal({ open: false, message: '' })}
+                title="Atenção"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">{errorModal.message}</p>
+                    <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
+                        OK
+                    </Button>
+                </div>
+            </Dialog>
+
+            {/* Delete Confirm Modal */}
+            <Dialog
+                isOpen={deleteModal.open}
+                onClose={() => setDeleteModal({ open: false, id: null })}
+                title="Confirmar Exclusão"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <Trash2 size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">Deseja excluir esta receita?</p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setDeleteModal({ open: false, id: null })} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button variant="danger" onClick={confirmDelete} className="flex-1">
+                            Excluir
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
         </div>
     );
 }
