@@ -86,14 +86,17 @@ export interface Configuracoes {
         };
     };
     negocio: {
-        diasAntecedencia: number;
-        horaCorte: string;
-        taxaEntrega: number;
-        raioEntrega: number;
-        horarioFuncionamento: {
-            inicio: string;
-            fim: string;
-            diasSemana: string[];
+        prazoMinimoPedidos: number;
+        prazoCancelamento: number;
+        taxaEntrega: {
+            valorFixo: number;
+            distanciaMaximaFixa: number;
+            valorPorKm: number;
+        };
+        raioMaximoEntrega: number;
+        horarios: {
+            dias: string[];
+            horario: string;
         };
     };
     termos: {

@@ -7,24 +7,45 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Dialog } from "@/components/ui/Dialog";
-import { CheckCircle } from "lucide-react";
-import { storage, Configuracoes } from "@/lib/storage";
+import { CheckCircle, Loader2 } from "lucide-react";
+import { Configuracoes } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { WhatsAppSettings } from "@/components/settings/WhatsAppSettings";
 import { GoogleSettings } from "@/components/settings/GoogleSettings";
 import { SessionProvider } from "next-auth/react";
 
 import { useSearchParams } from "next/navigation";
 
+// Default config structure
+const defaultConfig: Configuracoes = {
+    empresa: { nome: '', cnpj: '', telefone: '', email: '', endereco: '' },
+    negocio: { prazoMinimoPedidos: 3, prazoCancelamento: 7, taxaEntrega: { valorFixo: 10, distanciaMaximaFixa: 5, valorPorKm: 2 }, raioMaximoEntrega: 20, horarios: { dias: ['Seg', 'Sex'], horario: '09:00 - 18:00' } },
+    termos: { pagamento: '', cancelamento: '', cuidados: '', transporte: '', importante: '' }
+};
 
 function ConfiguracoesContent() {
-    const [config, setConfig] = useState<Configuracoes>(storage.getConfiguracoes());
+    const [config, setConfig] = useState<Configuracoes>(defaultConfig);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'Empresa' | 'Negócio' | 'Termos' | 'WhatsApp' | 'Google'>('Empresa');
     const [successModal, setSuccessModal] = useState(false);
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        // Load config on mount
-        setConfig(storage.getConfiguracoes());
+        // Load config from Supabase
+        async function loadConfig() {
+            try {
+                const data = await supabaseStorage.getConfiguracoes();
+                if (data) {
+                    setConfig(data as Configuracoes);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadConfig();
 
         // Check for tab param
         const tabParam = searchParams.get('tab');
@@ -35,10 +56,17 @@ function ConfiguracoesContent() {
         }
     }, [searchParams]);
 
-    function handleSave(e: React.FormEvent) {
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
-        storage.saveConfiguracoes(config);
-        setSuccessModal(true);
+        setSaving(true);
+        try {
+            await supabaseStorage.saveConfiguracoes(config);
+            setSuccessModal(true);
+        } catch (error) {
+            console.error('Erro ao salvar configurações:', error);
+        } finally {
+            setSaving(false);
+        }
     }
 
     function handleBusinessChange(field: string, value: any) {
@@ -63,6 +91,15 @@ function ConfiguracoesContent() {
             ...prev,
             termos: { ...prev.termos, [field]: value }
         }));
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-2 text-text-secondary">Carregando configurações...</span>
+            </div>
+        );
     }
 
     return (
@@ -219,7 +256,16 @@ function ConfiguracoesContent() {
 
                                 {activeTab !== 'WhatsApp' && activeTab !== 'Google' && (
                                     <div className="flex justify-end pt-4">
-                                        <Button type="submit" size="lg">Salvar Configurações</Button>
+                                        <Button type="submit" size="lg" disabled={saving}>
+                                            {saving ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    Salvando...
+                                                </>
+                                            ) : (
+                                                'Salvar Configurações'
+                                            )}
+                                        </Button>
                                     </div>
                                 )}
                             </form>
