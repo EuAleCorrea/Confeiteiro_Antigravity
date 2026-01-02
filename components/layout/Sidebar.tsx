@@ -130,28 +130,35 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                     {!isCollapsed ? (
                         <span className="text-xl font-bold text-primary">Confeiteiro</span>
                     ) : (
-                        <span className="text-xl">🧁</span>
+                        <button
+                            onClick={onToggleCollapse}
+                            className="text-2xl hover:scale-110 transition-transform cursor-pointer"
+                            title="Expandir menu"
+                        >
+                            🧁
+                        </button>
                     )}
 
-                    {/* Toggle Button (Desktop) */}
-                    <button
-                        onClick={onToggleCollapse}
-                        className={cn(
-                            "hidden lg:flex p-2 rounded-lg text-text-secondary hover:bg-neutral-100 hover:text-text-primary transition-colors",
-                            isCollapsed && "absolute right-2"
-                        )}
-                        title={isCollapsed ? "Expandir menu" : "Condensar menu"}
-                    >
-                        {isCollapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
-                    </button>
+                    {/* Toggle Button (Desktop) - Only shown when expanded */}
+                    {!isCollapsed && (
+                        <button
+                            onClick={onToggleCollapse}
+                            className="hidden lg:flex p-2 rounded-lg text-text-secondary hover:bg-neutral-100 hover:text-text-primary transition-colors"
+                            title="Condensar menu"
+                        >
+                            <PanelLeftClose size={20} />
+                        </button>
+                    )}
 
                     {/* Close Button (Mobile) */}
-                    <button
-                        onClick={onClose}
-                        className="lg:hidden text-text-secondary hover:text-text-primary"
-                    >
-                        <X size={24} />
-                    </button>
+                    {!isCollapsed && (
+                        <button
+                            onClick={onClose}
+                            className="lg:hidden text-text-secondary hover:text-text-primary"
+                        >
+                            <X size={24} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Navigation */}
