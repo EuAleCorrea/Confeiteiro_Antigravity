@@ -21,7 +21,7 @@ export interface Cliente {
 export interface Produto {
     id: string;
     nome: string;
-    categoria: 'Bolo' | 'Adicional' | 'Serviço';
+    categoria: string;
     preco: number;
     precosPorTamanho?: Record<string, number>; // Preço específico por tamanho
     descricao?: string;
@@ -29,6 +29,7 @@ export interface Produto {
     tamanhos?: string[];
     tempoProducao?: number; // horas
     ativo: boolean;
+    ordem?: number; // Para ordenação drag-and-drop
 }
 
 export interface Sabor {
@@ -292,6 +293,7 @@ export interface Pedido {
 export interface Categoria {
     id: string;
     nome: string;
+    ordem?: number; // Para ordenação drag-and-drop das abas
 }
 
 export interface Ingrediente {
@@ -583,6 +585,7 @@ const STORAGE_KEYS = {
     CATEGORIAS_ADERECOS: 'confeiteiro_categorias_aderecos',
     COMPRAS_ADERECOS: 'confeiteiro_compras_aderecos',
     AGENDAS_SEMANAIS: 'confeiteiro_agendas_semanais',
+    PRODUTO_CATEGORIAS: 'confeiteiro_produto_categorias',
 };
 
 // Seed data
@@ -639,7 +642,12 @@ const initialData = {
             { id: 't2', tipo: 'Despesa', data: '2024-10-14', descricao: 'Compra: Farinha de Trigo', valor: 32.50, categoriaId: '8', categoriaNome: 'Insumos Gerais', status: 'Pago', criadoEm: new Date().toISOString() },
             { id: 't3', tipo: 'Receita', data: '2024-10-14', descricao: 'Venda: Dúzia de Brigadeiros', valor: 48.00, categoriaId: '1', categoriaNome: 'Vendas Bolos', status: 'Pago', criadoEm: new Date().toISOString() },
         ] as Transaction[]
-    }
+    },
+    produtoCategorias: [
+        { id: 'cat_bolo', nome: 'Bolo' },
+        { id: 'cat_adicional', nome: 'Adicional' },
+        { id: 'cat_servico', nome: 'Serviço' },
+    ] as Categoria[]
 };
 
 // ... StorageService class start ...
@@ -685,6 +693,22 @@ class StorageService {
     getProdutos() { return this.getList<Produto>(STORAGE_KEYS.PRODUTOS); }
     saveProduto(produto: Produto) { this.saveItem(STORAGE_KEYS.PRODUTOS, produto); }
     deleteProduto(id: string) { this.deleteItem<Produto>(STORAGE_KEYS.PRODUTOS, id); }
+
+    // Categorias de Produtos
+    getProdutoCategorias(): Categoria[] {
+        const list = this.getList<Categoria>(STORAGE_KEYS.PRODUTO_CATEGORIAS);
+        return list.length ? list : initialData.produtoCategorias;
+    }
+    saveProdutoCategoria(cat: Categoria) {
+        // Ensure defaults are persisted to localStorage first
+        const rawList = this.getList<Categoria>(STORAGE_KEYS.PRODUTO_CATEGORIAS);
+        if (rawList.length === 0) {
+            // Persist initial defaults before adding new category
+            this.setItem(STORAGE_KEYS.PRODUTO_CATEGORIAS, initialData.produtoCategorias);
+        }
+        this.saveItem(STORAGE_KEYS.PRODUTO_CATEGORIAS, cat);
+    }
+    deleteProdutoCategoria(id: string) { this.deleteItem<Categoria>(STORAGE_KEYS.PRODUTO_CATEGORIAS, id); }
 
     // Sabores
     getSabores() {

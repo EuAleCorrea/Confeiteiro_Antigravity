@@ -111,14 +111,14 @@ export default function FAQDetailsClient() {
                     </div>
 
                     {/* Still need help? */}
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 flex items-center justify-between">
-                        <div>
-                            <h3 className="font-bold text-blue-900 mb-1">Ainda precisa de ajuda?</h3>
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                        <div className="w-full">
+                            <h3 className="font-bold text-blue-900 mb-1 text-lg sm:text-base">Ainda precisa de ajuda?</h3>
                             <p className="text-sm text-blue-700">Nossa equipe de suporte está pronta para te atender.</p>
                         </div>
                         <Link
                             href="/ajuda/suporte"
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 transition-colors"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 sm:px-4 sm:py-2 rounded-lg font-bold shadow-sm flex items-center justify-center sm:justify-start gap-2 transition-colors whitespace-nowrap flex-shrink-0 w-full sm:w-auto text-center"
                         >
                             <MessageSquare size={18} /> Falar com Suporte
                         </Link>

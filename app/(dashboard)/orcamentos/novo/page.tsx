@@ -77,12 +77,6 @@ export default function NovoOrcamentoPage() {
             component: <StepItens data={orcamento} onUpdate={updateOrcamento} />
         },
         {
-            id: 'entrega',
-            label: 'Entrega',
-            icon: <Truck />,
-            component: <StepEntrega data={orcamento} onUpdate={updateOrcamento} />
-        },
-        {
             id: 'decoracao',
             label: 'Decoração',
             icon: <Palette />,
@@ -93,6 +87,12 @@ export default function NovoOrcamentoPage() {
             label: 'Revisão',
             icon: <FileText />,
             component: <StepRevisao data={orcamento} onUpdate={updateOrcamento} onFinish={handleFinish} />
+        },
+        {
+            id: 'entrega',
+            label: 'Entrega',
+            icon: <Truck />,
+            component: <StepEntrega data={orcamento} onUpdate={updateOrcamento} />
         }
     ];
 

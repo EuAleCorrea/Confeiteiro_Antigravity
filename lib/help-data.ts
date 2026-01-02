@@ -134,7 +134,17 @@ export const faqQuestions: FAQQuestion[] = [
         id: "2",
         categoriaId: "comecando",
         pergunta: "Como cadastrar produtos e sabores?",
-        resposta: "Acesse o menu Produtos > Novo Produto. Preencha os dados básicos, ficha técnica e precificação.",
+        resposta: `Para cadastrar seus produtos, acesse o menu **Produtos > Novo Produto**. No campo **Categoria**, você encontrará as seguintes opções para te ajudar a organizar seu negócio:
+
+### 🍰 1. Adicionais (Produtos/Itens Extras)
+São itens físicos que complementam o produto principal e agregam valor material ao pedido. Geralmente têm um custo de material envolvido.
+*   **Exemplos:** Topo de bolo, recheio extra, embalagens especiais, decorações específicas (flores, glitter, folha de ouro) e velas.
+
+### 🚚 2. Serviços (Mão de Obra e Logística)
+São atividades realizadas pela confeitaria que envolvem tempo e esforço, mas não são necessariamente um item físico comestível.
+*   **Exemplos:** Taxa de entrega (frete), montagem no local, aluguel de suportes, taxa de urgência e degustação.
+
+💡 **Dica:** Preencha os dados básicos, ficha técnica e precificação para garantir que sua margem de lucro esteja correta para cada categoria.`,
         ordem: 2,
         visualizacoes: 120,
         feedbackPositivo: 20,
