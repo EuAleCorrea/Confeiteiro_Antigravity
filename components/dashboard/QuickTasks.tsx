@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { storage } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import Link from "next/link";
 import { Check, Circle, ChefHat, CreditCard, ShoppingCart, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,55 +20,60 @@ export function QuickTasks() {
     const [tasks, setTasks] = useState<QuickTask[]>([]);
 
     useEffect(() => {
-        const pedidos = storage.getPedidos();
-        const ingredientes = storage.getIngredientes();
-        const contasReceber = storage.getContasReceber();
+        async function loadQuickTasks() {
+            const [pedidos, ingredientes, contasReceber] = await Promise.all([
+                supabaseStorage.getPedidos(),
+                supabaseStorage.getIngredientes(),
+                supabaseStorage.getContasReceber()
+            ]);
 
-        const quickTasks: QuickTask[] = [];
+            const quickTasks: QuickTask[] = [];
 
-        // Pedidos aguardando produção
-        pedidos
-            .filter((p) => p.status === "Aguardando Produção")
-            .slice(0, 2)
-            .forEach((p) => {
-                quickTasks.push({
-                    id: `prod-${p.id}`,
-                    tipo: "producao",
-                    titulo: `Iniciar produção: Pedido #${p.numero}`,
-                    link: `/pedidos/${p.id}`,
-                    completed: false,
+            // Pedidos aguardando produção
+            pedidos
+                .filter((p) => p.status === "Aguardando Produção")
+                .slice(0, 2)
+                .forEach((p) => {
+                    quickTasks.push({
+                        id: `prod-${p.id}`,
+                        tipo: "producao",
+                        titulo: `Iniciar produção: Pedido #${p.numero}`,
+                        link: `/pedidos/${p.id}`,
+                        completed: false,
+                    });
                 });
-            });
 
-        // Pagamentos pendentes
-        contasReceber
-            .filter((c) => c.status === "pendente" || c.status === "parcial")
-            .slice(0, 2)
-            .forEach((c) => {
-                quickTasks.push({
-                    id: `pag-${c.id}`,
-                    tipo: "pagamento",
-                    titulo: `Confirmar pagamento: ${c.cliente.nome}`,
-                    link: `/financeiro/contas-receber`,
-                    completed: false,
+            // Pagamentos pendentes
+            contasReceber
+                .filter((c) => c.status === "pendente" || c.status === "parcial")
+                .slice(0, 2)
+                .forEach((c) => {
+                    quickTasks.push({
+                        id: `pag-${c.id}`,
+                        tipo: "pagamento",
+                        titulo: `Confirmar pagamento: ${c.cliente.nome}`,
+                        link: `/financeiro/contas-receber`,
+                        completed: false,
+                    });
                 });
-            });
 
-        // Itens para comprar
-        ingredientes
-            .filter((i) => i.estoqueAtual <= i.estoqueMinimo)
-            .slice(0, 2)
-            .forEach((i) => {
-                quickTasks.push({
-                    id: `compra-${i.id}`,
-                    tipo: "compra",
-                    titulo: `Comprar: ${i.nome}`,
-                    link: `/estoque`,
-                    completed: false,
+            // Itens para comprar
+            ingredientes
+                .filter((i) => i.estoqueAtual <= i.estoqueMinimo)
+                .slice(0, 2)
+                .forEach((i) => {
+                    quickTasks.push({
+                        id: `compra-${i.id}`,
+                        tipo: "compra",
+                        titulo: `Comprar: ${i.nome}`,
+                        link: `/estoque`,
+                        completed: false,
+                    });
                 });
-            });
 
-        setTasks(quickTasks.slice(0, 5));
+            setTasks(quickTasks.slice(0, 5));
+        }
+        loadQuickTasks();
     }, []);
 
     const getIcon = (tipo: string) => {

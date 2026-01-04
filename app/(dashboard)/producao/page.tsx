@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { storage, Pedido } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
+import { AgendaSemanal, Pedido } from "@/lib/storage";
+import { Loader2, LayoutGrid, Calendar as CalendarIcon, Search, ShoppingCart, Printer, Settings } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { WeekGrid } from "@/components/producao/WeekGrid";
 import { MonthCalendar } from "@/components/producao/MonthCalendar";
 import { DayProductionList } from "@/components/producao/DayProductionList";
-import { LayoutGrid, Calendar as CalendarIcon, Search, ShoppingCart, Printer, Settings } from "lucide-react";
 import Link from "next/link";
 import { startOfWeek } from "date-fns";
 import { generateProductionReport } from "@/lib/pdf-generator";
@@ -21,6 +22,8 @@ export default function ProductionDashboardPage() {
     });
     const [orders, setOrders] = useState<Pedido[]>([]);
     const [filteredOrders, setFilteredOrders] = useState<Pedido[]>([]);
+    const [agendas, setAgendas] = useState<AgendaSemanal[]>([]);
+    const [loading, setLoading] = useState(true);
 
     // Derived state for WeekGrid (List View)
     // When switching to list view, we might want to start the week view from the selected date's week
@@ -38,9 +41,20 @@ export default function ProductionDashboardPage() {
         setFilteredOrders(dayOrders);
     }, [selectedDate, orders]);
 
-    const loadData = () => {
-        const allOrders = storage.getPedidos();
-        setOrders(allOrders);
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const [fetchedOrders, fetchedAgendas] = await Promise.all([
+                supabaseStorage.getPedidos(),
+                supabaseStorage.getAgendasSemanais()
+            ]);
+            setOrders(fetchedOrders as Pedido[]);
+            setAgendas(fetchedAgendas);
+        } catch (error) {
+            console.error("Erro ao carregar dados de produção:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -94,7 +108,12 @@ export default function ProductionDashboardPage() {
             </div>
 
             {/* Content Area */}
-            {viewMode === 'calendar' ? (
+            {loading ? (
+                <div className="flex flex-col items-center justify-center min-h-[400px] flex-1">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                    <p className="text-text-secondary font-medium">Carregando produção...</p>
+                </div>
+            ) : viewMode === 'calendar' ? (
                 <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-6 pb-6">
                     {/* Calendar Panel */}
                     <div className="md:col-span-5 lg:col-span-4 bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden flex flex-col">
@@ -138,6 +157,7 @@ export default function ProductionDashboardPage() {
                         onSelectDate={(date) => {
                             setSelectedDate(date);
                         }}
+                        agendas={agendas}
                     />
                 </div>
             ) : (

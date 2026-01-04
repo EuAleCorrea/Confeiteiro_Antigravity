@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, ArrowUpCircle, CheckCircle2, Clock, AlertTriangle, Check, DollarSign } from "lucide-react";
 import { storage, ContaReceber, Pagamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { format, isAfter, startOfDay, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { NewContaReceberModal } from "@/components/financeiro/NewContaReceberModal";
@@ -20,21 +21,31 @@ export default function ContasReceberPage() {
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
     const [paymentModal, setPaymentModal] = useState<{ open: boolean; conta: ContaReceber | null }>({ open: false, conta: null });
 
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         loadData();
     }, []);
 
-    const loadData = () => {
-        const data = storage.getContasReceber();
-        // Update status based on dates
-        const today = startOfDay(new Date());
-        const updated = data.map(c => {
-            if (c.saldoRestante === 0) return { ...c, status: 'pago' as const };
-            if (c.saldoRestante < c.valorTotal && c.saldoRestante > 0) return { ...c, status: 'parcial' as const };
-            if (isAfter(today, new Date(c.dataVencimento))) return { ...c, status: 'atrasado' as const };
-            return { ...c, status: 'pendente' as const };
-        });
-        setContas(updated);
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const data = await supabaseStorage.getContasReceber();
+            // Update status based on dates
+            const today = startOfDay(new Date());
+            const updated = data.map(c => {
+                if (c.saldoRestante === 0) return { ...c, status: 'pago' as const };
+                if (c.saldoRestante < c.valorTotal && c.saldoRestante > 0) return { ...c, status: 'parcial' as const };
+                if (c.dataVencimento && isAfter(today, new Date(c.dataVencimento)) && c.status !== 'pago') return { ...c, status: 'atrasado' as const };
+                if (c.status) return c;
+                return { ...c, status: 'pendente' as const };
+            });
+            setContas(updated as ContaReceber[]);
+        } catch (error) {
+            console.error('Erro ao carregar contas a receber:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Summary calculations
@@ -90,14 +101,14 @@ export default function ContasReceberPage() {
         return result.sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime());
     }, [contas, searchTerm, statusFilter]);
 
-    const handlePayment = (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => {
+    const handlePayment = async (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => {
         const contaIndex = contas.findIndex(c => c.id === contaId);
         if (contaIndex === -1) return;
 
         const conta = contas[contaIndex];
         const novoValorPago = conta.valorPago + payment.valor;
         const novoSaldo = conta.valorTotal - novoValorPago;
-        const novoStatus = novoSaldo <= 0 ? 'pago' : 'pendente'; // simplistic logic, loadData fixes it perfectly next render
+        const novoStatus = novoSaldo <= 0.01 ? 'pago' : 'parcial'; // Tolerance for float
 
         const updatedConta: ContaReceber = {
             ...conta,
@@ -108,24 +119,30 @@ export default function ContasReceberPage() {
             atualizadoEm: new Date().toISOString()
         };
 
-        storage.saveContaReceber(updatedConta);
+        try {
+            await supabaseStorage.saveContaReceber(updatedConta);
 
-        if (lancadoFluxo) {
-            storage.saveTransacao({
-                id: crypto.randomUUID(),
-                tipo: 'Receita',
-                data: payment.data,
-                descricao: `Recebimento Parcial/Total: ${conta.cliente.nome} - ${conta.descricao}`,
-                valor: payment.valor,
-                categoriaId: '1', // Default category for now
-                categoriaNome: conta.categoria,
-                status: 'Pago',
-                criadoEm: new Date().toISOString()
-            });
+            if (lancadoFluxo) {
+                await supabaseStorage.saveTransacao({
+                    id: crypto.randomUUID(),
+                    tipo: 'Receita',
+                    data: payment.data,
+                    descricao: `Recebimento Parcial/Total: ${conta.cliente.nome} - ${conta.descricao}`,
+                    valor: payment.valor,
+                    categoriaId: '1', // Default category for now. TODO: Map categories properly
+                    categoriaNome: conta.categoria,
+                    status: 'Pago',
+                    criadoEm: new Date().toISOString(),
+                    observacoes: `Conta #${conta.id}`
+                });
+            }
+
+            await loadData();
+            setPaymentModal({ open: false, conta: null });
+        } catch (error) {
+            console.error("Erro ao salvar pagamento:", error);
+            alert("Erro ao registrar pagamento.");
         }
-
-        loadData();
-        setPaymentModal({ open: false, conta: null });
     };
 
     const getStatusColor = (status: string, vencimento: string) => {

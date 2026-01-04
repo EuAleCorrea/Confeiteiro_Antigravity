@@ -8,7 +8,36 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
-import { storage, Adereco, CategoriaAdereco, Fornecedor } from "@/lib/storage";
+import { storage } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
+
+// Interface compatível com Supabase
+interface Adereco {
+    id: string;
+    nome: string;
+    categoria: string;
+    fornecedorId?: string;
+    fornecedorNome?: string; // Derived if needed, or fetched
+    preco: number;
+    unidade: string;
+    estoque: number;
+    estoqueMin: number;
+    descricao?: string;
+    ativo: boolean;
+    criadoEm?: string;
+    atualizadoEm?: string;
+}
+
+interface CategoriaAdereco {
+    id: string;
+    nome: string;
+}
+
+interface Fornecedor {
+    id: string;
+    nomeFantasia: string;
+    telefone?: string;
+}
 
 export default function AderecosPage() {
     const [aderecos, setAderecos] = useState<Adereco[]>([]);
@@ -30,36 +59,46 @@ export default function AderecosPage() {
     // Form state
     const [formData, setFormData] = useState({
         nome: '',
-        categoriaId: '',
+        categoria: '', // Changed from categoriaId
         fornecedorId: '',
-        precoMedio: '',
+        preco: '', // Changed from precoMedio
         unidade: 'un',
-        estoqueAtual: '0',
-        estoqueMinimo: '5',
-        observacoes: ''
+        estoque: '0', // Changed from estoqueAtual
+        estoqueMin: '5', // Changed from estoqueMinimo
+        descricao: '' // Changed from observacoes
     });
 
     useEffect(() => {
         loadData();
     }, []);
 
-    function loadData() {
-        setAderecos(storage.getAderecos());
-        setCategorias(storage.getCategoriasAderecos());
-        setFornecedores(storage.getFornecedores());
+    async function loadData() {
+        const [loadedAderecos, loadedFornecedores] = await Promise.all([
+            supabaseStorage.getAderecos(),
+            supabaseStorage.getFornecedores()
+        ]);
+
+        // Adapt Aderecos to local interface if needed, or use directly
+        setAderecos(loadedAderecos);
+
+        // Derive categories from existing aderecos
+        const uniqueCats = Array.from(new Set(loadedAderecos.map(a => a.categoria))).filter(Boolean);
+        setCategorias(uniqueCats.map(c => ({ id: c, nome: c })));
+
+        setFornecedores(loadedFornecedores);
     }
 
     function openCreateModal() {
         setEditingAdereco(null);
         setFormData({
             nome: '',
-            categoriaId: categorias[0]?.id || '',
+            categoria: categorias[0]?.nome || 'Outros',
             fornecedorId: '',
-            precoMedio: '',
+            preco: '',
             unidade: 'un',
-            estoqueAtual: '0',
-            estoqueMinimo: '5',
-            observacoes: ''
+            estoque: '0',
+            estoqueMin: '5',
+            descricao: ''
         });
         setIsModalOpen(true);
     }
@@ -68,47 +107,57 @@ export default function AderecosPage() {
         setEditingAdereco(adereco);
         setFormData({
             nome: adereco.nome,
-            categoriaId: adereco.categoriaId,
+            categoria: adereco.categoria,
             fornecedorId: adereco.fornecedorId || '',
-            precoMedio: adereco.precoMedio.toString(),
+            preco: adereco.preco.toString(),
             unidade: adereco.unidade,
-            estoqueAtual: adereco.estoqueAtual.toString(),
-            estoqueMinimo: adereco.estoqueMinimo.toString(),
-            observacoes: adereco.observacoes || ''
+            estoque: adereco.estoque.toString(),
+            estoqueMin: adereco.estoqueMin.toString(),
+            descricao: adereco.descricao || ''
         });
         setIsModalOpen(true);
     }
 
-    function handleSave() {
-        const categoria = categorias.find(c => c.id === formData.categoriaId);
-        const fornecedor = formData.fornecedorId ? fornecedores.find(f => f.id === formData.fornecedorId) : null;
+    async function handleSave() {
+        // const categoria = categorias.find(c => c.id === formData.categoriaId); // Unused
+        // const fornecedor = formData.fornecedorId ? fornecedores.find(f => f.id === formData.fornecedorId) : null;
 
-        const adereco: Adereco = {
-            id: editingAdereco?.id || crypto.randomUUID(),
+        const adereco: any = {
+            id: editingAdereco?.id, // Supabase handles ID for new records usually, or we pass undefined
             nome: formData.nome,
-            categoriaId: formData.categoriaId,
-            categoriaNome: categoria?.nome || 'Outros',
-            fornecedorId: formData.fornecedorId || undefined,
-            fornecedorNome: fornecedor?.nomeFantasia || undefined,
-            precoMedio: Number(formData.precoMedio) || 0,
-            unidade: formData.unidade,
-            estoqueAtual: Number(formData.estoqueAtual) || 0,
-            estoqueMinimo: Number(formData.estoqueMinimo) || 0,
-            observacoes: formData.observacoes || undefined,
+            categoria: formData.categoria,
+            // categoriaNome: categoria?.nome || 'Outros', // Removed
+            // fornecedorId: formData.fornecedorId || undefined,
+            // fornecedorNome: fornecedor?.nomeFantasia || undefined,
+            preco: Number(formData.preco) || 0,
+            unidade: formData.unidade || 'un',
+            estoque: Number(formData.estoque) || 0,
+            estoqueMin: Number(formData.estoqueMin) || 0,
+            descricao: formData.descricao || undefined,
             ativo: true,
-            criadoEm: editingAdereco?.criadoEm || new Date().toISOString(),
-            atualizadoEm: new Date().toISOString()
+            // criadoEm: editingAdereco?.criadoEm || new Date().toISOString(),
+            // atualizadoEm: new Date().toISOString()
         };
 
-        storage.saveAdereco(adereco);
-        loadData();
-        setIsModalOpen(false);
-        setSuccessModal({ open: true, message: editingAdereco ? 'Adereço atualizado!' : 'Adereço cadastrado!' });
+        // If editing, preserve ID
+        if (editingAdereco) {
+            adereco.id = editingAdereco.id;
+        }
+
+        try {
+            await supabaseStorage.saveAdereco(adereco);
+            loadData();
+            setIsModalOpen(false);
+            setSuccessModal({ open: true, message: editingAdereco ? 'Adereço atualizado!' : 'Adereço cadastrado!' });
+        } catch (error) {
+            console.error("Erro ao salvar adereço:", error);
+            // Optionally show error toast
+        }
     }
 
-    function confirmDelete() {
+    async function confirmDelete() {
         if (deleteModal.id) {
-            storage.deleteAdereco(deleteModal.id);
+            await supabaseStorage.deleteAdereco(deleteModal.id);
             loadData();
             setDeleteModal({ open: false, id: null });
             setSuccessModal({ open: true, message: 'Adereço excluído!' });
@@ -118,46 +167,54 @@ export default function AderecosPage() {
     // Quick-add handlers
     function handleQuickCategoriaSave() {
         if (!newCategoriaNome.trim()) return;
-        const newCat: CategoriaAdereco = {
-            id: crypto.randomUUID(),
-            nome: newCategoriaNome.trim(),
-        };
-        storage.saveCategoriaAdereco(newCat);
-        setCategorias(storage.getCategoriasAderecos());
-        setFormData({ ...formData, categoriaId: newCat.id });
+
+        // Since we don't have a categories table, we just add it to the local list temporarily
+        // It will be persisted when an adereco uses it.
+        const newCatName = newCategoriaNome.trim();
+
+        setCategorias(prev => {
+            if (prev.some(c => c.id === newCatName)) return prev;
+            return [...prev, { id: newCatName, nome: newCatName }];
+        });
+
+        setFormData({ ...formData, categoria: newCatName });
         setNewCategoriaNome('');
         setQuickCategoriaModal(false);
     }
 
-    function handleQuickFornecedorSave() {
+    async function handleQuickFornecedorSave() {
         if (!newFornecedorData.nomeFantasia.trim()) return;
-        const newF: Fornecedor = {
-            id: crypto.randomUUID(),
+
+        const newF = {
             razaoSocial: newFornecedorData.nomeFantasia.trim(),
             nomeFantasia: newFornecedorData.nomeFantasia.trim(),
-            cnpj: '',
             categoria: 'Decorações',
             telefone: newFornecedorData.telefone || '',
             ativo: true,
         };
-        storage.saveFornecedor(newF);
-        setFornecedores(storage.getFornecedores());
-        setFormData({ ...formData, fornecedorId: newF.id });
-        setNewFornecedorData({ nomeFantasia: '', telefone: '' });
-        setQuickFornecedorModal(false);
+
+        try {
+            const saved = await supabaseStorage.saveFornecedor(newF);
+            setFornecedores(await supabaseStorage.getFornecedores());
+            setFormData({ ...formData, fornecedorId: saved?.id || '' });
+            setNewFornecedorData({ nomeFantasia: '', telefone: '' });
+            setQuickFornecedorModal(false);
+        } catch (error) {
+            console.error("Erro ao salvar fornecedor:", error);
+        }
     }
 
     // Filtering
     const filtered = aderecos.filter(a => {
         const matchesSearch = a.nome.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategoria = categoriaFilter === "Todas" || a.categoriaNome === categoriaFilter;
+        const matchesCategoria = categoriaFilter === "Todas" || a.categoria === categoriaFilter;
         return matchesSearch && matchesCategoria;
     });
 
     // Stats
     const totalAderecos = aderecos.length;
-    const estoqueBaixo = aderecos.filter(a => a.estoqueAtual <= a.estoqueMinimo).length;
-    const totalValor = aderecos.reduce((sum, a) => sum + (a.estoqueAtual * a.precoMedio), 0);
+    const estoqueBaixo = aderecos.filter(a => a.estoque <= a.estoqueMin).length;
+    const totalValor = aderecos.reduce((sum, a) => sum + (a.estoque * a.preco), 0);
 
     return (
         <div className="space-y-6">
@@ -263,14 +320,14 @@ export default function AderecosPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filtered.map((adereco) => {
-                        const isBaixo = adereco.estoqueAtual <= adereco.estoqueMinimo;
+                        const isBaixo = adereco.estoque <= adereco.estoqueMin;
                         return (
                             <Card key={adereco.id} className={`hover:shadow-lg transition-shadow ${isBaixo ? 'border-warning/50' : ''}`}>
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <h3 className="font-medium text-neutral-800">{adereco.nome}</h3>
-                                            <Badge variant="neutral" className="text-xs mt-1">{adereco.categoriaNome}</Badge>
+                                            <Badge variant="neutral" className="text-xs mt-1">{adereco.categoria}</Badge>
                                         </div>
                                         <div className="flex gap-1">
                                             <Button variant="ghost" size="icon" onClick={() => openEditModal(adereco)}>
@@ -286,14 +343,14 @@ export default function AderecosPage() {
                                         <div className="flex justify-between">
                                             <span className="text-text-secondary">Estoque:</span>
                                             <span className={`font-medium ${isBaixo ? 'text-warning-darker' : 'text-success'}`}>
-                                                {adereco.estoqueAtual} {adereco.unidade}
+                                                {adereco.estoque} {adereco.unidade}
                                                 {isBaixo && <AlertTriangle size={14} className="inline ml-1" />}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-text-secondary">Preço Médio:</span>
                                             <span className="font-medium">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(adereco.precoMedio)}
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(adereco.preco)}
                                             </span>
                                         </div>
                                         {adereco.fornecedorNome && (
@@ -334,9 +391,10 @@ export default function AderecosPage() {
                             <div className="flex gap-2">
                                 <select
                                     className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                    value={formData.categoriaId}
-                                    onChange={(e) => setFormData({ ...formData, categoriaId: e.target.value })}
+                                    value={formData.categoria}
+                                    onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                                 >
+                                    {categorias.length === 0 && <option value="">Nenhuma</option>}
                                     {categorias.map(cat => (
                                         <option key={cat.id} value={cat.id}>{cat.nome}</option>
                                     ))}
@@ -383,8 +441,8 @@ export default function AderecosPage() {
                             <Input
                                 type="number"
                                 step="0.01"
-                                value={formData.precoMedio}
-                                onChange={(e) => setFormData({ ...formData, precoMedio: e.target.value })}
+                                value={formData.preco}
+                                onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
                                 placeholder="0.00"
                             />
                         </div>
@@ -392,16 +450,16 @@ export default function AderecosPage() {
                             <label className="block text-sm font-medium mb-1">Estoque Atual</label>
                             <Input
                                 type="number"
-                                value={formData.estoqueAtual}
-                                onChange={(e) => setFormData({ ...formData, estoqueAtual: e.target.value })}
+                                value={formData.estoque}
+                                onChange={(e) => setFormData({ ...formData, estoque: e.target.value })}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Estoque Mín.</label>
                             <Input
                                 type="number"
-                                value={formData.estoqueMinimo}
-                                onChange={(e) => setFormData({ ...formData, estoqueMinimo: e.target.value })}
+                                value={formData.estoqueMin}
+                                onChange={(e) => setFormData({ ...formData, estoqueMin: e.target.value })}
                             />
                         </div>
                     </div>
@@ -425,8 +483,8 @@ export default function AderecosPage() {
                         <label className="block text-sm font-medium mb-1">Observações</label>
                         <textarea
                             className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[80px]"
-                            value={formData.observacoes}
-                            onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                            value={formData.descricao}
+                            onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                             placeholder="Notas sobre o adereço..."
                         />
                     </div>

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { storage, Pedido } from "@/lib/storage";
+import { Pedido } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/pedidos/StatusBadge";
 import { ArrowLeft, Edit, Trash2, Printer, MessageCircle } from "lucide-react";
@@ -26,20 +27,19 @@ export default function PedidoDetalhesClient() {
 
     useEffect(() => {
         if (id) {
-            const found = storage.getPedidoById(id);
-            if (found) {
-                setPedido(found);
-            } else {
-                if (id !== "placeholder") {
+            supabaseStorage.getPedido(id).then(found => {
+                if (found) {
+                    setPedido(found as Pedido);
+                } else if (id !== "placeholder") {
                     // router.push('/pedidos');
                 }
-            }
+            });
         }
     }, [id, router]);
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (pedido && confirm('Tem certeza que deseja excluir este pedido?')) {
-            storage.deletePedido(pedido.id);
+            await supabaseStorage.deletePedido(pedido.id);
             router.push('/pedidos');
         }
     };
@@ -137,7 +137,7 @@ export default function PedidoDetalhesClient() {
             <div className="min-h-[400px]">
                 {activeTab === 'resumo' && <TabResumo pedido={pedido} />}
                 {activeTab === 'aderecos' && <TabAderecos pedido={pedido} onUpdate={setPedido} />}
-                {activeTab === 'producao' && <TabProducao pedido={pedido} />}
+                {activeTab === 'producao' && <TabProducao pedido={pedido} onUpdate={setPedido} />}
                 {activeTab === 'entrega' && <TabEntrega pedido={pedido} />}
                 {activeTab === 'financeiro' && <TabFinanceiro pedido={pedido} />}
                 {activeTab === 'historico' && <TabHistorico pedido={pedido} />}

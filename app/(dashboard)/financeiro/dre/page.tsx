@@ -3,10 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft, Download, BarChart2, ChevronDown } from "lucide-react";
-import { storage, Transaction } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { Transaction } from "@/lib/storage";
 
 interface DREData {
     receitaBruta: number;
@@ -25,11 +26,23 @@ export default function DREPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [selectedMonth, setSelectedMonth] = useState(new Date());
     const [showComparison, setShowComparison] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const data = storage.getTransacoes();
-        setTransactions(data);
+        loadData();
     }, []);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const data = await supabaseStorage.getTransacoes();
+            setTransactions(data as Transaction[]);
+        } catch (error) {
+            console.error("Erro ao carregar transações para DRE:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const calculateDRE = (month: Date): DREData => {
         const start = startOfMonth(month);

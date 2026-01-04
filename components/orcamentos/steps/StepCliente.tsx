@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, UserPlus, User } from "lucide-react";
+import { Search, UserPlus, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-import { storage, Cliente, Orcamento } from "@/lib/storage";
+import { Cliente, Orcamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 interface StepProps {
     data: Partial<Orcamento>;
@@ -41,15 +42,28 @@ export default function StepCliente({ data, onUpdate, next, back }: WizardStepPr
     const [showNewClient, setShowNewClient] = useState(false);
     const [newClientData, setNewClientData] = useState({ nome: '', telefone: '', email: '' });
 
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
-        // Load clients for autocomplete
-        if (searchTerm.length >= 2) {
-            const all = storage.getClientes();
-            const filtered = all.filter(c => c.nome.toLowerCase().includes(searchTerm.toLowerCase()));
-            setClientes(filtered);
-        } else {
-            setClientes([]);
-        }
+        // Debounced search could be better, but for now simple effect
+        const timeoutId = setTimeout(async () => {
+            if (searchTerm.length >= 2) {
+                setLoading(true);
+                try {
+                    const all = await supabaseStorage.getClientes();
+                    const filtered = all.filter(c => c.nome.toLowerCase().includes(searchTerm.toLowerCase()));
+                    setClientes(filtered);
+                } catch (error) {
+                    console.error("Erro ao buscar clientes", error);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setClientes([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
     }, [searchTerm]);
 
     function selectCliente(cliente: Cliente) {
@@ -65,21 +79,28 @@ export default function StepCliente({ data, onUpdate, next, back }: WizardStepPr
         setSearchTerm(""); // clear search
     }
 
-    function handleCreateClient() {
+    async function handleCreateClient() {
         if (!newClientData.nome || !newClientData.telefone) return;
 
-        const newCliente: Cliente = {
-            id: crypto.randomUUID(),
-            nome: newClientData.nome,
-            telefone: newClientData.telefone,
-            email: newClientData.email,
-            cpf: '',
-            endereco: { cep: '', rua: '', numero: '', bairro: '', cidade: '', estado: '' }
-        };
+        setLoading(true);
+        try {
+            const newCliente: Partial<Cliente> = {
+                nome: newClientData.nome,
+                telefone: newClientData.telefone,
+                email: newClientData.email,
+                cpf: '',
+                endereco: { cep: '', rua: '', numero: '', bairro: '', cidade: '', estado: '' }
+            };
 
-        storage.saveCliente(newCliente);
-        selectCliente(newCliente);
-        setShowNewClient(false);
+            const saved = await supabaseStorage.saveCliente(newCliente);
+            selectCliente(saved);
+            setShowNewClient(false);
+        } catch (error) {
+            console.error("Erro ao criar cliente", error);
+            alert("Erro ao criar cliente novo.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     const selectedCliente = data.cliente;
@@ -142,6 +163,7 @@ export default function StepCliente({ data, onUpdate, next, back }: WizardStepPr
                             onChange={(e) => setSearchTerm(e.target.value)}
                             autoFocus
                         />
+                        {loading && <Loader2 className="absolute right-3 top-3 animate-spin text-primary" size={20} />}
 
                         {/* Autocomplete Dropdown */}
                         {clientes.length > 0 && (

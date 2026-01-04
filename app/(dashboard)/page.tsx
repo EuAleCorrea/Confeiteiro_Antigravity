@@ -7,7 +7,7 @@ import { FinanceSection } from "@/components/dashboard/FinanceSection";
 import { StockAlerts } from "@/components/dashboard/StockAlerts";
 import { DailyAgenda } from "@/components/dashboard/DailyAgenda";
 import { QuickTasks } from "@/components/dashboard/QuickTasks";
-import { storage } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 export default function DashboardPage() {
     const [greeting, setGreeting] = useState("");
@@ -21,14 +21,17 @@ export default function DashboardPage() {
         else setGreeting("Boa noite");
 
         // Get user name from settings if available
-        const config = storage.getConfiguracoes();
-        if (config?.empresa?.nome) {
-            // Use first name only
-            const firstName = config.empresa.nome.split(" ")[0];
-            if (firstName && firstName.length < 20) {
-                setUserName(firstName);
+        async function loadConfig() {
+            const config = await supabaseStorage.getConfiguracoes();
+            if (config?.empresa?.nome) {
+                // Use first name only
+                const firstName = config.empresa.nome.split(" ")[0];
+                if (firstName && firstName.length < 20) {
+                    setUserName(firstName);
+                }
             }
         }
+        loadConfig();
     }, []);
 
     return (

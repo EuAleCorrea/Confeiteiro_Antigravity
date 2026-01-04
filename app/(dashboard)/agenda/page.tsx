@@ -8,23 +8,38 @@ import { MapPin, Truck, Store, CheckCircle, Navigation, Clock } from "lucide-rea
 import { StatusBadge } from "@/components/pedidos/StatusBadge";
 import Link from "next/link";
 
+import { supabaseStorage } from "@/lib/supabase-storage";
+import { Loader2 } from "lucide-react";
+
+// ... existing imports
+
 export default function AgendaPage() {
     const [date, setDate] = useState(new Date());
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         loadDailyPedidos();
     }, [date]);
 
-    const loadDailyPedidos = () => {
-        const all = storage.getPedidos();
-        const daily = all.filter(p => {
-            const pDate = new Date(p.dataEntrega);
-            return pDate.toDateString() === date.toDateString();
-        });
-        // Sort by time
-        daily.sort((a, b) => a.horaEntrega.localeCompare(b.horaEntrega));
-        setPedidos(daily);
+    const loadDailyPedidos = async () => {
+        setLoading(true);
+        try {
+            // Optimization: In a real app we might filter by date range in the query
+            // For now, fetching all is acceptable as per plan
+            const all = await supabaseStorage.getPedidos();
+            const daily = all.filter(p => {
+                const pDate = new Date(p.dataEntrega);
+                return pDate.toDateString() === date.toDateString();
+            });
+            // Sort by time
+            daily.sort((a, b) => a.horaEntrega.localeCompare(b.horaEntrega));
+            setPedidos(daily as Pedido[]);
+        } catch (error) {
+            console.error("Erro ao carregar agenda:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleNextDay = () => {
@@ -65,142 +80,149 @@ export default function AgendaPage() {
                 <Button variant="primary" onClick={() => setDate(new Date())}>Hoje</Button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Route Optimization (Deliveries) */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card className="h-full flex flex-col">
-                        <CardHeader className="bg-primary/5 border-b border-primary/10 pb-4">
-                            <div className="flex justify-between items-center">
-                                <CardTitle className="flex items-center gap-2 text-primary-darker">
-                                    <Truck size={20} /> Rota de Entrega Otimizada
-                                </CardTitle>
-                                <span className="text-sm font-bold bg-primary/10 text-primary px-2 py-1 rounded">
-                                    {entregas.length} Entregas
-                                </span>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0 flex-1">
-                            {/* Map Placeholder */}
-                            <div className="h-64 bg-neutral-100 w-full relative group overflow-hidden border-b border-neutral-200">
-                                <div className="absolute inset-0 flex items-center justify-center text-neutral-400 bg-neutral-200/50">
-                                    <MapPin size={48} className="opacity-20" />
-                                    <span className="ml-2 font-medium">Mapa de Roteirização (Google Maps)</span>
+            {loading ? (
+                <div className="flex flex-col items-center justify-center p-12 space-y-4 min-h-[400px]">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                    <p className="text-text-secondary font-medium">Carregando agenda...</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column: Route Optimization (Deliveries) */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Card className="h-full flex flex-col">
+                            <CardHeader className="bg-primary/5 border-b border-primary/10 pb-4">
+                                <div className="flex justify-between items-center">
+                                    <CardTitle className="flex items-center gap-2 text-primary-darker">
+                                        <Truck size={20} /> Rota de Entrega Otimizada
+                                    </CardTitle>
+                                    <span className="text-sm font-bold bg-primary/10 text-primary px-2 py-1 rounded">
+                                        {entregas.length} Entregas
+                                    </span>
                                 </div>
-                                <div className="absolute bottom-4 right-4">
-                                    <Button variant="primary" size="sm" className="shadow-lg">
-                                        <Navigation size={16} className="mr-2" /> Iniciar Navegação
-                                    </Button>
+                            </CardHeader>
+                            <CardContent className="p-0 flex-1">
+                                {/* Map Placeholder */}
+                                <div className="h-64 bg-neutral-100 w-full relative group overflow-hidden border-b border-neutral-200">
+                                    <div className="absolute inset-0 flex items-center justify-center text-neutral-400 bg-neutral-200/50">
+                                        <MapPin size={48} className="opacity-20" />
+                                        <span className="ml-2 font-medium">Mapa de Roteirização (Google Maps)</span>
+                                    </div>
+                                    <div className="absolute bottom-4 right-4">
+                                        <Button variant="primary" size="sm" className="shadow-lg">
+                                            <Navigation size={16} className="mr-2" /> Iniciar Navegação
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Delivery Timeline */}
-                            <div className="p-6 space-y-6">
-                                {entregas.length === 0 ? (
-                                    <div className="text-center py-8 text-neutral-500">
-                                        Nenhuma entrega agendada para este dia.
+                                {/* Delivery Timeline */}
+                                <div className="p-6 space-y-6">
+                                    {entregas.length === 0 ? (
+                                        <div className="text-center py-8 text-neutral-500">
+                                            Nenhuma entrega agendada para este dia.
+                                        </div>
+                                    ) : (
+                                        entregas.map((pedido, idx) => (
+                                            <div key={pedido.id} className="relative flex gap-4 group">
+                                                {/* Connector Line */}
+                                                {idx !== entregas.length - 1 && (
+                                                    <div className="absolute left-[19px] top-10 bottom-[-24px] w-0.5 bg-neutral-200 group-hover:bg-primary/30 transition-colors"></div>
+                                                )}
+
+                                                {/* Number/Icon */}
+                                                <div className="w-10 h-10 rounded-full bg-neutral-100 border-2 border-white shadow-sm flex items-center justify-center font-bold text-neutral-600 shrink-0 z-10 group-hover:bg-primary group-hover:text-white transition-colors">
+                                                    {idx + 1}
+                                                </div>
+
+                                                {/* Card */}
+                                                <Link href={`/pedidos/${pedido.id}`} className="flex-1 block">
+                                                    <div className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-primary/50 hover:shadow-md transition-all">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div>
+                                                                <h4 className="font-bold text-neutral-800">{pedido.cliente.nome}</h4>
+                                                                <p className="text-sm text-neutral-600 flex items-center gap-1">
+                                                                    <MapPin size={14} /> {pedido.entrega.endereco?.bairro || 'Endereço não informado'}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="flex items-center gap-1 text-primary font-bold">
+                                                                    <Clock size={16} /> {pedido.horaEntrega}
+                                                                </div>
+                                                                <StatusBadge status={pedido.status} />
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-xs text-neutral-500 mt-2 bg-neutral-50 p-2 rounded">
+                                                            Itens: {pedido.itens.map(i => `${i.quantidade}x ${i.nome}`).join(', ')}
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Right Column: Pickups & Summary */}
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader className="bg-orange-50 border-b border-orange-100">
+                                <CardTitle className="flex items-center gap-2 text-orange-800">
+                                    <Store size={20} /> Retiradas na Loja
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-4">
+                                {retiradas.length === 0 ? (
+                                    <div className="text-center py-6 text-neutral-500 text-sm">
+                                        Nenhuma retirada agendada.
                                     </div>
                                 ) : (
-                                    entregas.map((pedido, idx) => (
-                                        <div key={pedido.id} className="relative flex gap-4 group">
-                                            {/* Connector Line */}
-                                            {idx !== entregas.length - 1 && (
-                                                <div className="absolute left-[19px] top-10 bottom-[-24px] w-0.5 bg-neutral-200 group-hover:bg-primary/30 transition-colors"></div>
-                                            )}
-
-                                            {/* Number/Icon */}
-                                            <div className="w-10 h-10 rounded-full bg-neutral-100 border-2 border-white shadow-sm flex items-center justify-center font-bold text-neutral-600 shrink-0 z-10 group-hover:bg-primary group-hover:text-white transition-colors">
-                                                {idx + 1}
-                                            </div>
-
-                                            {/* Card */}
-                                            <Link href={`/pedidos/${pedido.id}`} className="flex-1 block">
-                                                <div className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-primary/50 hover:shadow-md transition-all">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div>
-                                                            <h4 className="font-bold text-neutral-800">{pedido.cliente.nome}</h4>
-                                                            <p className="text-sm text-neutral-600 flex items-center gap-1">
-                                                                <MapPin size={14} /> {pedido.entrega.endereco?.bairro || 'Endereço não informado'}
-                                                            </p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <div className="flex items-center gap-1 text-primary font-bold">
-                                                                <Clock size={16} /> {pedido.horaEntrega}
-                                                            </div>
-                                                            <StatusBadge status={pedido.status} />
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-xs text-neutral-500 mt-2 bg-neutral-50 p-2 rounded">
-                                                        Itens: {pedido.itens.map(i => `${i.quantidade}x ${i.nome}`).join(', ')}
-                                                    </div>
+                                    retiradas.map(pedido => (
+                                        <Link key={pedido.id} href={`/pedidos/${pedido.id}`}>
+                                            <div className="flex items-center gap-3 p-3 bg-white border border-neutral-100 rounded-lg hover:border-orange-300 transition-colors shadow-sm">
+                                                <div className="flex flex-col items-center bg-orange-100 text-orange-700 px-2 py-1 rounded min-w-[60px]">
+                                                    <span className="text-xs font-bold uppercase">Hora</span>
+                                                    <span className="text-lg font-black">{pedido.horaEntrega}</span>
                                                 </div>
-                                            </Link>
-                                        </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-neutral-800 truncate">{pedido.cliente.nome}</p>
+                                                    <p className="text-xs text-neutral-500 truncate">#{pedido.numero} • {pedido.itens.length} itens</p>
+                                                </div>
+                                                <StatusBadge status={pedido.status} />
+                                            </div>
+                                        </Link>
                                     ))
                                 )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                            </CardContent>
+                        </Card>
 
-                {/* Right Column: Pickups & Summary */}
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader className="bg-orange-50 border-b border-orange-100">
-                            <CardTitle className="flex items-center gap-2 text-orange-800">
-                                <Store size={20} /> Retiradas na Loja
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-4">
-                            {retiradas.length === 0 ? (
-                                <div className="text-center py-6 text-neutral-500 text-sm">
-                                    Nenhuma retirada agendada.
+                        <Card className="bg-white">
+                            <CardHeader className="border-b border-border pb-4">
+                                <CardTitle className="text-lg font-bold text-text-primary">Resumo do Dia</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6 space-y-4">
+                                <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                                    <span className="text-text-secondary">Total de Pedidos</span>
+                                    <span className="text-2xl font-bold text-text-primary">{pedidos.length}</span>
                                 </div>
-                            ) : (
-                                retiradas.map(pedido => (
-                                    <Link key={pedido.id} href={`/pedidos/${pedido.id}`}>
-                                        <div className="flex items-center gap-3 p-3 bg-white border border-neutral-100 rounded-lg hover:border-orange-300 transition-colors shadow-sm">
-                                            <div className="flex flex-col items-center bg-orange-100 text-orange-700 px-2 py-1 rounded min-w-[60px]">
-                                                <span className="text-xs font-bold uppercase">Hora</span>
-                                                <span className="text-lg font-black">{pedido.horaEntrega}</span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-neutral-800 truncate">{pedido.cliente.nome}</p>
-                                                <p className="text-xs text-neutral-500 truncate">#{pedido.numero} • {pedido.itens.length} itens</p>
-                                            </div>
-                                            <StatusBadge status={pedido.status} />
-                                        </div>
-                                    </Link>
-                                ))
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-white">
-                        <CardHeader className="border-b border-border pb-4">
-                            <CardTitle className="text-lg font-bold text-text-primary">Resumo do Dia</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-4">
-                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                                <span className="text-text-secondary">Total de Pedidos</span>
-                                <span className="text-2xl font-bold text-text-primary">{pedidos.length}</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                                <span className="text-text-secondary">A Entregar</span>
-                                <span className="text-xl font-bold text-text-primary">{entregas.length}</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                                <span className="text-text-secondary">A Retirar</span>
-                                <span className="text-xl font-bold text-text-primary">{retiradas.length}</span>
-                            </div>
-                            <div className="pt-2">
-                                <Button variant="primary" className="w-full font-bold">
-                                    <CheckCircle size={18} className="mr-2" /> Fechar Dia
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                                    <span className="text-text-secondary">A Entregar</span>
+                                    <span className="text-xl font-bold text-text-primary">{entregas.length}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                                    <span className="text-text-secondary">A Retirar</span>
+                                    <span className="text-xl font-bold text-text-primary">{retiradas.length}</span>
+                                </div>
+                                <div className="pt-2">
+                                    <Button variant="primary" className="w-full font-bold">
+                                        <CheckCircle size={18} className="mr-2" /> Fechar Dia
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

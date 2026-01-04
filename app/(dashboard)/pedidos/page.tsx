@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { storage, Pedido } from "@/lib/storage";
+import { Pedido } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -17,6 +18,7 @@ import { useRouter } from "next/navigation";
 
 export default function PedidosPage() {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
+    const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'list' | 'kanban' | 'calendar' | 'weekly'>('kanban');
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
@@ -27,25 +29,35 @@ export default function PedidosPage() {
         loadPedidos();
     }, []);
 
-    const loadPedidos = () => {
-        const list = storage.getPedidos();
-        // Sort by delivery date asc by default
-        list.sort((a, b) => new Date(a.dataEntrega).getTime() - new Date(b.dataEntrega).getTime());
-        setPedidos(list);
+    const loadPedidos = async () => {
+        try {
+            const list = await supabaseStorage.getPedidos();
+            // Sort by delivery date asc by default
+            list.sort((a, b) => new Date(a.dataEntrega).getTime() - new Date(b.dataEntrega).getTime());
+            setPedidos(list as Pedido[]);
+        } catch (error) {
+            console.error('Erro ao carregar pedidos:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleStatusChange = (pedidoId: string, newStatus: Pedido['status']) => {
-        const pedido = storage.getPedidoById(pedidoId);
-        if (pedido) {
-            const updated = { ...pedido, status: newStatus };
-            // Add history log
-            updated.historico.push({
-                data: new Date().toISOString(),
-                acao: `Status alterado para ${newStatus} (Kanban)`,
-                usuario: 'Admin'
-            });
-            storage.savePedido(updated);
-            loadPedidos(); // Refresh
+    const handleStatusChange = async (pedidoId: string, newStatus: Pedido['status']) => {
+        try {
+            const pedido = await supabaseStorage.getPedido(pedidoId);
+            if (pedido) {
+                const updated = { ...pedido, status: newStatus };
+                // Add history log
+                updated.historico.push({
+                    data: new Date().toISOString(),
+                    acao: `Status alterado para ${newStatus} (Kanban)`,
+                    usuario: 'Admin'
+                });
+                await supabaseStorage.savePedido(updated);
+                await loadPedidos(); // Refresh
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar status:', error);
         }
     };
 
@@ -72,33 +84,37 @@ export default function PedidosPage() {
     };
 
 
-    const handlePaymentConfirm = (pedidoId: string) => {
+    const handlePaymentConfirm = async (pedidoId: string) => {
         if (!confirm("Confirmar recebimento do pagamento?")) return;
 
-        const pedido = storage.getPedidoById(pedidoId);
-        if (pedido) {
-            const updated = {
-                ...pedido,
-                financeiro: {
-                    ...pedido.financeiro,
-                    statusPagamento: 'Pago' as const,
-                    valorPago: pedido.financeiro.valorTotal,
-                    saldoPendente: 0
-                },
-                // Optional: Auto-advance status if it was Payment Pending
-                status: pedido.status === 'Pagamento Pendente' ? 'Aguardando Produção' : pedido.status,
-                historico: [
-                    ...pedido.historico,
-                    {
-                        data: new Date().toISOString(),
-                        acao: 'Pagamento Confirmado',
-                        usuario: 'Admin'
-                    }
-                ]
-            };
+        try {
+            const pedido = await supabaseStorage.getPedido(pedidoId);
+            if (pedido) {
+                const updated = {
+                    ...pedido,
+                    financeiro: {
+                        ...pedido.financeiro,
+                        statusPagamento: 'Pago' as const,
+                        valorPago: pedido.financeiro.valorTotal,
+                        saldoPendente: 0
+                    },
+                    // Optional: Auto-advance status if it was Payment Pending
+                    status: pedido.status === 'Pagamento Pendente' ? 'Aguardando Produção' : pedido.status,
+                    historico: [
+                        ...pedido.historico,
+                        {
+                            data: new Date().toISOString(),
+                            acao: 'Pagamento Confirmado',
+                            usuario: 'Admin'
+                        }
+                    ]
+                };
 
-            storage.savePedido(updated);
-            loadPedidos();
+                await supabaseStorage.savePedido(updated);
+                await loadPedidos();
+            }
+        } catch (error) {
+            console.error('Erro ao confirmar pagamento:', error);
         }
     };
 

@@ -7,7 +7,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { OrderForm } from "@/components/pedidos/OrderForm";
 import Link from "next/link";
 import { Plus, Calendar, ShoppingBag, ChefHat, AlertTriangle, FileText } from "lucide-react";
-import { storage } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 export function QuickActions() {
     const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
@@ -26,17 +26,24 @@ export function QuickActions() {
         }
 
         // Count orders for this week
-        const pedidos = storage.getPedidos();
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(endOfWeek.getDate() + 6);
+        async function countWeeklyOrders() {
+            const pedidos = await supabaseStorage.getPedidos();
+            const startOfWeek = new Date();
+            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
 
-        const weekOrders = pedidos.filter(p => {
-            const deliveryDate = new Date(p.dataEntrega);
-            return deliveryDate >= startOfWeek && deliveryDate <= endOfWeek;
-        });
-        setWeeklyOrdersCount(weekOrders.length);
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+
+            const weekOrders = pedidos.filter(p => {
+                // Ensure dataEntrega is a Date object or valid string
+                const deliveryDate = new Date(p.dataEntrega);
+                return deliveryDate >= startOfWeek && deliveryDate <= endOfWeek;
+            });
+            setWeeklyOrdersCount(weekOrders.length);
+        }
+        countWeeklyOrders();
     }, []);
 
     const actions = [

@@ -1,6 +1,7 @@
 "use client";
 
-import { Pedido, storage } from "@/lib/storage";
+import { Pedido } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Check, ClipboardList, User, Camera, AlertCircle } from "lucide-react";
@@ -8,34 +9,37 @@ import { useState } from "react";
 
 interface TabProducaoProps {
     pedido: Pedido;
+    onUpdate?: (pedido: Pedido) => void;
 }
 
-export function TabProducao({ pedido }: TabProducaoProps) {
+export function TabProducao({ pedido, onUpdate }: TabProducaoProps) {
     const [checklist, setChecklist] = useState(pedido.producao.checklist || []);
 
-    const toggleItem = (index: number) => {
+    const toggleItem = async (index: number) => {
         const newList = [...checklist];
         newList[index].concluido = !newList[index].concluido;
         setChecklist(newList);
 
         // Save to storage
-        const current = storage.getPedidoById(pedido.id!);
+        const current = await supabaseStorage.getPedido(pedido.id);
         if (current) {
             current.producao.checklist = newList;
-            storage.savePedido(current);
+            await supabaseStorage.savePedido(current);
+            if (onUpdate) onUpdate(current as Pedido);
         }
     };
 
-    const addChecklistItem = () => {
+    const addChecklistItem = async () => {
         const item = prompt("Nome do item do checklist:");
         if (item) {
             const newList = [...checklist, { item, concluido: false }];
             setChecklist(newList);
             // Save
-            const current = storage.getPedidoById(pedido.id!);
+            const current = await supabaseStorage.getPedido(pedido.id);
             if (current) {
                 current.producao.checklist = newList;
-                storage.savePedido(current);
+                await supabaseStorage.savePedido(current);
+                if (onUpdate) onUpdate(current as Pedido);
             }
         }
     };

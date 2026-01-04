@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Download, FileSpreadsheet } from "lucide-react";
 import { storage, CashFlowCategory, CashFlowMonthData } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { cn } from "@/lib/utils";
 import { eachMonthOfInterval, endOfYear, format, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,42 +22,49 @@ export default function FluxoCaixaPage() {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [year]);
 
-    const loadData = () => {
-        // Load Categories
-        const cats = storage.getFinCategorias();
-        setCategories(cats);
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // Load Categories - assuming static or from storage for now, ideally Supabase
+            const cats = storage.getFinCategorias();
+            setCategories(cats);
 
-        // Load Month Data
-        const flux = storage.getFluxoCaixa();
-        // Convert to map for easier access
-        const map: Record<string, Record<string, number>> = {};
-        flux.forEach(f => {
-            map[f.periodo] = f.valores;
-        });
-        setMonthData(map);
-        setLoading(false);
+            // Load Transactions from Supabase
+            const transactions = await supabaseStorage.getTransacoes();
+
+            // Build the map based on actual transactions
+            const map: Record<string, Record<string, number>> = {};
+
+            transactions.forEach(t => {
+                const date = new Date(t.data);
+                if (date.getFullYear() !== year) return; // Filter by selected year
+
+                const monthStr = format(date, 'yyyy-MM');
+                if (!map[monthStr]) map[monthStr] = {};
+
+                const currentVal = map[monthStr][t.categoriaId] || 0;
+
+                // If Income, add. If Expense, subtract is handled by display logic? 
+                // Usually Revenue is positive, Expenses positive but subtracted in total.
+                // We store absolute values here and categorize by ID.
+                map[monthStr][t.categoriaId] = currentVal + (Number(t.valor) || 0);
+            });
+
+            setMonthData(map);
+        } catch (error) {
+            console.error("Erro ao carregar fluxo de caixa:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleValueChange = (monthStr: string, catId: string, value: string) => {
-        // Auto-save logic here or debounced
-        // Simple implementation: numeric parsing
-        const numValue = parseFloat(value.replace(',', '.').replace(/[^0-9.-]/g, '')) || 0;
-
-        setMonthData(prev => {
-            const newMap = { ...prev };
-            if (!newMap[monthStr]) newMap[monthStr] = {};
-            newMap[monthStr] = { ...newMap[monthStr], [catId]: numValue };
-
-            // Persist immediately (or could debounce)
-            storage.saveFluxoCaixa({
-                periodo: monthStr,
-                valores: newMap[monthStr]
-            });
-
-            return newMap;
-        });
+        // Direct editing is disabled in this version because data comes from individual transactions.
+        // To support editing, we would need to create "Manual Adjustment" transactions behind the scenes.
+        // For now, let's alert the user.
+        alert("Para alterar valores, registre uma nova Receita ou Despesa na tela principal.");
     };
 
     // Helper to get value safely

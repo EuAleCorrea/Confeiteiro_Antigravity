@@ -1,6 +1,6 @@
 "use client";
 
-import { Pedido, storage } from "@/lib/storage";
+import { Pedido } from "@/lib/storage";
 import { StatusBadge } from "../StatusBadge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Calendar, DollarSign, MapPin, Clock, ChevronLeft, ChevronRight } from "lucide-react";

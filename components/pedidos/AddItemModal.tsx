@@ -5,7 +5,8 @@ import { X, Search, Plus, Minus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
-import { storage, Produto, Sabor, ItemOrcamento } from "@/lib/storage";
+import { Produto, Sabor, ItemOrcamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { cn } from "@/lib/utils";
 
 interface AddItemModalProps {
@@ -33,9 +34,14 @@ export function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalProps) {
 
     useEffect(() => {
         if (isOpen) {
-            setProdutos(storage.getProdutos());
-            setSabores(storage.getSabores());
-            resetForm();
+            Promise.all([
+                supabaseStorage.getProdutos(),
+                supabaseStorage.getSabores()
+            ]).then(([prods, sabs]) => {
+                setProdutos(prods as Produto[]);
+                setSabores(sabs as Sabor[]);
+                resetForm();
+            });
         }
     }, [isOpen]);
 

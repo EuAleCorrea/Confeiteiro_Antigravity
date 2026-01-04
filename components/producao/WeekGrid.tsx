@@ -8,14 +8,17 @@ import { ChevronLeft, ChevronRight, Calendar, Lock, CheckCircle } from "lucide-r
 import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 
+import { supabaseStorage } from "@/lib/supabase-storage";
+
 interface WeekGridProps {
     startDate: Date;
     orders: Pedido[];
     selectedDate?: Date;
     onSelectDate?: (date: Date) => void;
+    agendas?: AgendaSemanal[];
 }
 
-export function WeekGrid({ startDate: initialStartDate, orders, selectedDate, onSelectDate }: WeekGridProps) {
+export function WeekGrid({ startDate: initialStartDate, orders, selectedDate, onSelectDate, agendas = [] }: WeekGridProps) {
     const [weekStart, setWeekStart] = useState<Date>(initialStartDate);
     const [fecharModalOpen, setFecharModalOpen] = useState(false);
     const [successModalOpen, setSuccessModalOpen] = useState(false);
@@ -39,14 +42,13 @@ export function WeekGrid({ startDate: initialStartDate, orders, selectedDate, on
     const totalItems = weekOrders.reduce((sum, o) => sum + o.itens.length, 0);
 
     // Check if agenda is already closed
-    const agendas = storage.getAgendasSemanais();
     const weekStartStr = days[0].toISOString().split('T')[0];
     const weekEndStr = days[6].toISOString().split('T')[0];
     const existingAgenda = agendas.find(a => a.semanaInicio === weekStartStr);
     const isAgendaFechada = existingAgenda?.status === 'Fechada';
 
     // Fechar Agenda
-    const handleFecharAgenda = () => {
+    const handleFecharAgenda = async () => {
         const agenda: AgendaSemanal = {
             id: existingAgenda?.id || crypto.randomUUID(),
             semanaInicio: weekStartStr,
@@ -55,9 +57,16 @@ export function WeekGrid({ startDate: initialStartDate, orders, selectedDate, on
             fechadoEm: new Date().toISOString(),
             fechadoPor: 'Usuario',
         };
-        storage.saveAgendaSemanal(agenda);
-        setFecharModalOpen(false);
-        setSuccessModalOpen(true);
+        try {
+            await supabaseStorage.saveAgendaSemanal(agenda);
+            setFecharModalOpen(false);
+            setSuccessModalOpen(true);
+            // Ideally call a refresh callback here, but for now simple update is fine
+            // Or force page reload if needed, but better to just show success
+        } catch (error) {
+            console.error("Erro ao fechar agenda:", error);
+            alert("Erro ao fechar agenda.");
+        }
     };
 
     return (

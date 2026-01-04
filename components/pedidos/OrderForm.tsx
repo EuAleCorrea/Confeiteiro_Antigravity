@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Plus, Trash2, Save, X, AlertTriangle } from "lucide-react";
-import { storage, Pedido, Cliente, Produto, ItemOrcamento } from "@/lib/storage";
+import { Plus, Trash2, Save, X, AlertTriangle, Loader2 } from "lucide-react";
+import { Pedido, Cliente, Produto, ItemOrcamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { AddItemModal } from "@/components/pedidos/AddItemModal";
 
 interface OrderFormProps {
@@ -16,6 +17,7 @@ interface OrderFormProps {
 export function OrderForm({ onClose, onSave, existingPedido }: OrderFormProps) {
     // Data Sources
     const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [saving, setSaving] = useState(false);
 
     // Form State
     const [pedido, setPedido] = useState<Partial<Pedido>>({
@@ -34,7 +36,10 @@ export function OrderForm({ onClose, onSave, existingPedido }: OrderFormProps) {
     const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     useEffect(() => {
-        setClientes(storage.getClientes());
+        async function loadData() {
+            setClientes(await supabaseStorage.getClientes());
+        }
+        loadData();
 
         if (existingPedido) {
             setPedido(existingPedido);
@@ -42,7 +47,7 @@ export function OrderForm({ onClose, onSave, existingPedido }: OrderFormProps) {
         }
     }, [existingPedido]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         // Validation
         if (!selectedClientId) {
             setErrorModal({ open: true, message: 'Selecione um cliente' });
@@ -57,34 +62,42 @@ export function OrderForm({ onClose, onSave, existingPedido }: OrderFormProps) {
         const client = clientes.find(c => c.id === selectedClientId);
         if (!client) return;
 
-        const orderToSave: Pedido = {
-            ...pedido as Pedido,
-            id: existingPedido ? existingPedido.id : crypto.randomUUID(),
-            cliente: {
-                id: client.id,
-                nome: client.nome,
-                telefone: client.telefone,
-                email: client.email
-            },
-            numero: existingPedido ? existingPedido.numero : 0,
-        };
+        setSaving(true);
+        try {
+            const orderToSave: Pedido = {
+                ...pedido as Pedido,
+                id: existingPedido ? existingPedido.id : crypto.randomUUID(), // Ensure ID is present for local interface consistency, or let Supabase ignore it on insert if matched
+                cliente: {
+                    id: client.id,
+                    nome: client.nome,
+                    telefone: client.telefone,
+                    email: client.email
+                },
+                numero: existingPedido ? existingPedido.numero : 0, // Supabase triggers or backend handles this
+            };
 
-        if (!existingPedido) {
-            orderToSave.historico = [{
-                data: new Date().toISOString(),
-                acao: 'Pedido Criado',
-                usuario: 'Admin'
-            }];
-        } else {
-            orderToSave.historico.push({
-                data: new Date().toISOString(),
-                acao: 'Pedido Editado',
-                usuario: 'Admin'
-            });
+            if (!existingPedido) {
+                orderToSave.historico = [{
+                    data: new Date().toISOString(),
+                    acao: 'Pedido Criado',
+                    usuario: 'Admin'
+                }];
+            } else {
+                orderToSave.historico.push({
+                    data: new Date().toISOString(),
+                    acao: 'Pedido Editado',
+                    usuario: 'Admin'
+                });
+            }
+
+            await supabaseStorage.savePedido(orderToSave);
+            onSave();
+        } catch (error) {
+            console.error('Erro ao salvar pedido:', error);
+            setErrorModal({ open: true, message: 'Erro ao salvar pedido.' });
+        } finally {
+            setSaving(false);
         }
-
-        storage.savePedido(orderToSave);
-        onSave();
     };
 
     const addItem = (newItem: ItemOrcamento) => {
@@ -210,9 +223,9 @@ export function OrderForm({ onClose, onSave, existingPedido }: OrderFormProps) {
             </div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-neutral-100">
-                <Button variant="outline" onClick={onClose}>Cancelar</Button>
-                <Button variant="primary" onClick={handleSave}>
-                    <Save size={18} className="mr-2" /> Salvar Pedido
+                <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+                <Button variant="primary" onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 className="animate-spin mr-2" size={18} /> : <Save size={18} className="mr-2" />} Salvar Pedido
                 </Button>
             </div>
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { storage, Ingrediente, Adereco } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import Link from "next/link";
 import { AlertTriangle, AlertCircle, Package, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,37 +20,45 @@ export function StockAlerts() {
     const [alerts, setAlerts] = useState<StockAlert[]>([]);
 
     useEffect(() => {
-        // Get ingredient alerts
-        const ingredientes = storage.getIngredientes();
-        const ingredientAlerts: StockAlert[] = ingredientes
-            .filter((i) => i.estoqueAtual <= i.estoqueMinimo)
-            .map((i) => ({
-                id: i.id,
-                nome: i.nome,
-                quantidade: `${i.estoqueAtual}${i.unidade}`,
-                nivel: (i.estoqueAtual <= i.estoqueMinimo * 0.5 ? "critico" : "baixo") as "critico" | "baixo",
-                tipo: "ingrediente" as const,
-            }));
+        async function loadAlerts() {
+            const [ingredientes, aderecos] = await Promise.all([
+                supabaseStorage.getIngredientes(),
+                supabaseStorage.getAderecos()
+            ]);
 
-        // Get adereço alerts
-        const aderecos = storage.getAderecosComEstoqueBaixo();
-        const aderecoAlerts: StockAlert[] = aderecos.map((a) => ({
-            id: a.id,
-            nome: a.nome,
-            quantidade: `${a.estoqueAtual} ${a.unidade}`,
-            nivel: (a.estoqueAtual <= a.estoqueMinimo * 0.5 ? "critico" : "baixo") as "critico" | "baixo",
-            tipo: "adereco" as const,
-        }));
+            // Get ingredient alerts
+            const ingredientAlerts: StockAlert[] = ingredientes
+                .filter((i) => i.estoqueAtual <= i.estoqueMinimo)
+                .map((i) => ({
+                    id: i.id,
+                    nome: i.nome,
+                    quantidade: `${i.estoqueAtual}${i.unidade}`,
+                    nivel: (i.estoqueAtual <= i.estoqueMinimo * 0.5 ? "critico" : "baixo") as "critico" | "baixo",
+                    tipo: "ingrediente" as const,
+                }));
 
-        // Combine and sort (critical first, then by tipo)
-        const combined = [...ingredientAlerts, ...aderecoAlerts]
-            .sort((a, b) => {
-                if (a.nivel !== b.nivel) return a.nivel === "critico" ? -1 : 1;
-                return a.tipo === "adereco" ? -1 : 1; // Adereços first within same level
-            })
-            .slice(0, 6);
+            // Get adereço alerts
+            const aderecoAlerts: StockAlert[] = aderecos
+                .filter((a) => a.estoque <= a.estoqueMin)
+                .map((a) => ({
+                    id: a.id,
+                    nome: a.nome,
+                    quantidade: `${a.estoque} un`,
+                    nivel: (a.estoque <= a.estoqueMin * 0.5 ? "critico" : "baixo") as "critico" | "baixo",
+                    tipo: "adereco" as const,
+                }));
 
-        setAlerts(combined);
+            // Combine and sort (critical first, then by tipo)
+            const combined = [...ingredientAlerts, ...aderecoAlerts]
+                .sort((a, b) => {
+                    if (a.nivel !== b.nivel) return a.nivel === "critico" ? -1 : 1;
+                    return a.tipo === "adereco" ? -1 : 1; // Adereços first within same level
+                })
+                .slice(0, 6);
+
+            setAlerts(combined);
+        }
+        loadAlerts();
     }, []);
 
     return (

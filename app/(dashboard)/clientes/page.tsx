@@ -74,14 +74,24 @@ function ClientesContent() {
         }
     }
 
-    async function handleDelete(id: string) {
-        if (confirm("Tem certeza que deseja excluir este cliente?")) {
-            try {
-                await supabaseStorage.deleteCliente(id);
-                await loadClientes();
-            } catch (error) {
-                console.error('Erro ao deletar cliente:', error);
-            }
+    const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+
+    // ... (rest of state)
+
+    function handleDelete(id: string) {
+        setDeleteModal({ open: true, id });
+    }
+
+    async function confirmDelete() {
+        if (!deleteModal.id) return;
+
+        try {
+            await supabaseStorage.deleteCliente(deleteModal.id);
+            setDeleteModal({ open: false, id: null });
+            await loadClientes();
+        } catch (error) {
+            console.error('Erro ao deletar cliente:', error);
+            alert('Erro ao excluir cliente. Verifique se existem pedidos vinculados.');
         }
     }
 
@@ -356,6 +366,36 @@ function ClientesContent() {
                         </Button>
                     </div>
                 </form>
+            </Dialog>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog
+                isOpen={deleteModal.open}
+                onClose={() => setDeleteModal({ open: false, id: null })}
+                title="Excluir Cliente"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <Trash2 size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-secondary">
+                        Tem certeza que deseja excluir este cliente?
+                        <br />
+                        <span className="text-xs text-text-secondary/70">Esta ação não pode ser desfeita.</span>
+                    </p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setDeleteModal({ open: false, id: null })} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            className="flex-1 bg-error hover:bg-error/90 text-white"
+                        >
+                            Excluir
+                        </Button>
+                    </div>
+                </div>
             </Dialog>
 
             {/* Google Import Modal */}

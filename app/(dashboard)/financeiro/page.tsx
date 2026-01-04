@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { storage, Transaction } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { FinancialCard } from "@/components/financeiro/FinancialCard";
 import { RecentActivity } from "@/components/financeiro/RecentActivity";
 import { PerformanceChart } from "@/components/financeiro/PerformanceChart";
@@ -22,6 +23,7 @@ export default function FinanceiroPage() {
 
 function FinanceiroContent() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'Receita' | 'Despesa'>('Receita');
     const [summary, setSummary] = useState({
@@ -53,11 +55,19 @@ function FinanceiroContent() {
         }
     }, [searchParams]);
 
-    const loadData = () => {
-        const allTransactions = storage.getTransacoes();
-        setTransactions(allTransactions);
-        calculateSummary(allTransactions);
-        generateChartData(allTransactions);
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // Using Supabase to get transactions
+            const allTransactions = await supabaseStorage.getTransacoes();
+            setTransactions(allTransactions as Transaction[]);
+            calculateSummary(allTransactions as Transaction[]);
+            generateChartData(allTransactions as Transaction[]);
+        } catch (error) {
+            console.error("Erro ao carregar transações:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const calculateSummary = (data: Transaction[]) => {

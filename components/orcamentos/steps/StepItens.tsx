@@ -5,7 +5,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
-import { storage, Produto, Sabor, ItemOrcamento, Orcamento } from "@/lib/storage";
+import { storage, Produto, Sabor, ItemOrcamento, Orcamento } from "@/lib/storage"; // types kept for now
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { Badge } from "@/components/ui/Badge";
 
 interface StepProps {
@@ -36,19 +37,22 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
     const cartTotal = items.reduce((sum, item) => sum + item.subtotal, 0);
 
     useEffect(() => {
-        loadProducts();
-        setAvailableSabores(storage.getSabores());
+        loadData();
     }, []);
 
-    function loadProducts() {
-        setAvailableProducts(storage.getProdutos().filter(p => p.ativo));
+    async function loadData() {
+        const [prods, sabores] = await Promise.all([
+            supabaseStorage.getProdutos(),
+            supabaseStorage.getSabores()
+        ]);
+        setAvailableProducts(prods.filter(p => p.ativo));
+        setAvailableSabores(sabores);
     }
 
-    function handleQuickProductSave() {
+    async function handleQuickProductSave() {
         if (!newProductName || !newProductPrice) return;
 
-        const newProduct: Produto = {
-            id: crypto.randomUUID(),
+        const newProduct: any = {
             nome: newProductName,
             categoria: newProductCategory,
             preco: parseFloat(newProductPrice),
@@ -58,16 +62,19 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
             ativo: true
         };
 
-        storage.saveProduto(newProduct);
-        loadProducts();
+        try {
+            const saved = await supabaseStorage.saveProduto(newProduct);
+            await loadData(); // Reload all to refresh list
+            setSelectedProduct(saved.id);
 
-        // Auto-select the new product
-        setSelectedProduct(newProduct.id);
-
-        // Reset and close modal
-        setNewProductName("");
-        setNewProductPrice("");
-        setIsProductModalOpen(false);
+            // Reset and close modal
+            setNewProductName("");
+            setNewProductPrice("");
+            setIsProductModalOpen(false);
+        } catch (error) {
+            console.error("Erro ao criar produto rápido", error);
+            alert("Erro ao salvar produto.");
+        }
     }
 
     const currentProduct = availableProducts.find(p => p.id === selectedProduct);
@@ -268,7 +275,7 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
 
                 <div className="flex justify-between gap-2">
                     <Button variant="ghost" onClick={back} className="w-full">Voltar</Button>
-                    <Button onClick={next} disabled={items.length === 0} className="w-full">Próximo: Entrega</Button>
+                    <Button onClick={next} disabled={items.length === 0} className="w-full">Próximo: Decoração</Button>
                 </div>
             </div>
 

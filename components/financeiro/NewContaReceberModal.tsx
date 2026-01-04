@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { storage, ContaReceber, Pagamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { format } from "date-fns";
 
 interface NewContaReceberModalProps {
@@ -14,6 +15,7 @@ interface NewContaReceberModalProps {
 }
 
 export function NewContaReceberModal({ isOpen, onClose, onSuccess }: NewContaReceberModalProps) {
+    const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
         clienteNome: '',
         clienteTelefone: '',
@@ -29,13 +31,14 @@ export function NewContaReceberModal({ isOpen, onClose, onSuccess }: NewContaRec
         lancarFluxo: true
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaving(true);
         const valor = parseFloat(formData.valorTotal.replace(',', '.')) || 0;
         const now = new Date().toISOString();
 
         const novaConta: ContaReceber = {
-            id: crypto.randomUUID(),
+            id: crypto.randomUUID(), // Or let Supabase generate, but standardized UUID is easier
             numeroOrcamento: formData.numeroOrcamento || undefined,
             cliente: { nome: formData.clienteNome, telefone: formData.clienteTelefone },
             descricao: formData.descricao,
@@ -58,24 +61,31 @@ export function NewContaReceberModal({ isOpen, onClose, onSuccess }: NewContaRec
             atualizadoEm: now
         };
 
-        storage.saveContaReceber(novaConta);
+        try {
+            await supabaseStorage.saveContaReceber(novaConta);
 
-        if (formData.marcarPago && formData.lancarFluxo) {
-            storage.saveTransacao({
-                id: crypto.randomUUID(),
-                tipo: 'Receita',
-                data: formData.dataPagamento,
-                descricao: `Recebimento: ${formData.clienteNome} - ${formData.descricao}`,
-                valor: valor,
-                categoriaId: '1',
-                categoriaNome: formData.categoria,
-                status: 'Pago',
-                criadoEm: now
-            });
+            if (formData.marcarPago && formData.lancarFluxo) {
+                await supabaseStorage.saveTransacao({
+                    id: crypto.randomUUID(),
+                    tipo: 'Receita',
+                    data: formData.dataPagamento,
+                    descricao: `Recebimento: ${formData.clienteNome} - ${formData.descricao}`,
+                    valor: valor,
+                    categoriaId: '1',
+                    categoriaNome: formData.categoria,
+                    status: 'Pago',
+                    criadoEm: now
+                });
+            }
+
+            onSuccess();
+            onClose();
+        } catch (error) {
+            console.error("Erro ao salvar conta a receber:", error);
+            alert("Erro ao salvar conta a receber.");
+        } finally {
+            setSaving(false);
         }
-
-        onSuccess();
-        onClose();
     };
 
     return (

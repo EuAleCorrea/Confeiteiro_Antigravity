@@ -8,7 +8,8 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { storage, Orcamento } from "@/lib/storage";
+import { Orcamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import evolutionAPI, { loadEvolutionConfig } from "@/lib/evolution-api";
 import { generateQuotePDFBase64 } from "@/lib/pdf-generator";
 import Link from "next/link";
@@ -36,16 +37,15 @@ export default function OrcamentoDetalhesClient() {
 
     useEffect(() => {
         if (!id) return;
-        const found = storage.getOrcamentoById(id);
-        if (!found) {
-            if (id !== "placeholder") {
-                // Handle not found gracefully
-            }
-        } else {
-            setOrcamento(found);
-            // Pre-fill WhatsApp data
-            if (found) {
-                // Format phone: remove non-digits and add 55 prefix if needed
+        async function loadData() {
+            const found = await supabaseStorage.getOrcamento(id);
+            if (!found) {
+                if (id !== "placeholder") {
+                    // Handle not found gracefully
+                }
+            } else {
+                setOrcamento(found as Orcamento);
+                // Pre-fill WhatsApp data
                 let phone = found.cliente.telefone.replace(/\D/g, '');
                 if (!phone.startsWith('55')) {
                     phone = '55' + phone;
@@ -56,6 +56,7 @@ export default function OrcamentoDetalhesClient() {
                 });
             }
         }
+        loadData();
     }, [id, router]);
 
     // Auto-close success modal after 3 seconds
@@ -68,13 +69,13 @@ export default function OrcamentoDetalhesClient() {
         }
     }, [successModal.open]);
 
-    const confirmDelete = () => {
-        storage.deleteOrcamento(id);
+    const confirmDelete = async () => {
+        await supabaseStorage.deleteOrcamento(id);
         setDeleteModal(false);
         router.push('/orcamentos');
     };
 
-    const confirmConvert = () => {
+    const confirmConvert = async () => {
         if (!orcamento) return;
         const updated = {
             ...orcamento,
@@ -85,23 +86,23 @@ export default function OrcamentoDetalhesClient() {
                 usuario: 'Admin'
             }]
         };
-        storage.saveOrcamento(updated);
+        await supabaseStorage.saveOrcamento(updated);
         setOrcamento(updated);
         setConvertModal(false);
         setSuccessModal({ open: true, message: 'Orçamento convertido em pedido com sucesso!' });
     };
 
-    const confirmDuplicate = () => {
+    const confirmDuplicate = async () => {
         if (!orcamento) return;
         const newOrcamento = {
             ...orcamento,
-            id: crypto.randomUUID(),
-            numero: 0,
+            id: undefined,
+            numero: undefined,
             status: 'Pendente' as const,
             dataCriacao: new Date().toISOString(),
             historico: [{ data: new Date().toISOString(), acao: 'Orçamento Duplicado', usuario: 'Admin' }]
         };
-        storage.saveOrcamento(newOrcamento);
+        await supabaseStorage.saveOrcamento(newOrcamento);
         setDuplicateModal(false);
         setSuccessModal({ open: true, message: 'Orçamento duplicado com sucesso!' });
         setTimeout(() => router.push('/orcamentos'), 1500);
@@ -216,7 +217,7 @@ export default function OrcamentoDetalhesClient() {
                     enviosWhatsApp: [...existingEnvios, newEnvio]
                 };
 
-                storage.saveOrcamento(updated);
+                await supabaseStorage.saveOrcamento(updated);
                 setOrcamento(updated);
 
                 // Close modal and show success

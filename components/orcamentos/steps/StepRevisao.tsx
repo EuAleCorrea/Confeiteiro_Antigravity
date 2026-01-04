@@ -1,30 +1,39 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Orcamento, storage } from "@/lib/storage";
+import { Orcamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { generateQuotePDF } from "@/lib/pdf-generator";
 import { CheckCircle, Download, Save } from "lucide-react";
 
 interface StepProps {
     data: Partial<Orcamento>;
-    onUpdate: (data: Partial<Orcamento>) => void; // Unused but required by interface
+    onUpdate: (data: Partial<Orcamento>) => void;
     next?: () => void;
     back?: () => void;
-    onFinish?: () => void;
 }
 
-export default function StepRevisao({ data, back, onFinish }: StepProps) {
+export default function StepRevisao({ data, back, next }: StepProps) {
 
     // Calculate final totals
     const totalItens = data.itens?.reduce((sum, i) => sum + i.subtotal, 0) || 0;
     const frete = data.entrega?.taxa || 0;
     const total = totalItens + frete;
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
+        // Fetch count for number simulation (optional, or just use placeholder)
+        let proximoNumero = 999;
+        try {
+            const all = await supabaseStorage.getOrcamentos();
+            proximoNumero = (all.length || 0) + 1;
+        } catch (e) {
+            console.error(e);
+        }
+
         // Create a temporary complete orcamento object for PDF generation
         const tempOrcamento: Orcamento = {
             id: crypto.randomUUID(),
-            numero: storage.getOrcamentos().length + 1,
+            numero: proximoNumero,
             dataCriacao: data.dataCriacao || new Date().toISOString(),
             dataValidade: data.dataValidade || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             cliente: data.cliente!,
@@ -35,7 +44,8 @@ export default function StepRevisao({ data, back, onFinish }: StepProps) {
             termos: data.termos!,
             status: 'Pendente',
             valorTotal: total,
-            historico: []
+            historico: [],
+            enviosWhatsApp: []
         };
 
         generateQuotePDF(tempOrcamento);
@@ -106,7 +116,7 @@ export default function StepRevisao({ data, back, onFinish }: StepProps) {
                     <Button variant="outline" onClick={handleDownloadPDF}>
                         <Download size={18} className="mr-2" /> Baixar PDF
                     </Button>
-                    <Button onClick={onFinish} className="bg-success hover:bg-success-darker text-white">
+                    <Button onClick={next} className="bg-success hover:bg-success-darker text-white">
                         <Save size={18} className="mr-2" /> Salvar Orçamento
                     </Button>
                 </div>

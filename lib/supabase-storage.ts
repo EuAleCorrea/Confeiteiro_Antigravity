@@ -25,6 +25,8 @@ export type {
     Adereco
 } from './database.types';
 
+import { AgendaSemanal } from "@/lib/storage";
+
 // Tipos compostos para compatibilidade com código existente
 export interface Endereco {
     cep: string;
@@ -1006,10 +1008,11 @@ class SupabaseStorageService {
             cliente_id: orcamento.cliente?.id || null,
             cliente_json: orcamento.cliente?.id ? null : orcamento.cliente,
             status: orcamento.status || 'Pendente',
+            data_criacao: orcamento.dataCriacao,
             data_validade: orcamento.dataValidade,
             valor_total: orcamento.valorTotal || 0,
             desconto: orcamento.desconto || 0,
-            decoracao: orcamento.decoracao || {},
+            decoracao: { ...(orcamento.decoracao || {}), ocasiao: orcamento.ocasiao },
             observacoes: orcamento.observacoes || null,
             termos: orcamento.termos || {}
         };
@@ -1407,6 +1410,7 @@ class SupabaseStorageService {
     }
 
     async saveTicket(ticket: any): Promise<any> {
+        // ... (existing saveTicket implementation)
         const dbTicket = {
             assunto: ticket.assunto,
             descricao: ticket.descricao,
@@ -1438,6 +1442,47 @@ class SupabaseStorageService {
         }
     }
 
+    // ==================== AGENDAS SEMANAIS ====================
+    async getAgendasSemanais(): Promise<AgendaSemanal[]> {
+        const { data, error } = await supabase
+            .from('agendas_semanais')
+            .select('*');
+
+        if (error) {
+            console.error('Erro ao buscar agendas semanais:', error);
+            return [];
+        }
+
+        return data.map((a: any) => ({
+            id: a.id,
+            semanaInicio: a.semana_inicio,
+            semanaFim: a.semana_fim,
+            status: a.status,
+            observacoes: a.observacoes,
+            fechadoEm: a.fechado_em,
+            fechadoPor: a.fechado_por
+        }));
+    }
+
+    async saveAgendaSemanal(agenda: AgendaSemanal): Promise<void> {
+        const dbAgenda = {
+            id: agenda.id,
+            semana_inicio: agenda.semanaInicio,
+            semana_fim: agenda.semanaFim,
+            status: agenda.status,
+            observacoes: agenda.observacoes,
+            fechado_em: agenda.fechadoEm,
+            fechado_por: agenda.fechadoPor
+        };
+
+        const { error } = await supabase
+            .from('agendas_semanais')
+            .upsert(dbAgenda);
+
+        if (error) throw error;
+    }
+
+
     async deleteTicket(id: string): Promise<boolean> {
         const { error } = await supabase.from('tickets').delete().eq('id', id);
         return !error;
@@ -1462,6 +1507,227 @@ class SupabaseStorageService {
             .limit(1);
 
         return (data?.[0]?.numero || 0) + 1;
+    }
+
+    // ==================== FINANCEIRO (Transações) ====================
+    async getTransacoes(): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('transacoes')
+            .select('*')
+            .order('data', { ascending: false });
+
+        if (error) {
+            console.error('Erro ao buscar transações:', error);
+            return [];
+        }
+
+        return (data || []).map(t => ({
+            id: t.id,
+            tipo: t.tipo,
+            data: t.data,
+            descricao: t.descricao,
+            valor: Number(t.valor),
+            categoriaId: t.categoria_id,
+            categoriaNome: t.categoria_nome,
+            formaPagamento: t.forma_pagamento,
+            status: t.status,
+            observacoes: t.observacoes,
+            pedidoId: t.pedido_id,
+            movimentacaoEstoqueId: t.movimentacao_estoque_id,
+            criadoEm: t.created_at
+        }));
+    }
+
+    async saveTransacao(transacao: any): Promise<any> {
+        const dbTransacao = {
+            tipo: transacao.tipo,
+            data: transacao.data,
+            descricao: transacao.descricao,
+            valor: transacao.valor,
+            categoria_id: transacao.categoriaId,
+            categoria_nome: transacao.categoriaNome,
+            forma_pagamento: transacao.formaPagamento || null,
+            status: transacao.status || 'Pendente',
+            observacoes: transacao.observacoes || null,
+            pedido_id: transacao.pedidoId || null,
+            movimentacao_estoque_id: transacao.movimentacaoEstoqueId || null
+        };
+
+        if (transacao.id) {
+            const { data, error } = await supabase
+                .from('transacoes')
+                .update(dbTransacao)
+                .eq('id', transacao.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        } else {
+            const { data, error } = await supabase
+                .from('transacoes')
+                .insert(dbTransacao)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        }
+    }
+
+    async deleteTransacao(id: string): Promise<boolean> {
+        const { error } = await supabase.from('transacoes').delete().eq('id', id);
+        return !error;
+    }
+
+    // ==================== CONTAS A RECEBER ====================
+    async getContasReceber(): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('contas_receber')
+            .select('*')
+            .order('data_vencimento', { ascending: true });
+
+        if (error) {
+            console.error('Erro ao buscar contas a receber:', error);
+            return [];
+        }
+
+        return (data || []).map(c => ({
+            id: c.id,
+            clienteId: c.cliente_id,
+            cliente: c.cliente_json || { nome: 'Cliente não identificado' },
+            descricao: c.descricao,
+            categoria: c.categoria,
+            valorTotal: Number(c.valor_total),
+            valorPago: Number(c.valor_pago),
+            saldoRestante: Number(c.saldo_restante),
+            dataCadastro: c.data_cadastro,
+            dataVencimento: c.data_vencimento,
+            status: c.status,
+            pagamentos: c.pagamentos || [],
+            observacoes: c.observacoes,
+            criadoEm: c.created_at,
+            atualizadoEm: c.updated_at
+        }));
+    }
+
+    async saveContaReceber(conta: any): Promise<any> {
+        const dbConta = {
+            cliente_id: conta.clienteId || null,
+            cliente_json: conta.cliente || null,
+            descricao: conta.descricao,
+            categoria: conta.categoria,
+            valor_total: conta.valorTotal,
+            valor_pago: conta.valorPago,
+            saldo_restante: conta.saldoRestante,
+            data_cadastro: conta.dataCadastro,
+            data_vencimento: conta.dataVencimento,
+            status: conta.status,
+            pagamentos: conta.pagamentos || [],
+            observacoes: conta.observacoes || null,
+            updated_at: new Date().toISOString()
+        };
+
+        if (conta.id) {
+            const { data, error } = await supabase
+                .from('contas_receber')
+                .update(dbConta)
+                .eq('id', conta.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        } else {
+            const { data, error } = await supabase
+                .from('contas_receber')
+                .insert(dbConta)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        }
+    }
+
+    async deleteContaReceber(id: string): Promise<boolean> {
+        const { error } = await supabase.from('contas_receber').delete().eq('id', id);
+        return !error;
+    }
+
+    // ==================== CONTAS A PAGAR ====================
+    async getContasPagar(): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('contas_pagar')
+            .select('*')
+            .order('data_vencimento', { ascending: true });
+
+        if (error) {
+            console.error('Erro ao buscar contas a pagar:', error);
+            return [];
+        }
+
+        return (data || []).map(c => ({
+            id: c.id,
+            fornecedorId: c.fornecedor_id,
+            fornecedor: c.fornecedor_json || { nome: 'Fornecedor não identificado' },
+            categoria: c.categoria,
+            descricao: c.descricao,
+            valorTotal: Number(c.valor_total),
+            valorPago: Number(c.valor_pago),
+            saldoRestante: Number(c.saldo_restante),
+            dataEmissao: c.data_emissao,
+            dataVencimento: c.data_vencimento,
+            status: c.status,
+            pagamentos: c.pagamentos || [],
+            observacoes: c.observacoes,
+            criadoEm: c.created_at,
+            atualizadoEm: c.updated_at
+        }));
+    }
+
+    async saveContaPagar(conta: any): Promise<any> {
+        const dbConta = {
+            fornecedor_id: conta.fornecedorId || null,
+            fornecedor_json: conta.fornecedor || null,
+            categoria: conta.categoria,
+            descricao: conta.descricao,
+            valor_total: conta.valorTotal,
+            valor_pago: conta.valorPago,
+            saldo_restante: conta.saldoRestante,
+            data_emissao: conta.dataEmissao,
+            data_vencimento: conta.dataVencimento,
+            status: conta.status,
+            pagamentos: conta.pagamentos || [],
+            observacoes: conta.observacoes || null,
+            updated_at: new Date().toISOString()
+        };
+
+        if (conta.id) {
+            const { data, error } = await supabase
+                .from('contas_pagar')
+                .update(dbConta)
+                .eq('id', conta.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        } else {
+            const { data, error } = await supabase
+                .from('contas_pagar')
+                .insert(dbConta)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        }
+    }
+
+    async deleteContaPagar(id: string): Promise<boolean> {
+        const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
+        return !error;
     }
 }
 

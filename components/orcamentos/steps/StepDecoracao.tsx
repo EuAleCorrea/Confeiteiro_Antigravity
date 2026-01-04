@@ -61,7 +61,7 @@ export default function StepDecoracao({ data, onUpdate, next, back }: StepProps)
 
             <div className="flex justify-between pt-4">
                 <Button variant="ghost" onClick={back}>Voltar</Button>
-                <Button onClick={handleNext}>Próximo: Revisão</Button>
+                <Button onClick={handleNext}>Próximo: Entrega</Button>
             </div>
         </div>
     );

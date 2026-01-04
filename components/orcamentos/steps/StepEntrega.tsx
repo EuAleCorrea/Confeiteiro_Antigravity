@@ -125,7 +125,7 @@ export default function StepEntrega({ data, onUpdate, next, back }: StepProps) {
 
             <div className="flex justify-between pt-4">
                 <Button variant="ghost" onClick={back}>Voltar</Button>
-                <Button onClick={handleNext}>Próximo: Decoração</Button>
+                <Button onClick={handleNext}>Próximo: Revisão</Button>
             </div>
 
             {/* Error Modal */}

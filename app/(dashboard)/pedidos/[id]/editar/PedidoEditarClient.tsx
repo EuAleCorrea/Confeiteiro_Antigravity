@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { storage, Pedido, Cliente, Produto, ItemOrcamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Dialog } from "@/components/ui/Dialog";
-import { ArrowLeft, Save, Trash2, Plus, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { AddItemModal } from "@/components/pedidos/AddItemModal";
 
@@ -20,6 +21,8 @@ export default function PedidoEditarClient() {
     // Data Sources
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [produtos, setProdutos] = useState<Produto[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     // Form State
     const [pedido, setPedido] = useState<Partial<Pedido>>({
@@ -38,20 +41,33 @@ export default function PedidoEditarClient() {
     const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     useEffect(() => {
-        setClientes(storage.getClientes());
-        const prods = storage.getProdutos();
-        setProdutos(prods);
+        async function loadData() {
+            setLoading(true);
+            try {
+                const [clientsList, prodsList] = await Promise.all([
+                    supabaseStorage.getClientes(),
+                    supabaseStorage.getProdutos()
+                ]);
+                setClientes(clientsList as Cliente[]);
+                setProdutos(prodsList as Produto[]);
 
-        if (isEditing && id) {
-            const found = storage.getPedidoById(id);
-            if (found) {
-                setPedido(found);
-                if (found.cliente.id) setSelectedClientId(found.cliente.id);
+                if (isEditing && id) {
+                    const found = await supabaseStorage.getPedido(id);
+                    if (found) {
+                        setPedido(found as Partial<Pedido>);
+                        if (found.cliente.id) setSelectedClientId(found.cliente.id);
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao carregar dados:", error);
+            } finally {
+                setLoading(false);
             }
         }
+        loadData();
     }, [isEditing, id]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         // Validation
         if (!selectedClientId) {
             setErrorModal({ open: true, message: 'Selecione um cliente' });
@@ -66,35 +82,43 @@ export default function PedidoEditarClient() {
         const client = clientes.find(c => c.id === selectedClientId);
         if (!client) return;
 
-        const orderToSave: Pedido = {
-            ...pedido as Pedido,
-            id: isEditing ? (pedido.id || id) : crypto.randomUUID(),
-            cliente: {
-                id: client.id,
-                nome: client.nome,
-                telefone: client.telefone,
-                email: client.email
-            },
-            numero: isEditing ? (pedido.numero || 0) : 0,
-        };
+        setSaving(true);
+        try {
+            const orderToSave: Pedido = {
+                ...pedido as Pedido,
+                id: isEditing ? (pedido.id || id) : crypto.randomUUID(),
+                cliente: {
+                    id: client.id,
+                    nome: client.nome,
+                    telefone: client.telefone,
+                    email: client.email
+                },
+                numero: isEditing ? (pedido.numero || 0) : 0,
+            };
 
-        if (!isEditing) {
-            orderToSave.historico = [{
-                data: new Date().toISOString(),
-                acao: 'Pedido Criado',
-                usuario: 'Admin'
-            }];
-        } else {
-            orderToSave.historico = orderToSave.historico || [];
-            orderToSave.historico.push({
-                data: new Date().toISOString(),
-                acao: 'Pedido Editado',
-                usuario: 'Admin'
-            });
+            if (!isEditing) {
+                orderToSave.historico = [{
+                    data: new Date().toISOString(),
+                    acao: 'Pedido Criado',
+                    usuario: 'Admin'
+                }];
+            } else {
+                orderToSave.historico = orderToSave.historico || [];
+                orderToSave.historico.push({
+                    data: new Date().toISOString(),
+                    acao: 'Pedido Editado',
+                    usuario: 'Admin'
+                });
+            }
+
+            await supabaseStorage.savePedido(orderToSave);
+            router.push('/pedidos');
+        } catch (error) {
+            console.error("Erro ao salvar pedido:", error);
+            setErrorModal({ open: true, message: 'Erro ao salvar pedido.' });
+        } finally {
+            setSaving(false);
         }
-
-        storage.savePedido(orderToSave);
-        router.push('/pedidos');
     };
 
     const addItem = (newItem: ItemOrcamento) => {
@@ -129,6 +153,11 @@ export default function PedidoEditarClient() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in pb-10">
+            {loading && (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-50 flex items-center justify-center">
+                    <Loader2 className="animate-spin text-primary" size={48} />
+                </div>
+            )}
             <div className="flex items-center gap-4">
                 <Link href="/pedidos">
                     <Button variant="ghost" size="icon">
@@ -136,7 +165,7 @@ export default function PedidoEditarClient() {
                     </Button>
                 </Link>
                 <h1 className="text-2xl font-bold text-neutral-800">
-                    {isEditing ? `Editar Pedido #${pedido.numero}` : 'Novo Pedido'}
+                    {isEditing ? `Editar Pedido #${pedido.numero || ''}` : 'Novo Pedido'}
                 </h1>
             </div>
 
@@ -228,8 +257,9 @@ export default function PedidoEditarClient() {
                 <Link href="/pedidos">
                     <Button variant="outline">Cancelar</Button>
                 </Link>
-                <Button variant="primary" onClick={handleSave}>
-                    <Save size={18} className="mr-2" /> Salvar Pedido
+                <Button variant="primary" onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 className="animate-spin mr-2" size={18} /> : <Save size={18} className="mr-2" />}
+                    {saving ? 'Salvando...' : 'Salvar Pedido'}
                 </Button>
             </div>
 

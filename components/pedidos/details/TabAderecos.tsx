@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { storage, Pedido, Adereco, AderecoPedido } from "@/lib/storage";
+import { Pedido, Adereco, AderecoPedido } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 interface TabAderecosProps {
     pedido: Pedido;
@@ -23,7 +24,7 @@ export function TabAderecos({ pedido, onUpdate }: TabAderecosProps) {
     const [successModal, setSuccessModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
     useEffect(() => {
-        setAderecos(storage.getAderecos());
+        supabaseStorage.getAderecos().then(data => setAderecos(data as any));
     }, []);
 
     const pedidoAderecos = pedido.aderecos || [];
@@ -43,7 +44,7 @@ export function TabAderecos({ pedido, onUpdate }: TabAderecosProps) {
 
         const updatedAderecos = [...pedidoAderecos, novoItem];
         const updatedPedido = { ...pedido, aderecos: updatedAderecos, atualizadoEm: new Date().toISOString() };
-        storage.savePedido(updatedPedido);
+        supabaseStorage.savePedido(updatedPedido);
         onUpdate(updatedPedido);
 
         setIsAddModalOpen(false);
@@ -53,18 +54,18 @@ export function TabAderecos({ pedido, onUpdate }: TabAderecosProps) {
         setSuccessModal({ open: true, message: 'Adereço adicionado ao pedido!' });
     }
 
-    function handleRemoveAdereco(index: number) {
+    async function handleRemoveAdereco(index: number) {
         const updatedAderecos = pedidoAderecos.filter((_, i) => i !== index);
         const updatedPedido = { ...pedido, aderecos: updatedAderecos, atualizadoEm: new Date().toISOString() };
-        storage.savePedido(updatedPedido);
+        await supabaseStorage.savePedido(updatedPedido);
         onUpdate(updatedPedido);
     }
 
-    function handleToggleReservado(index: number) {
+    async function handleToggleReservado(index: number) {
         const updatedAderecos = [...pedidoAderecos];
         updatedAderecos[index] = { ...updatedAderecos[index], reservado: !updatedAderecos[index].reservado };
         const updatedPedido = { ...pedido, aderecos: updatedAderecos, atualizadoEm: new Date().toISOString() };
-        storage.savePedido(updatedPedido);
+        await supabaseStorage.savePedido(updatedPedido);
         onUpdate(updatedPedido);
     }
 
@@ -98,7 +99,8 @@ export function TabAderecos({ pedido, onUpdate }: TabAderecosProps) {
                 <div className="space-y-2">
                     {pedidoAderecos.map((item, index) => {
                         const adereco = aderecos.find(a => a.id === item.aderecoId);
-                        const estoqueDisponivel = adereco ? adereco.estoqueAtual : 0;
+                        // @ts-ignore
+                        const estoqueDisponivel = adereco ? (adereco.estoque || adereco.estoqueAtual || 0) : 0;
                         const temEstoque = estoqueDisponivel >= item.quantidade;
 
                         return (
@@ -127,8 +129,8 @@ export function TabAderecos({ pedido, onUpdate }: TabAderecosProps) {
                                     <button
                                         onClick={() => handleToggleReservado(index)}
                                         className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${item.reservado
-                                                ? 'bg-success/10 text-success'
-                                                : 'bg-neutral-100 text-text-secondary hover:bg-warning/10 hover:text-warning-darker'
+                                            ? 'bg-success/10 text-success'
+                                            : 'bg-neutral-100 text-text-secondary hover:bg-warning/10 hover:text-warning-darker'
                                             }`}
                                     >
                                         {item.reservado ? (
@@ -179,13 +181,14 @@ export function TabAderecos({ pedido, onUpdate }: TabAderecosProps) {
                                     key={a.id}
                                     onClick={() => setSelectedAdereco(a.id)}
                                     className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${selectedAdereco === a.id
-                                            ? 'bg-primary/10 border-2 border-primary'
-                                            : 'bg-neutral-50 hover:bg-neutral-100 border-2 border-transparent'
+                                        ? 'bg-primary/10 border-2 border-primary'
+                                        : 'bg-neutral-50 hover:bg-neutral-100 border-2 border-transparent'
                                         }`}
                                 >
                                     <span className="font-medium">{a.nome}</span>
                                     <span className="text-sm text-text-secondary">
-                                        Estoque: {a.estoqueAtual}
+                                        {/* @ts-ignore */}
+                                        Estoque: {a.estoque || a.estoqueAtual}
                                     </span>
                                 </button>
                             ))

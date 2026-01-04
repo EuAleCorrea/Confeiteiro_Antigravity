@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ShoppingBag, DollarSign, ChefHat, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
-import { storage, Pedido, Ingrediente, ContaReceber, Transaction } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { cn } from "@/lib/utils";
 
 interface DashboardStats {
@@ -23,51 +23,62 @@ export function DashboardCards() {
 
     useEffect(() => {
         const today = new Date().toISOString().split("T")[0];
-        const pedidos = storage.getPedidos();
-        const ingredientes = storage.getIngredientes();
-        const transacoes = storage.getTransacoes();
-        const contasReceber = storage.getContasReceber();
-        const contasPagar = storage.getContasPagar();
 
-        // Pedidos hoje
-        const pedidosHoje = pedidos.filter((p) => p.dataEntrega === today);
-        const entregas = pedidosHoje.filter((p) => p.tipo === "Entrega").length;
-        const retiradas = pedidosHoje.filter((p) => p.tipo === "Retirada").length;
+        async function loadData() {
+            try {
+                const [pedidos, ingredientes, transacoes, contasReceber, contasPagar] = await Promise.all([
+                    supabaseStorage.getPedidos(),
+                    supabaseStorage.getIngredientes(),
+                    supabaseStorage.getTransacoes(),
+                    supabaseStorage.getContasReceber(),
+                    supabaseStorage.getContasPagar()
+                ]);
 
-        // Faturamento da semana
-        const now = new Date();
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getDay());
-        const lastWeekStart = new Date(weekStart);
-        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+                // Pedidos hoje
+                const pedidosHoje = pedidos.filter((p) => p.dataEntrega === today);
+                const entregas = pedidosHoje.filter((p) => p.tipo === "Entrega").length;
+                const retiradas = pedidosHoje.filter((p) => p.tipo === "Retirada").length;
 
-        const thisWeekRevenue = transacoes
-            .filter((t) => t.tipo === "Receita" && new Date(t.data) >= weekStart)
-            .reduce((sum, t) => sum + t.valor, 0);
+                // Faturamento da semana
+                const now = new Date();
+                const weekStart = new Date(now);
+                weekStart.setDate(now.getDate() - now.getDay());
+                const lastWeekStart = new Date(weekStart);
+                lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
-        const lastWeekRevenue = transacoes
-            .filter((t) => t.tipo === "Receita" && new Date(t.data) >= lastWeekStart && new Date(t.data) < weekStart)
-            .reduce((sum, t) => sum + t.valor, 0);
+                const thisWeekRevenue = transacoes
+                    .filter((t) => t.tipo === "Receita" && new Date(t.data) >= weekStart)
+                    .reduce((sum, t) => sum + t.valor, 0);
 
-        const variacao = lastWeekRevenue > 0 ? ((thisWeekRevenue - lastWeekRevenue) / lastWeekRevenue) * 100 : 0;
+                const lastWeekRevenue = transacoes
+                    .filter((t) => t.tipo === "Receita" && new Date(t.data) >= lastWeekStart && new Date(t.data) < weekStart)
+                    .reduce((sum, t) => sum + t.valor, 0);
 
-        // Produção pendente
-        const producaoPendente = pedidos.filter(
-            (p) => p.status === "Aguardando Produção" || p.status === "Em Produção"
-        ).length;
+                const variacao = lastWeekRevenue > 0 ? ((thisWeekRevenue - lastWeekRevenue) / lastWeekRevenue) * 100 : 0;
 
-        // Alertas
-        const lowStock = ingredientes.filter((i) => i.estoqueAtual <= i.estoqueMinimo).length;
-        const overdueReceivables = contasReceber.filter((c) => c.status === "atrasado").length;
-        const overduePayables = contasPagar.filter((c) => c.status === "vencido").length;
-        const alertas = lowStock + overdueReceivables + overduePayables;
+                // Produção pendente
+                const producaoPendente = pedidos.filter(
+                    (p) => p.status === "Aguardando Produção" || p.status === "Em Produção"
+                ).length;
 
-        setStats({
-            pedidosHoje: { total: pedidosHoje.length, entregas, retiradas },
-            faturamentoSemana: { valor: thisWeekRevenue, variacao },
-            producaoPendente,
-            alertas,
-        });
+                // Alertas
+                // Use type assertion if properties missing in fetched type
+                const lowStock = (ingredientes as any[]).filter((i) => i.estoqueAtual <= i.estoqueMinimo).length;
+                const overdueReceivables = contasReceber.filter((c) => c.status === "atrasado").length;
+                const overduePayables = contasPagar.filter((c) => c.status === "vencido").length;
+                const alertas = lowStock + overdueReceivables + overduePayables;
+
+                setStats({
+                    pedidosHoje: { total: pedidosHoje.length, entregas, retiradas },
+                    faturamentoSemana: { valor: thisWeekRevenue, variacao },
+                    producaoPendente,
+                    alertas,
+                });
+            } catch (error) {
+                console.error("Erro ao carregar dados do dashboard:", error);
+            }
+        }
+        loadData();
     }, []);
 
     const cards = [

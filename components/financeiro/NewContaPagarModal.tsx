@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { storage, ContaPagar, Pagamento } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { format } from "date-fns";
 
 interface NewContaPagarModalProps {
@@ -13,6 +14,7 @@ interface NewContaPagarModalProps {
 }
 
 export function NewContaPagarModal({ onClose, onSuccess }: NewContaPagarModalProps) {
+    const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
         fornecedorNome: '',
         numeroNF: '',
@@ -30,8 +32,9 @@ export function NewContaPagarModal({ onClose, onSuccess }: NewContaPagarModalPro
 
     const categorias = ['Ingredientes', 'Embalagens', 'Aluguel', 'Utilities', 'Impostos', 'Salários', 'Manutenção', 'Marketing', 'Outras'];
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaving(true);
         const valor = parseFloat(formData.valorTotal.replace(',', '.')) || 0;
         const now = new Date().toISOString();
 
@@ -59,24 +62,31 @@ export function NewContaPagarModal({ onClose, onSuccess }: NewContaPagarModalPro
             atualizadoEm: now
         };
 
-        storage.saveContaPagar(novaConta);
+        try {
+            await supabaseStorage.saveContaPagar(novaConta);
 
-        if (formData.marcarPago && formData.lancarFluxo) {
-            storage.saveTransacao({
-                id: crypto.randomUUID(),
-                tipo: 'Despesa',
-                data: formData.dataPagamento,
-                descricao: `Pagamento: ${formData.fornecedorNome} - ${formData.descricao}`,
-                valor: valor,
-                categoriaId: '8', // Adjust as needed or map categories
-                categoriaNome: formData.categoria,
-                status: 'Pago',
-                criadoEm: now
-            });
+            if (formData.marcarPago && formData.lancarFluxo) {
+                await supabaseStorage.saveTransacao({
+                    id: crypto.randomUUID(),
+                    tipo: 'Despesa',
+                    data: formData.dataPagamento,
+                    descricao: `Pagamento: ${formData.fornecedorNome} - ${formData.descricao}`,
+                    valor: valor,
+                    categoriaId: '8', // Adjust as needed
+                    categoriaNome: formData.categoria,
+                    status: 'Pago',
+                    criadoEm: now
+                });
+            }
+
+            onSuccess();
+            onClose();
+        } catch (error) {
+            console.error("Erro ao salvar conta a pagar:", error);
+            alert("Erro ao salvar conta a pagar.");
+        } finally {
+            setSaving(false);
         }
-
-        onSuccess();
-        onClose();
     };
 
     return (

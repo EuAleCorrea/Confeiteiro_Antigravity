@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { storage, Transaction } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 
@@ -18,49 +18,52 @@ export function FinanceSection() {
     const [variacao, setVariacao] = useState(0);
 
     useEffect(() => {
-        const transacoes = storage.getTransacoes();
-        const now = new Date();
+        async function loadData() {
+            const transacoes = await supabaseStorage.getTransacoes();
+            const now = new Date();
 
-        // Get last 7 days
-        const dias = ["D", "S", "T", "Q", "Q", "S", "S"];
-        const data: DailyData[] = [];
+            // Get last 7 days
+            const dias = ["D", "S", "T", "Q", "Q", "S", "S"];
+            const data: DailyData[] = [];
 
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(now);
-            date.setDate(now.getDate() - i);
-            const dateStr = date.toISOString().split("T")[0];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(now.getDate() - i);
+                const dateStr = date.toISOString().split("T")[0];
 
-            const dayRevenue = transacoes
-                .filter((t) => t.tipo === "Receita" && t.data === dateStr)
+                const dayRevenue = transacoes
+                    .filter((t) => t.tipo === "Receita" && t.data === dateStr)
+                    .reduce((sum, t) => sum + t.valor, 0);
+
+                data.push({
+                    dia: dias[date.getDay()],
+                    valor: dayRevenue,
+                });
+            }
+
+            setWeekData(data);
+
+            const total = data.reduce((sum, d) => sum + d.valor, 0);
+            setTotalSemana(total);
+
+            // Calculate week-over-week variation
+            const prevWeekStart = new Date(now);
+            prevWeekStart.setDate(now.getDate() - 13);
+            const prevWeekEnd = new Date(now);
+            prevWeekEnd.setDate(now.getDate() - 7);
+
+            const prevWeekTotal = transacoes
+                .filter((t) => {
+                    const d = new Date(t.data);
+                    return t.tipo === "Receita" && d >= prevWeekStart && d < prevWeekEnd;
+                })
                 .reduce((sum, t) => sum + t.valor, 0);
 
-            data.push({
-                dia: dias[date.getDay()],
-                valor: dayRevenue,
-            });
+            if (prevWeekTotal > 0) {
+                setVariacao(((total - prevWeekTotal) / prevWeekTotal) * 100);
+            }
         }
-
-        setWeekData(data);
-
-        const total = data.reduce((sum, d) => sum + d.valor, 0);
-        setTotalSemana(total);
-
-        // Calculate week-over-week variation
-        const prevWeekStart = new Date(now);
-        prevWeekStart.setDate(now.getDate() - 13);
-        const prevWeekEnd = new Date(now);
-        prevWeekEnd.setDate(now.getDate() - 7);
-
-        const prevWeekTotal = transacoes
-            .filter((t) => {
-                const d = new Date(t.data);
-                return t.tipo === "Receita" && d >= prevWeekStart && d < prevWeekEnd;
-            })
-            .reduce((sum, t) => sum + t.valor, 0);
-
-        if (prevWeekTotal > 0) {
-            setVariacao(((total - prevWeekTotal) / prevWeekTotal) * 100);
-        }
+        loadData();
     }, []);
 
     const maxValor = Math.max(...weekData.map((d) => d.valor), 1);

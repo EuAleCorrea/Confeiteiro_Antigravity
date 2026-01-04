@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { storage, Pedido } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import Link from "next/link";
 import { Clock, MapPin, Truck, Store } from "lucide-react";
 import { format } from "date-fns";
@@ -27,28 +27,31 @@ export function DailyAgenda() {
         const todayISO = today.toISOString().split("T")[0];
         setTodayStr(format(today, "dd/MM/yyyy", { locale: ptBR }));
 
-        const pedidos = storage.getPedidos();
+        async function loadAgenda() {
+            const pedidos = await supabaseStorage.getPedidos();
 
-        const todayOrders = pedidos
-            .filter((p) =>
-                p.dataEntrega === todayISO &&
-                p.status !== "Entregue" &&
-                p.status !== "Cancelado"
-            )
-            .sort((a, b) => a.horaEntrega.localeCompare(b.horaEntrega))
-            .slice(0, 4)
-            .map((p) => ({
-                id: p.id,
-                hora: p.horaEntrega,
-                tipo: p.tipo,
-                cliente: p.cliente.nome,
-                produto: p.itens[0]?.nome || "Pedido",
-                endereco: p.tipo === "Entrega" && p.entrega.endereco
-                    ? `${p.entrega.endereco.rua}, ${p.entrega.endereco.numero}`
-                    : undefined,
-            }));
+            const todayOrders = pedidos
+                .filter((p) =>
+                    p.dataEntrega === todayISO &&
+                    p.status !== "Entregue" &&
+                    p.status !== "Cancelado"
+                )
+                .sort((a, b) => a.horaEntrega.localeCompare(b.horaEntrega))
+                .slice(0, 4)
+                .map((p) => ({
+                    id: p.id,
+                    hora: p.horaEntrega,
+                    tipo: p.tipo,
+                    cliente: p.cliente.nome,
+                    produto: p.itens[0]?.nome || "Pedido",
+                    endereco: p.tipo === "Entrega" && p.entrega.endereco
+                        ? `${p.entrega.endereco.rua}, ${p.entrega.endereco.numero}`
+                        : undefined,
+                }));
 
-        setItems(todayOrders);
+            setItems(todayOrders);
+        }
+        loadAgenda();
     }, []);
 
     return (

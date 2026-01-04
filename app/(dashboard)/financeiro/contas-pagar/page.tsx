@@ -11,27 +11,40 @@ import { PayablePaymentModal } from "@/components/financeiro/PayablePaymentModal
 
 type TabType = 'pendentes' | 'pagas' | 'vencidas' | 'todas';
 
+import { supabaseStorage } from "@/lib/supabase-storage";
+
+// ... existing imports
+
 export default function ContasPagarPage() {
     const [contas, setContas] = useState<ContaPagar[]>([]);
     const [activeTab, setActiveTab] = useState<TabType>('pendentes');
     const [searchQuery, setSearchQuery] = useState('');
     const [showNewModal, setShowNewModal] = useState(false);
     const [paymentModal, setPaymentModal] = useState<{ open: boolean; conta: ContaPagar | null }>({ open: false, conta: null });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         loadData();
     }, []);
 
-    const loadData = () => {
-        const data = storage.getContasPagar();
-        const today = startOfDay(new Date());
-        const updated = data.map(c => {
-            if (c.saldoRestante === 0) return { ...c, status: 'pago' as const };
-            if (c.saldoRestante < c.valorTotal && c.saldoRestante > 0) return { ...c, status: 'parcial' as const };
-            if (isAfter(today, new Date(c.dataVencimento))) return { ...c, status: 'vencido' as const };
-            return { ...c, status: 'pendente' as const };
-        });
-        setContas(updated);
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const data = await supabaseStorage.getContasPagar();
+            const today = startOfDay(new Date());
+            const updated = data.map(c => {
+                if (c.saldoRestante === 0) return { ...c, status: 'pago' as const };
+                if (c.saldoRestante < c.valorTotal && c.saldoRestante > 0) return { ...c, status: 'parcial' as const };
+                if (c.dataVencimento && isAfter(today, new Date(c.dataVencimento)) && c.status !== 'pago') return { ...c, status: 'vencido' as const };
+                if (c.status) return c;
+                return { ...c, status: 'pendente' as const };
+            });
+            setContas(updated as ContaPagar[]);
+        } catch (error) {
+            console.error('Erro ao carregar contas a pagar:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const filteredContas = useMemo(() => {
@@ -106,7 +119,7 @@ export default function ContasPagarPage() {
         setPaymentModal({ open: true, conta });
     };
 
-    const handlePaymentSuccess = (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => {
+    const handlePaymentSuccess = async (contaId: string, payment: Pagamento, lancadoFluxo: boolean) => {
         const conta = contas.find(c => c.id === contaId);
         if (!conta) return;
 
@@ -118,30 +131,36 @@ export default function ContasPagarPage() {
             ...conta,
             pagamentos: newPagamentos,
             valorPago: newValorPago,
-            saldoRestante: newSaldo,
-            status: newSaldo === 0 ? 'pago' : 'parcial',
+            saldoRestante: newSaldo > 0 ? newSaldo : 0,
+            status: newSaldo <= 0.01 ? 'pago' : 'parcial',
             lancadoFluxoCaixa: lancadoFluxo || conta.lancadoFluxoCaixa,
             atualizadoEm: new Date().toISOString()
         };
 
-        storage.saveContaPagar(updatedConta);
+        try {
+            await supabaseStorage.saveContaPagar(updatedConta);
 
-        if (lancadoFluxo) {
-            storage.saveTransacao({
-                id: crypto.randomUUID(),
-                tipo: 'Despesa',
-                data: payment.data,
-                descricao: `Pagamento: ${conta.fornecedor.nome} - ${conta.descricao}`,
-                valor: payment.valor,
-                categoriaId: '8',
-                categoriaNome: conta.categoria || 'Insumos Gerais',
-                status: 'Pago',
-                criadoEm: new Date().toISOString()
-            });
+            if (lancadoFluxo) {
+                await supabaseStorage.saveTransacao({
+                    id: crypto.randomUUID(),
+                    tipo: 'Despesa',
+                    data: payment.data,
+                    descricao: `Pagamento: ${conta.fornecedor.nome} - ${conta.descricao}`,
+                    valor: payment.valor,
+                    categoriaId: '8', // Default category for now. TODO: Map categories properly
+                    categoriaNome: conta.categoria || 'Insumos Gerais',
+                    status: 'Pago',
+                    criadoEm: new Date().toISOString(),
+                    observacoes: `Conta Pagar #${conta.id}`
+                });
+            }
+
+            await loadData();
+            setPaymentModal({ open: false, conta: null });
+        } catch (error) {
+            console.error("Erro ao salvar pagamento conta pagar:", error);
+            alert("Erro ao registrar pagamento.");
         }
-
-        setPaymentModal({ open: false, conta: null });
-        loadData();
     };
 
     return (

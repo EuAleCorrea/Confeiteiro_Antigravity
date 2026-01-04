@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
-import { storage } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 type TabId = "geral" | "notificacoes" | "integracoes" | "backup" | "seguranca";
 
@@ -302,31 +302,58 @@ function TabBackup({ showToast }: { showToast: (type: "success" | "error" | "war
     const [autoBackup, setAutoBackup] = useState(true);
     const [frequency, setFrequency] = useState("Diário");
 
-    const handleExportJSON = () => {
-        const data = {
-            clientes: storage.getClientes(),
-            produtos: storage.getProdutos(),
-            sabores: storage.getSabores(),
-            fornecedores: storage.getFornecedores(),
-            colaboradores: storage.getColaboradores(),
-            orcamentos: storage.getOrcamentos(),
-            pedidos: storage.getPedidos(),
-            ingredientes: storage.getIngredientes(),
-            receitas: storage.getReceitas(),
-            transacoes: storage.getTransacoes(),
-            contasReceber: storage.getContasReceber(),
-            contasPagar: storage.getContasPagar(),
-            exportedAt: new Date().toISOString(),
-        };
+    const handleExportJSON = async () => {
+        try {
+            showToast("info", "Gerando backup... aguarde.");
 
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `backup-confeiteiro-${new Date().toISOString().split("T")[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast("success", "Backup exportado com sucesso!");
+            const [
+                clientes, produtos, sabores, fornecedores,
+                colaboradores, orcamentos, pedidos, ingredientes,
+                receitas, transacoes, contasReceber, contasPagar
+            ] = await Promise.all([
+                supabaseStorage.getClientes(),
+                supabaseStorage.getProdutos(),
+                supabaseStorage.getSabores(),
+                supabaseStorage.getFornecedores(),
+                supabaseStorage.getColaboradores(),
+                supabaseStorage.getOrcamentos(),
+                supabaseStorage.getPedidos(),
+                supabaseStorage.getIngredientes(),
+                supabaseStorage.getReceitas(),
+                supabaseStorage.getTransacoes(),
+                supabaseStorage.getContasReceber(),
+                supabaseStorage.getContasPagar()
+            ]);
+
+            const data = {
+                clientes,
+                produtos,
+                sabores,
+                fornecedores,
+                colaboradores,
+                orcamentos,
+                pedidos,
+                ingredientes,
+                receitas,
+                transacoes,
+                contasReceber,
+                contasPagar,
+                exportedAt: new Date().toISOString(),
+                source: "Supabase"
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `backup-confeiteiro-${new Date().toISOString().split("T")[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("success", "Backup exportado com sucesso!");
+        } catch (error) {
+            console.error("Erro ao exportar backup:", error);
+            showToast("error", "Erro ao gerar backup. Tente novamente.");
+        }
     };
 
     return (

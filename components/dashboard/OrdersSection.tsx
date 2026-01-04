@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { storage, Pedido } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ClipboardList, ChefHat, CheckCircle } from "lucide-react";
@@ -12,17 +12,20 @@ export function OrdersSection() {
     const [counts, setCounts] = useState({ aFazer: 0, emProducao: 0, prontos: 0 });
 
     useEffect(() => {
-        const pedidos = storage.getPedidos();
+        async function loadPedidos() {
+            const pedidos = await supabaseStorage.getPedidos();
 
-        setCounts({
-            aFazer: pedidos.filter((p) =>
-                p.status === "Pagamento Pendente" || p.status === "Aguardando Produção"
-            ).length,
-            emProducao: pedidos.filter((p) => p.status === "Em Produção").length,
-            prontos: pedidos.filter((p) =>
-                p.status === "Pronto" || p.status === "Saiu para Entrega"
-            ).length,
-        });
+            setCounts({
+                aFazer: pedidos.filter((p) =>
+                    p.status === "Pagamento Pendente" || p.status === "Aguardando Produção"
+                ).length,
+                emProducao: pedidos.filter((p) => p.status === "Em Produção").length,
+                prontos: pedidos.filter((p) =>
+                    p.status === "Pronto" || p.status === "Saiu para Entrega"
+                ).length,
+            });
+        }
+        loadPedidos();
     }, []);
 
     const items = [
