@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Copy, X, Upload, AlertTriangle, GripVertical } from "lucide-react";
+import { Plus, Edit2, Trash2, Copy, X, Upload, AlertTriangle, GripVertical, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
 import { Toggle } from "@/components/ui/Toggle";
-import { storage, Produto, Categoria } from "@/lib/storage";
+import { Produto, Categoria } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import {
     DndContext,
     closestCenter,
@@ -104,6 +105,8 @@ function SortableCategoryTab({ cat, isActive, onClick }: { cat: Categoria; isAct
 export default function ProdutosPage() {
     const [produtos, setProdutos] = useState<Produto[]>([]);
     const [categorias, setCategorias] = useState<Categoria[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('Bolo');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -158,17 +161,26 @@ export default function ProdutosPage() {
         loadProdutos();
     }, []);
 
-    function loadProdutos() {
-        setProdutos(storage.getProdutos());
-        const cats = storage.getProdutoCategorias();
-        setCategorias(cats);
-        // If activeTab is no longer in cats (rare), reset to first cat
-        if (cats.length > 0 && !cats.find(c => c.nome === activeTab)) {
-            //setActiveTab(cats[0].nome); // Don't reset tabs blindly to avoid jumping
+    async function loadProdutos() {
+        try {
+            const [produtosData, categoriasData] = await Promise.all([
+                supabaseStorage.getProdutos(),
+                supabaseStorage.getCategorias()
+            ]);
+            setProdutos(produtosData as Produto[]);
+            setCategorias(categoriasData as Categoria[]);
+            // Set first category as active tab if current doesn't exist
+            if (categoriasData.length > 0 && !categoriasData.find(c => c.nome === activeTab)) {
+                setActiveTab(categoriasData[0].nome);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+        } finally {
+            setLoading(false);
         }
     }
 
-    function handleSave(e: React.FormEvent) {
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
 
         if (!formData.nome) {
@@ -191,21 +203,29 @@ export default function ProdutosPage() {
             return;
         }
 
-        const produto: Produto = {
-            id: editingProduto ? editingProduto.id : crypto.randomUUID(),
-            nome: formData.nome,
-            categoria: formData.categoria || activeTab,
-            preco: finalPreco,
-            descricao: formData.descricao || "",
-            tamanhos: formData.tamanhos || [],
-            precosPorTamanho: formData.precosPorTamanho || {},
-            ativo: formData.ativo !== undefined ? formData.ativo : true,
-            foto: formData.foto || editingProduto?.foto, // Preserve existing image when editing
-        };
+        setSaving(true);
+        try {
+            const produto: Partial<Produto> = {
+                ...(editingProduto ? { id: editingProduto.id } : {}),
+                nome: formData.nome,
+                categoria: formData.categoria || activeTab,
+                preco: finalPreco,
+                descricao: formData.descricao || "",
+                tamanhos: formData.tamanhos || [],
+                precosPorTamanho: formData.precosPorTamanho || {},
+                ativo: formData.ativo !== undefined ? formData.ativo : true,
+                foto: formData.foto || editingProduto?.foto,
+            };
 
-        storage.saveProduto(produto);
-        loadProdutos();
-        closeModal();
+            await supabaseStorage.saveProduto(produto);
+            await loadProdutos();
+            closeModal();
+        } catch (error) {
+            console.error('Erro ao salvar produto:', error);
+            setErrorModal({ open: true, message: 'Erro ao salvar produto.' });
+        } finally {
+            setSaving(false);
+        }
     }
 
     function handleDelete(produto: Produto) {
@@ -217,40 +237,39 @@ export default function ProdutosPage() {
         });
     }
 
-    function confirmDelete() {
+    async function confirmDelete() {
         if (!deleteModal) return;
 
-        if (deleteModal.type === 'product') {
-            storage.deleteProduto(deleteModal.id);
-            loadProdutos();
-        } else if (deleteModal.type === 'category') {
-            storage.deleteProdutoCategoria(deleteModal.id);
-            loadProdutos();
-            if (activeTab === deleteModal.name) {
-                const updatedCats = storage.getProdutoCategorias();
-                setActiveTab(updatedCats[0]?.nome || "Bolo");
+        try {
+            if (deleteModal.type === 'product') {
+                await supabaseStorage.deleteProduto(deleteModal.id);
+            } else if (deleteModal.type === 'category') {
+                await supabaseStorage.deleteCategoria(deleteModal.id);
+                if (activeTab === deleteModal.name) {
+                    const updatedCats = await supabaseStorage.getCategorias();
+                    setActiveTab(updatedCats[0]?.nome || "Bolo");
+                }
             }
+            await loadProdutos();
+        } catch (error) {
+            console.error('Erro ao deletar:', error);
         }
         setDeleteModal(null);
     }
 
-    function handleDuplicate(produto: Produto) {
+    async function handleDuplicate(produto: Produto) {
         // Don't copy image to save storage space
-        const { foto, ...produtoSemFoto } = produto;
+        const { foto, id, ...produtoSemFotoId } = produto;
         const newProduto = {
-            ...produtoSemFoto,
-            id: crypto.randomUUID(),
+            ...produtoSemFotoId,
             nome: `${produto.nome} (Cópia)`
         };
         try {
-            storage.saveProduto(newProduto as Produto);
-            loadProdutos();
+            await supabaseStorage.saveProduto(newProduto);
+            await loadProdutos();
         } catch (error) {
-            if (error instanceof Error && error.name === 'QuotaExceededError') {
-                setErrorModal({ open: true, message: 'Armazenamento cheio! Exclua alguns produtos ou imagens para liberar espaço.' });
-            } else {
-                setErrorModal({ open: true, message: 'Erro ao duplicar produto.' });
-            }
+            console.error('Erro ao duplicar:', error);
+            setErrorModal({ open: true, message: 'Erro ao duplicar produto.' });
         }
     }
 
@@ -262,26 +281,23 @@ export default function ProdutosPage() {
             const compressedBase64 = await compressImage(file);
             const produto = produtos.find(p => p.id === produtoId);
             if (produto) {
-                storage.saveProduto({ ...produto, foto: compressedBase64 });
-                loadProdutos();
+                await supabaseStorage.saveProduto({ ...produto, foto: compressedBase64 });
+                await loadProdutos();
             }
         } catch (error) {
-            if (error instanceof Error && error.name === 'QuotaExceededError') {
-                setErrorModal({ open: true, message: 'Armazenamento cheio! Exclua alguns produtos ou imagens para liberar espaço.' });
-            } else {
-                setErrorModal({ open: true, message: 'Erro ao carregar imagem. Tente uma imagem menor.' });
-            }
+            console.error('Erro ao carregar imagem:', error);
+            setErrorModal({ open: true, message: 'Erro ao carregar imagem. Tente uma imagem menor.' });
         }
         // Reset input to allow re-uploading same file
         e.target.value = '';
     }
 
-    function handleDeleteImage(produtoId: string) {
+    async function handleDeleteImage(produtoId: string) {
         const produto = produtos.find(p => p.id === produtoId);
         if (produto) {
             const { foto, ...rest } = produto;
-            storage.saveProduto(rest as Produto);
-            loadProdutos();
+            await supabaseStorage.saveProduto(rest as Produto);
+            await loadProdutos();
         }
     }
 
@@ -302,70 +318,54 @@ export default function ProdutosPage() {
         setFormData({});
     }
 
-    function handleAddCategory(e: React.FormEvent) {
+    async function handleAddCategory(e: React.FormEvent) {
         e.preventDefault();
         if (!newCategoryName.trim()) return;
 
         const newName = newCategoryName.trim();
 
-        if (editingCategory) {
-            // Check if used in ANY order before renaming
-            const pedidos = storage.getPedidos();
-            const isUsedInAnyPedido = pedidos.some(pedido =>
-                pedido.itens?.some(item => {
-                    const pid = item.produtoId;
-                    const produto = storage.getProdutos().find(p => p.id === pid);
-                    return produto && produto.categoria === editingCategory.nome;
-                })
-            );
-
-            if (isUsedInAnyPedido) {
-                alert(`Não é possível renomear a categoria "${editingCategory.nome}" pois ela já está sendo utilizada em pedidos realizados.`);
-                return;
-            }
-
-            const oldName = editingCategory.nome;
-            if (oldName !== newName) {
-                // Update products
-                const allProdutos = storage.getProdutos();
-                allProdutos.forEach(p => {
-                    if (p.categoria === oldName) {
-                        p.categoria = newName;
-                        storage.saveProduto(p);
+        setSaving(true);
+        try {
+            if (editingCategory) {
+                const oldName = editingCategory.nome;
+                if (oldName !== newName) {
+                    // Update products with this category
+                    const produtosToUpdate = produtos.filter(p => p.categoria === oldName);
+                    for (const p of produtosToUpdate) {
+                        await supabaseStorage.saveProduto({ ...p, categoria: newName });
                     }
-                });
 
-                // Update category
-                storage.saveProdutoCategoria({
-                    ...editingCategory,
-                    nome: newName
-                });
+                    // Update category
+                    await supabaseStorage.saveCategoria({
+                        id: editingCategory.id,
+                        nome: newName
+                    });
 
-                if (activeTab === oldName) setActiveTab(newName);
+                    if (activeTab === oldName) setActiveTab(newName);
+                }
+                setEditingCategory(null);
+            } else {
+                const newCat = await supabaseStorage.saveCategoria({ nome: newName });
+                if (newCat) {
+                    setFormData(prev => ({ ...prev, categoria: newCat.nome }));
+                }
             }
-            setEditingCategory(null);
-        } else {
-            const newCat = { id: crypto.randomUUID(), nome: newName };
-            storage.saveProdutoCategoria(newCat);
-            setFormData(prev => ({ ...prev, categoria: newCat.nome }));
-        }
 
-        setNewCategoryName("");
-        loadProdutos();
+            setNewCategoryName("");
+            await loadProdutos();
+        } catch (error) {
+            console.error('Erro ao salvar categoria:', error);
+        } finally {
+            setSaving(false);
+        }
     }
 
     function handleDeleteCategory(cat: { id: string, nome: string }) {
-        const pedidos = storage.getPedidos();
-        const isUsedInAnyPedido = pedidos.some(pedido =>
-            pedido.itens?.some(item => {
-                const pid = item.produtoId;
-                const produto = storage.getProdutos().find(p => p.id === pid);
-                return produto && produto.categoria === cat.nome;
-            })
-        );
+        // Check if any product uses this category
+        const isUsedByProduct = produtos.some(p => p.categoria === cat.nome);
 
-        if (isUsedInAnyPedido) {
-            alert(`Não é possível excluir a categoria "${cat.nome}" pois ela já está sendo utilizada em pedidos realizados.`);
+        if (isUsedByProduct) {
+            alert(`Não é possível excluir a categoria "${cat.nome}" pois ela possui produtos cadastrados.`);
             return;
         }
 
@@ -408,7 +408,7 @@ export default function ProdutosPage() {
         }));
     }
 
-    function handleDragEnd(event: DragEndEvent) {
+    async function handleDragEnd(event: DragEndEvent) {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
@@ -418,19 +418,15 @@ export default function ProdutosPage() {
         if (oldIndex !== -1 && newIndex !== -1) {
             const reordered = arrayMove(filteredProdutos, oldIndex, newIndex);
             // Update ordem for all products in this category
-            reordered.forEach((produto, index) => {
-                const updated = { ...produto, ordem: index };
-                try {
-                    storage.saveProduto(updated);
-                } catch (e) {
-                    // Ignore storage errors during reorder
-                }
-            });
-            loadProdutos();
+            for (let i = 0; i < reordered.length; i++) {
+                const updated = { ...reordered[i], ordem: i };
+                await supabaseStorage.saveProduto(updated);
+            }
+            await loadProdutos();
         }
     }
 
-    function handleDragEndCategories(event: DragEndEvent) {
+    async function handleDragEndCategories(event: DragEndEvent) {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
@@ -441,15 +437,11 @@ export default function ProdutosPage() {
         if (oldIndex !== -1 && newIndex !== -1) {
             const reordered = arrayMove(sortedCats, oldIndex, newIndex);
             // Update ordem for all categories
-            reordered.forEach((cat, index) => {
-                const updated = { ...cat, ordem: index };
-                try {
-                    storage.saveProdutoCategoria(updated);
-                } catch (e) {
-                    // Ignore storage errors during reorder
-                }
-            });
-            loadProdutos();
+            for (let i = 0; i < reordered.length; i++) {
+                const updated = { ...reordered[i], ordem: i };
+                await supabaseStorage.saveCategoria(updated);
+            }
+            await loadProdutos();
         }
     }
 
@@ -463,6 +455,15 @@ export default function ProdutosPage() {
         .filter(p => p.categoria === activeTab)
         .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999));
     const tamanhosOpcoes = ["P (15 fatias)", "M (25 fatias)", "G (35 fatias)", "GG (50 fatias)", "23cm", "25cm"];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-2 text-text-secondary">Carregando produtos...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
