@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, History, Share2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, History, Share2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Dialog } from "@/components/ui/Dialog";
-import { storage, Cliente } from "@/lib/storage";
+import { Cliente } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { ImportGoogleContactsModal } from "@/components/clientes/ImportGoogleContactsModal";
 import { SessionProvider, useSession } from "next-auth/react";
 
 function ClientesContent() {
     const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
@@ -26,41 +29,59 @@ function ClientesContent() {
         loadClientes();
     }, []);
 
-    function loadClientes() {
-        setClientes(storage.getClientes());
+    async function loadClientes() {
+        try {
+            const data = await supabaseStorage.getClientes();
+            setClientes(data as Cliente[]);
+        } catch (error) {
+            console.error('Erro ao carregar clientes:', error);
+        } finally {
+            setLoading(false);
+        }
     }
 
-    function handleSave(e: React.FormEvent) {
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
         if (!formData.nome || !formData.telefone) return;
 
-        const cliente: Cliente = {
-            id: editingCliente ? editingCliente.id : crypto.randomUUID(),
-            nome: formData.nome,
-            cpf: formData.cpf || "",
-            telefone: formData.telefone,
-            email: formData.email || "",
-            endereco: {
-                cep: formData.endereco?.cep || "",
-                rua: formData.endereco?.rua || "",
-                numero: formData.endereco?.numero || "",
-                complemento: formData.endereco?.complemento || "",
-                bairro: formData.endereco?.bairro || "",
-                cidade: formData.endereco?.cidade || "",
-                estado: formData.endereco?.estado || "",
-            },
-            observacoes: formData.observacoes || "",
-        };
+        setSaving(true);
+        try {
+            const cliente: Partial<Cliente> = {
+                ...(editingCliente ? { id: editingCliente.id } : {}),
+                nome: formData.nome,
+                cpf: formData.cpf || "",
+                telefone: formData.telefone,
+                email: formData.email || "",
+                endereco: {
+                    cep: formData.endereco?.cep || "",
+                    rua: formData.endereco?.rua || "",
+                    numero: formData.endereco?.numero || "",
+                    complemento: formData.endereco?.complemento || "",
+                    bairro: formData.endereco?.bairro || "",
+                    cidade: formData.endereco?.cidade || "",
+                    estado: formData.endereco?.estado || "",
+                },
+                observacoes: formData.observacoes || "",
+            };
 
-        storage.saveCliente(cliente);
-        loadClientes();
-        closeModal();
+            await supabaseStorage.saveCliente(cliente);
+            await loadClientes();
+            closeModal();
+        } catch (error) {
+            console.error('Erro ao salvar cliente:', error);
+        } finally {
+            setSaving(false);
+        }
     }
 
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
         if (confirm("Tem certeza que deseja excluir este cliente?")) {
-            storage.deleteCliente(id);
-            loadClientes();
+            try {
+                await supabaseStorage.deleteCliente(id);
+                await loadClientes();
+            } catch (error) {
+                console.error('Erro ao deletar cliente:', error);
+            }
         }
     }
 
@@ -111,9 +132,18 @@ function ClientesContent() {
 
     const filteredClientes = clientes.filter(c =>
         c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.cpf.includes(searchTerm) ||
+        (c.cpf && c.cpf.includes(searchTerm)) ||
         c.telefone.includes(searchTerm)
     );
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-2 text-text-secondary">Carregando clientes...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -306,6 +336,7 @@ function ClientesContent() {
                                     <option value="SP">SP</option>
                                     <option value="RJ">RJ</option>
                                     <option value="MG">MG</option>
+                                    <option value="RS">RS</option>
                                 </select>
                             </div>
                         </div>
@@ -313,7 +344,16 @@ function ClientesContent() {
 
                     <div className="pt-4 flex justify-end gap-3">
                         <Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button>
-                        <Button type="submit">Salvar Cliente</Button>
+                        <Button type="submit" disabled={saving}>
+                            {saving ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                'Salvar Cliente'
+                            )}
+                        </Button>
                     </div>
                 </form>
             </Dialog>
