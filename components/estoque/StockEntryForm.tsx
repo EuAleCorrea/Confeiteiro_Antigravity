@@ -5,8 +5,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
-import { Ingrediente, Movimentacao, storage } from "@/lib/storage";
-import { Trash2, Plus } from "lucide-react";
+import { Ingrediente, Movimentacao } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
+import { Trash2, Plus, Loader2 } from "lucide-react";
 
 interface StockEntryFormProps {
     isOpen: boolean;
@@ -23,26 +24,41 @@ interface EntryItem {
 }
 
 export function StockEntryForm({ isOpen, ingrediente, onClose, onSave }: StockEntryFormProps) {
-    const listIngredientes = storage.getIngredientes();
-
+    const [listIngredientes, setListIngredientes] = useState<Ingrediente[]>([]);
     const [items, setItems] = useState<EntryItem[]>([]);
+    const [saving, setSaving] = useState(false);
     const [headerData, setHeaderData] = useState({
         fornecedor: '',
         notaFiscal: '',
         dataCompra: new Date().toISOString().split('T')[0]
     });
 
-    // Reset state when modal opens
+    // Load ingredients and reset state when modal opens
     useEffect(() => {
         if (isOpen) {
-            setItems(ingrediente ? [{ id: '1', ingredienteId: ingrediente.id, quantidade: 0, valorUnitario: 0 }] : []);
+            loadIngredientes();
             setHeaderData({
                 fornecedor: '',
                 notaFiscal: '',
                 dataCompra: new Date().toISOString().split('T')[0]
             });
         }
-    }, [isOpen, ingrediente]);
+    }, [isOpen]);
+
+    async function loadIngredientes() {
+        try {
+            const ings = await supabaseStorage.getIngredientes();
+            setListIngredientes(ings as Ingrediente[]);
+            // Initialize items after loading
+            if (ingrediente) {
+                setItems([{ id: '1', ingredienteId: ingrediente.id, quantidade: 0, valorUnitario: 0 }]);
+            } else {
+                setItems([]);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar ingredientes:', error);
+        }
+    }
 
     const addItem = () => {
         setItems([...items, { id: crypto.randomUUID(), ingredienteId: listIngredientes[0]?.id || '', quantidade: 0, valorUnitario: 0 }]);
@@ -56,52 +72,59 @@ export function StockEntryForm({ isOpen, ingrediente, onClose, onSave }: StockEn
         setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaving(true);
 
-        items.forEach(item => {
-            const ing = listIngredientes.find(i => i.id === item.ingredienteId);
-            if (!ing) return;
+        try {
+            for (const item of items) {
+                const ing = listIngredientes.find(i => i.id === item.ingredienteId);
+                if (!ing) continue;
 
-            const qtd = Number(item.quantidade);
-            const valUnit = Number(item.valorUnitario);
-            const prevQtd = ing.estoqueAtual || 0;
-            const newQtd = prevQtd + qtd;
+                const qtd = Number(item.quantidade);
+                const valUnit = Number(item.valorUnitario);
+                const prevQtd = ing.estoqueAtual || 0;
+                const newQtd = prevQtd + qtd;
 
-            // Weighted Average Cost Calculation
-            const prevTotalVal = prevQtd * (ing.custoMedio || ing.custoUnitario || 0);
-            const newEntryVal = qtd * valUnit;
-            const newAvgCost = (prevTotalVal + newEntryVal) / newQtd;
+                // Weighted Average Cost Calculation
+                const prevTotalVal = prevQtd * (ing.custoMedio || ing.custoUnitario || 0);
+                const newEntryVal = qtd * valUnit;
+                const newAvgCost = newQtd > 0 ? (prevTotalVal + newEntryVal) / newQtd : valUnit;
 
-            // Update Ingredient
-            ing.estoqueAtual = newQtd;
-            ing.custoUnitario = valUnit; // Update last cost
-            ing.custoMedio = newAvgCost; // Update avg cost
-            ing.ultimaCompra = headerData.dataCompra;
+                // Update Ingredient
+                const updatedIng = {
+                    ...ing,
+                    estoqueAtual: newQtd,
+                    custoUnitario: valUnit, // Update last cost
+                    custoMedio: newAvgCost, // Update avg cost
+                    ultimaCompra: headerData.dataCompra
+                };
 
-            storage.saveIngrediente(ing);
+                await supabaseStorage.saveIngrediente(updatedIng);
 
-            // Create Movement
-            const mov: Movimentacao = {
-                id: crypto.randomUUID(),
-                tipo: 'Entrada',
-                ingredienteId: ing.id,
-                data: new Date().toISOString(),
-                quantidade: qtd,
-                quantidadeAnterior: prevQtd,
-                quantidadePosterior: newQtd,
-                valorUnitario: valUnit,
-                valorTotal: newEntryVal,
-                motivo: 'Compra',
-                notaFiscal: headerData.notaFiscal,
-                usuario: 'Sistema' // TODO: Get logged user
-            };
+                // Create Movement
+                await supabaseStorage.saveMovimentacao({
+                    tipo: 'Entrada',
+                    ingredienteId: ing.id,
+                    data: new Date().toISOString(),
+                    quantidade: qtd,
+                    quantidadeAnterior: prevQtd,
+                    quantidadePosterior: newQtd,
+                    valorUnitario: valUnit,
+                    valorTotal: newEntryVal,
+                    motivo: 'Compra',
+                    notaFiscal: headerData.notaFiscal,
+                    usuario: 'Sistema' // TODO: Get logged user
+                });
+            }
 
-            storage.saveMovimentacao(mov);
-        });
-
-        onSave();
-        onClose();
+            onSave();
+            onClose();
+        } catch (error) {
+            console.error('Erro ao salvar entrada:', error);
+        } finally {
+            setSaving(false);
+        }
     };
 
     const totalValue = items.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0);
@@ -206,7 +229,16 @@ export function StockEntryForm({ isOpen, ingrediente, onClose, onSave }: StockEn
                     <div className="hidden md:block h-10 w-px bg-border mx-2"></div>
                     <div className="flex gap-3 w-full md:w-auto">
                         <Button type="button" variant="ghost" onClick={onClose} className="flex-1 md:flex-none">Cancelar</Button>
-                        <Button type="submit" className="flex-1 md:flex-none">Confirmar Entrada</Button>
+                        <Button type="submit" disabled={saving} className="flex-1 md:flex-none">
+                            {saving ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                'Confirmar Entrada'
+                            )}
+                        </Button>
                     </div>
                 </div>
             </form>

@@ -171,6 +171,64 @@ class SupabaseStorageService {
     saveProdutoCategoria = this.saveCategoria;
     deleteProdutoCategoria = this.deleteCategoria;
 
+    // ==================== CATEGORIAS DE INGREDIENTES ====================
+    async getCategoriasIngredientes(): Promise<{ id: string; nome: string; ordem?: number }[]> {
+        const { data, error } = await supabase
+            .from('categorias_ingredientes')
+            .select('*')
+            .order('ordem', { ascending: true });
+
+        if (error) {
+            console.error('Erro ao buscar categorias de ingredientes:', error);
+            return [];
+        }
+        return data || [];
+    }
+
+    async saveCategoriaIngrediente(categoria: { id?: string; nome: string; ordem?: number }): Promise<{ id: string; nome: string } | null> {
+        if (categoria.id) {
+            // Update existing
+            const { data, error } = await supabase
+                .from('categorias_ingredientes')
+                .update({ nome: categoria.nome, ordem: categoria.ordem, updated_at: new Date().toISOString() })
+                .eq('id', categoria.id)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Erro ao atualizar categoria de ingrediente:', error);
+                return null;
+            }
+            return data;
+        } else {
+            // Insert new
+            const { data, error } = await supabase
+                .from('categorias_ingredientes')
+                .insert({ nome: categoria.nome, ordem: categoria.ordem || 0 })
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Erro ao inserir categoria de ingrediente:', error);
+                return null;
+            }
+            return data;
+        }
+    }
+
+    async deleteCategoriaIngrediente(id: string): Promise<boolean> {
+        const { error } = await supabase
+            .from('categorias_ingredientes')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erro ao deletar categoria de ingrediente:', error);
+            return false;
+        }
+        return true;
+    }
+
     // ==================== PRODUTOS ====================
     async getProdutos(): Promise<any[]> {
         const { data, error } = await supabase

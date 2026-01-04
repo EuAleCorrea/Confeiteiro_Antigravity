@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { storage, Movimentacao, Ingrediente } from "@/lib/storage";
+import { Movimentacao, Ingrediente } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, RefreshCw } from "lucide-react";
 
@@ -10,15 +11,23 @@ export function MovementHistory() {
     const [ingredientes, setIngredientes] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        const movs = storage.getMovimentacoes();
-        setMovements(movs);
-
-        const ings = storage.getIngredientes();
-        const ingMap = ings.reduce((acc, ing) => {
-            acc[ing.id] = ing.nome;
-            return acc;
-        }, {} as Record<string, string>);
-        setIngredientes(ingMap);
+        const loadData = async () => {
+            try {
+                const [movs, ings] = await Promise.all([
+                    supabaseStorage.getMovimentacoes(),
+                    supabaseStorage.getIngredientes()
+                ]);
+                setMovements(movs as Movimentacao[]);
+                const ingMap = (ings as Ingrediente[]).reduce((acc, ing) => {
+                    acc[ing.id] = ing.nome;
+                    return acc;
+                }, {} as Record<string, string>);
+                setIngredientes(ingMap);
+            } catch (error) {
+                console.error('Erro ao carregar movimentações:', error);
+            }
+        };
+        loadData();
     }, []);
 
     return (

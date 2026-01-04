@@ -6,7 +6,9 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
-import { Ingrediente, storage } from "@/lib/storage";
+import { Ingrediente } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
+import { Loader2 } from "lucide-react";
 
 interface InventoryFormProps {
     isOpen: boolean;
@@ -17,10 +19,13 @@ interface InventoryFormProps {
 
 export function InventoryForm({ isOpen, ingrediente, onClose, onSave }: InventoryFormProps) {
     const { register, handleSubmit, formState: { errors }, reset } = useForm<Ingrediente>();
+    const [categorias, setCategorias] = useState<{ id: string; nome: string }[]>([]);
+    const [saving, setSaving] = useState(false);
 
-    // Reset form when ingrediente changes or modal opens
+    // Load categories when modal opens
     useEffect(() => {
         if (isOpen) {
+            loadCategorias();
             reset(ingrediente || {
                 unidade: 'kg',
                 categoria: 'Secos',
@@ -31,37 +36,52 @@ export function InventoryForm({ isOpen, ingrediente, onClose, onSave }: Inventor
         }
     }, [ingrediente, isOpen, reset]);
 
-    const onSubmit = (data: Ingrediente) => {
-        const item: Ingrediente = {
-            ...data,
-            id: ingrediente?.id || crypto.randomUUID(),
-            custoMedio: Number(data.custoUnitario), // Init average cost as current cost for new items
-            estoqueAtual: Number(data.estoqueAtual),
-            estoqueMinimo: Number(data.estoqueMinimo),
-            estoqueMaximo: data.estoqueMaximo ? Number(data.estoqueMaximo) : undefined,
-            custoUnitario: Number(data.custoUnitario),
-            atualizadoEm: new Date().toISOString()
-        };
-
-        storage.saveIngrediente(item);
-
-        // Log Initial Adjustment if new
-        if (!ingrediente && item.estoqueAtual > 0) {
-            storage.saveMovimentacao({
-                id: crypto.randomUUID(),
-                tipo: 'Ajuste',
-                ingredienteId: item.id,
-                data: new Date().toISOString(),
-                quantidade: item.estoqueAtual,
-                quantidadeAnterior: 0,
-                quantidadePosterior: item.estoqueAtual,
-                motivo: 'Inventário Inicial',
-                usuario: 'Sistema'
-            });
+    async function loadCategorias() {
+        try {
+            const cats = await supabaseStorage.getCategoriasIngredientes();
+            setCategorias(cats);
+        } catch (error) {
+            console.error('Erro ao carregar categorias:', error);
         }
+    }
 
-        onSave();
-        onClose();
+    const onSubmit = async (data: Ingrediente) => {
+        setSaving(true);
+        try {
+            const item: Partial<Ingrediente> = {
+                ...data,
+                ...(ingrediente?.id ? { id: ingrediente.id } : {}),
+                custoMedio: Number(data.custoUnitario), // Init average cost as current cost for new items
+                estoqueAtual: Number(data.estoqueAtual),
+                estoqueMinimo: Number(data.estoqueMinimo),
+                estoqueMaximo: data.estoqueMaximo ? Number(data.estoqueMaximo) : undefined,
+                custoUnitario: Number(data.custoUnitario),
+                atualizadoEm: new Date().toISOString()
+            };
+
+            const savedItem = await supabaseStorage.saveIngrediente(item);
+
+            // Log Initial Adjustment if new
+            if (!ingrediente && item.estoqueAtual && item.estoqueAtual > 0 && savedItem) {
+                await supabaseStorage.saveMovimentacao({
+                    tipo: 'Ajuste',
+                    ingredienteId: savedItem.id,
+                    data: new Date().toISOString(),
+                    quantidade: item.estoqueAtual,
+                    quantidadeAnterior: 0,
+                    quantidadePosterior: item.estoqueAtual,
+                    motivo: 'Inventário Inicial',
+                    usuario: 'Sistema'
+                });
+            }
+
+            onSave();
+            onClose();
+        } catch (error) {
+            console.error('Erro ao salvar insumo:', error);
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -86,7 +106,7 @@ export function InventoryForm({ isOpen, ingrediente, onClose, onSave }: Inventor
                         <div>
                             <label className="block text-sm font-medium text-text-secondary mb-1">Categoria *</label>
                             <select {...register("categoria")} className="flex h-12 w-full rounded-xl border border-border bg-surface px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary">
-                                {storage.getCategorias().map(c => (
+                                {categorias.map(c => (
                                     <option key={c.id} value={c.nome}>{c.nome}</option>
                                 ))}
                             </select>
@@ -155,7 +175,16 @@ export function InventoryForm({ isOpen, ingrediente, onClose, onSave }: Inventor
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-border">
                     <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit">Salvar Insumo</Button>
+                    <Button type="submit" disabled={saving}>
+                        {saving ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Salvando...
+                            </>
+                        ) : (
+                            'Salvar Insumo'
+                        )}
+                    </Button>
                 </div>
             </form>
         </Dialog>

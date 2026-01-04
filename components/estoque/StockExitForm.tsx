@@ -5,8 +5,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
-import { Ingrediente, Movimentacao, storage } from "@/lib/storage";
-import { Trash2, Plus, AlertTriangle } from "lucide-react";
+import { Ingrediente, Movimentacao } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
+import { Trash2, Plus, AlertTriangle, Loader2 } from "lucide-react";
 
 interface StockExitFormProps {
     isOpen: boolean;
@@ -22,9 +23,9 @@ interface ExitItem {
 }
 
 export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExitFormProps) {
-    const listIngredientes = storage.getIngredientes();
-
+    const [listIngredientes, setListIngredientes] = useState<Ingrediente[]>([]);
     const [items, setItems] = useState<ExitItem[]>([]);
+    const [saving, setSaving] = useState(false);
     const [headerData, setHeaderData] = useState({
         dataSaida: new Date().toISOString().split('T')[0],
         motivo: 'Perda',
@@ -34,14 +35,29 @@ export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExi
 
     useEffect(() => {
         if (isOpen) {
-            setItems(ingrediente ? [{ id: '1', ingredienteId: ingrediente.id, quantidade: 0 }] : []);
+            loadIngredientes();
             setHeaderData({
                 dataSaida: new Date().toISOString().split('T')[0],
                 motivo: 'Perda',
                 observacoes: ''
             });
         }
-    }, [isOpen, ingrediente]);
+    }, [isOpen]);
+
+    async function loadIngredientes() {
+        try {
+            const ings = await supabaseStorage.getIngredientes();
+            setListIngredientes(ings as Ingrediente[]);
+            // Initialize items after loading
+            if (ingrediente) {
+                setItems([{ id: '1', ingredienteId: ingrediente.id, quantidade: 0 }]);
+            } else {
+                setItems([]);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar ingredientes:', error);
+        }
+    }
 
     const addItem = () => {
         setItems([...items, { id: crypto.randomUUID(), ingredienteId: listIngredientes[0]?.id || '', quantidade: 0 }]);
@@ -55,52 +71,54 @@ export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExi
         setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaving(true);
 
-        let hasError = false;
+        try {
+            for (const item of items) {
+                const ing = listIngredientes.find(i => i.id === item.ingredienteId);
+                if (!ing) continue;
 
-        items.forEach(item => {
-            if (hasError) return;
+                const qtd = Number(item.quantidade);
+                const prevQtd = ing.estoqueAtual || 0;
 
-            const ing = listIngredientes.find(i => i.id === item.ingredienteId);
-            if (!ing) return;
+                if (qtd > prevQtd) {
+                    setErrorModal({ open: true, message: `Estoque insuficiente para ${ing.nome}. Disponível: ${prevQtd}` });
+                    setSaving(false);
+                    return;
+                }
 
-            const qtd = Number(item.quantidade);
-            const prevQtd = ing.estoqueAtual || 0;
+                const newQtd = prevQtd - qtd;
 
-            if (qtd > prevQtd) {
-                setErrorModal({ open: true, message: `Estoque insuficiente para ${ing.nome}. Disponível: ${prevQtd}` });
-                hasError = true;
-                return;
+                // Update Ingredient
+                const updatedIng = {
+                    ...ing,
+                    estoqueAtual: newQtd
+                };
+
+                await supabaseStorage.saveIngrediente(updatedIng);
+
+                // Create Movement
+                await supabaseStorage.saveMovimentacao({
+                    tipo: 'Saida',
+                    ingredienteId: ing.id,
+                    data: new Date().toISOString(),
+                    quantidade: qtd,
+                    quantidadeAnterior: prevQtd,
+                    quantidadePosterior: newQtd,
+                    motivo: headerData.motivo,
+                    observacoes: headerData.observacoes,
+                    usuario: 'Sistema'
+                });
             }
 
-            const newQtd = prevQtd - qtd;
-
-            // Update Ingredient
-            ing.estoqueAtual = newQtd;
-            storage.saveIngrediente(ing);
-
-            // Create Movement
-            const mov: Movimentacao = {
-                id: crypto.randomUUID(),
-                tipo: 'Saida',
-                ingredienteId: ing.id,
-                data: new Date().toISOString(),
-                quantidade: qtd,
-                quantidadeAnterior: prevQtd,
-                quantidadePosterior: newQtd,
-                motivo: headerData.motivo,
-                observacoes: headerData.observacoes,
-                usuario: 'Sistema'
-            };
-
-            storage.saveMovimentacao(mov);
-        });
-
-        if (!hasError) {
             onSave();
             onClose();
+        } catch (error) {
+            console.error('Erro ao salvar saída:', error);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -199,7 +217,16 @@ export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExi
                 {/* Total */}
                 <div className="flex justify-end items-center gap-3 pt-4 border-t border-border">
                     <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit" variant="danger">Confirmar Saída</Button>
+                    <Button type="submit" variant="danger" disabled={saving}>
+                        {saving ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Salvando...
+                            </>
+                        ) : (
+                            'Confirmar Saída'
+                        )}
+                    </Button>
                 </div>
             </form>
         </Dialog>

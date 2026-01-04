@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Package, AlertTriangle, ArrowDown, ArrowUp } from "lucide-react";
-import { storage, Ingrediente } from "@/lib/storage";
+import { Ingrediente } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 export function StockDashboard() {
     const [stats, setStats] = useState({
@@ -18,31 +19,35 @@ export function StockDashboard() {
         loadStats();
     }, []);
 
-    const loadStats = () => {
-        const ingredientes = storage.getIngredientes();
+    const loadStats = async () => {
+        try {
+            const ingredientes = await supabaseStorage.getIngredientes() as Ingrediente[];
 
-        let totalVal = 0;
-        let alerta = 0;
-        let falta = 0;
+            let totalVal = 0;
+            let alerta = 0;
+            let falta = 0;
 
-        ingredientes.forEach(ing => {
-            // Calculate value if not stored (fallback logic)
-            const val = (ing.estoqueAtual || 0) * (ing.custoMedio || ing.custoUnitario || 0);
-            totalVal += val;
+            ingredientes.forEach(ing => {
+                // Calculate value if not stored (fallback logic)
+                const val = (ing.estoqueAtual || 0) * (ing.custoMedio || ing.custoUnitario || 0);
+                totalVal += val;
 
-            if (ing.estoqueAtual === 0) {
-                falta++;
-            } else if (ing.estoqueAtual <= ing.estoqueMinimo) {
-                alerta++;
-            }
-        });
+                if (ing.estoqueAtual === 0) {
+                    falta++;
+                } else if (ing.estoqueAtual <= ing.estoqueMinimo) {
+                    alerta++;
+                }
+            });
 
-        setStats({
-            totalItens: ingredientes.length,
-            valorTotal: totalVal,
-            itensAlerta: alerta,
-            itensFalta: falta
-        });
+            setStats({
+                totalItens: ingredientes.length,
+                valorTotal: totalVal,
+                itensAlerta: alerta,
+                itensFalta: falta
+            });
+        } catch (error) {
+            console.error('Erro ao carregar estatísticas:', error);
+        }
     };
 
     return (

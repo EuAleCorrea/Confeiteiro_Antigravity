@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { storage, Ingrediente } from "@/lib/storage";
+import { Ingrediente } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { Button } from "@/components/ui/Button";
 import { Package, Search, Filter, AlertTriangle, BatteryWarning, BatteryMedium, BatteryFull, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,10 +25,17 @@ export function StockList({ onEdit, onEntry, onExit }: StockListProps) {
         loadData();
     }, []);
 
-    const loadData = () => {
-        setIngredientes(storage.getIngredientes());
-        const cats = storage.getCategorias().map(c => c.nome);
-        setCategories(['Todos', ...cats]);
+    const loadData = async () => {
+        try {
+            const [ings, cats] = await Promise.all([
+                supabaseStorage.getIngredientes(),
+                supabaseStorage.getCategoriasIngredientes()
+            ]);
+            setIngredientes(ings as Ingrediente[]);
+            setCategories(['Todos', ...cats.map(c => c.nome)]);
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+        }
     };
 
     const filtered = ingredientes.filter(ing => {

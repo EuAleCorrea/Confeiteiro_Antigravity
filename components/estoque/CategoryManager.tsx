@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
 import { Trash2, Plus, AlertCircle, X } from "lucide-react";
-import { storage, Categoria } from "@/lib/storage";
+import { Categoria } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 import { cn } from "@/lib/utils";
 
 interface CategoryManagerProps {
@@ -25,11 +26,16 @@ export function CategoryManager({ isOpen, onClose, onCallback }: CategoryManager
         }
     }, [isOpen]);
 
-    const loadCategories = () => {
-        setCategories(storage.getCategorias());
+    const loadCategories = async () => {
+        try {
+            const cats = await supabaseStorage.getCategoriasIngredientes();
+            setCategories(cats as Categoria[]);
+        } catch (err) {
+            console.error('Erro ao carregar categorias:', err);
+        }
     };
 
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (!newCategoryName.trim()) return;
 
         // Check duplicate
@@ -38,32 +44,38 @@ export function CategoryManager({ isOpen, onClose, onCallback }: CategoryManager
             return;
         }
 
-        const newCat: Categoria = {
-            id: crypto.randomUUID(),
-            nome: newCategoryName.trim()
-        };
-
-        storage.saveCategoria(newCat);
-        setNewCategoryName('');
-        setError('');
-        loadCategories();
-        onCallback();
+        try {
+            await supabaseStorage.saveCategoriaIngrediente({
+                nome: newCategoryName.trim()
+            });
+            setNewCategoryName('');
+            setError('');
+            await loadCategories();
+            onCallback();
+        } catch (err) {
+            console.error('Erro ao adicionar categoria:', err);
+            setError('Erro ao adicionar categoria.');
+        }
     };
 
-    const handleDelete = (id: string, nome: string) => {
+    const handleDelete = async (id: string, nome: string) => {
         // Check usage
-        const ingredientes = storage.getIngredientes();
-        const isInUse = ingredientes.some(i => i.categoria === nome);
+        try {
+            const ingredientes = await supabaseStorage.getIngredientes();
+            const isInUse = ingredientes.some(i => i.categoria === nome);
 
-        if (isInUse) {
-            setError(`"${nome}" possui itens vinculados.`);
-            return;
-        }
+            if (isInUse) {
+                setError(`"${nome}" possui itens vinculados.`);
+                return;
+            }
 
-        if (confirm(`Tem certeza que deseja excluir a categoria "${nome}"?`)) {
-            storage.deleteCategoria(id);
-            loadCategories();
-            onCallback();
+            if (confirm(`Tem certeza que deseja excluir a categoria "${nome}"?`)) {
+                await supabaseStorage.deleteCategoriaIngrediente(id);
+                await loadCategories();
+                onCallback();
+            }
+        } catch (err) {
+            console.error('Erro ao deletar categoria:', err);
         }
     };
 
