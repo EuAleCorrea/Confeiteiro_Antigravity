@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Dialog } from "@/components/ui/Dialog";
-import { storage, Sabor } from "@/lib/storage";
+import { Sabor } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 export default function SaboresPage() {
     const [sabores, setSabores] = useState<Sabor[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'Massa' | 'Recheio'>('Massa');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSabor, setEditingSabor] = useState<Sabor | null>(null);
@@ -19,31 +22,49 @@ export default function SaboresPage() {
         loadSabores();
     }, []);
 
-    function loadSabores() {
-        setSabores(storage.getSabores());
+    async function loadSabores() {
+        try {
+            const data = await supabaseStorage.getSabores();
+            setSabores(data as Sabor[]);
+        } catch (error) {
+            console.error('Erro ao carregar sabores:', error);
+        } finally {
+            setLoading(false);
+        }
     }
 
-    function handleSave(e: React.FormEvent) {
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
         if (!formData.nome) return;
 
-        const sabor: Sabor = {
-            id: editingSabor ? editingSabor.id : crypto.randomUUID(),
-            nome: formData.nome,
-            tipo: formData.tipo || activeTab,
-            descricao: formData.descricao || "",
-            custoAdicional: Number(formData.custoAdicional) || 0,
-        };
+        setSaving(true);
+        try {
+            const sabor: Partial<Sabor> = {
+                ...(editingSabor ? { id: editingSabor.id } : {}),
+                nome: formData.nome,
+                tipo: formData.tipo || activeTab,
+                descricao: formData.descricao || "",
+                custoAdicional: Number(formData.custoAdicional) || 0,
+            };
 
-        storage.saveSabor(sabor);
-        loadSabores();
-        closeModal();
+            await supabaseStorage.saveSabor(sabor);
+            await loadSabores();
+            closeModal();
+        } catch (error) {
+            console.error('Erro ao salvar sabor:', error);
+        } finally {
+            setSaving(false);
+        }
     }
 
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
         if (confirm("Excluir este sabor?")) {
-            storage.deleteSabor(id);
-            loadSabores();
+            try {
+                await supabaseStorage.deleteSabor(id);
+                await loadSabores();
+            } catch (error) {
+                console.error('Erro ao deletar sabor:', error);
+            }
         }
     }
 
@@ -66,6 +87,15 @@ export default function SaboresPage() {
 
     const filteredSabores = sabores.filter(s => s.tipo === activeTab);
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-2 text-text-secondary">Carregando sabores...</span>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -85,8 +115,8 @@ export default function SaboresPage() {
                     <button
                         key={tab}
                         className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab
-                                ? "border-primary text-primary"
-                                : "border-transparent text-text-secondary hover:text-text-primary"
+                            ? "border-primary text-primary"
+                            : "border-transparent text-text-secondary hover:text-text-primary"
                             }`}
                         onClick={() => setActiveTab(tab as any)}
                     >
@@ -194,7 +224,16 @@ export default function SaboresPage() {
 
                     <div className="pt-4 flex justify-end gap-3">
                         <Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button>
-                        <Button type="submit">Salvar Sabor</Button>
+                        <Button type="submit" disabled={saving}>
+                            {saving ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                'Salvar Sabor'
+                            )}
+                        </Button>
                     </div>
                 </form>
             </Dialog>
