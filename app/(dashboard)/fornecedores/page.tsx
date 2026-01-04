@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Filter, Phone, Mail } from "lucide-react";
+import { Plus, Edit2, Trash2, Filter, Phone, Mail, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
 import { Toggle } from "@/components/ui/Toggle";
-import { storage, Fornecedor } from "@/lib/storage";
+import { Fornecedor } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 export default function FornecedoresPage() {
     const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [filterCategoria, setFilterCategoria] = useState<string>("Todos");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingFornecedor, setEditingFornecedor] = useState<Fornecedor | null>(null);
@@ -21,35 +24,53 @@ export default function FornecedoresPage() {
         loadFornecedores();
     }, []);
 
-    function loadFornecedores() {
-        setFornecedores(storage.getFornecedores());
+    async function loadFornecedores() {
+        try {
+            const data = await supabaseStorage.getFornecedores();
+            setFornecedores(data as Fornecedor[]);
+        } catch (error) {
+            console.error('Erro ao carregar fornecedores:', error);
+        } finally {
+            setLoading(false);
+        }
     }
 
-    function handleSave(e: React.FormEvent) {
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
         if (!formData.razaoSocial || !formData.cnpj) return;
 
-        const fornecedor: Fornecedor = {
-            id: editingFornecedor ? editingFornecedor.id : crypto.randomUUID(),
-            razaoSocial: formData.razaoSocial,
-            nomeFantasia: formData.nomeFantasia || formData.razaoSocial,
-            cnpj: formData.cnpj,
-            categoria: formData.categoria || 'Ingredientes',
-            telefone: formData.telefone || "",
-            email: formData.email,
-            ativo: formData.ativo !== undefined ? formData.ativo : true,
-            observacoes: formData.observacoes,
-        };
+        setSaving(true);
+        try {
+            const fornecedor: Partial<Fornecedor> = {
+                ...(editingFornecedor ? { id: editingFornecedor.id } : {}),
+                razaoSocial: formData.razaoSocial,
+                nomeFantasia: formData.nomeFantasia || formData.razaoSocial,
+                cnpj: formData.cnpj,
+                categoria: formData.categoria || 'Ingredientes',
+                telefone: formData.telefone || "",
+                email: formData.email,
+                ativo: formData.ativo !== undefined ? formData.ativo : true,
+                observacoes: formData.observacoes,
+            };
 
-        storage.saveFornecedor(fornecedor);
-        loadFornecedores();
-        closeModal();
+            await supabaseStorage.saveFornecedor(fornecedor);
+            await loadFornecedores();
+            closeModal();
+        } catch (error) {
+            console.error('Erro ao salvar fornecedor:', error);
+        } finally {
+            setSaving(false);
+        }
     }
 
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
         if (confirm("Excluir este fornecedor?")) {
-            storage.deleteFornecedor(id);
-            loadFornecedores();
+            try {
+                await supabaseStorage.deleteFornecedor(id);
+                await loadFornecedores();
+            } catch (error) {
+                console.error('Erro ao deletar fornecedor:', error);
+            }
         }
     }
 
@@ -73,6 +94,15 @@ export default function FornecedoresPage() {
     const filtered = filterCategoria === "Todos"
         ? fornecedores
         : fornecedores.filter(f => f.categoria === filterCategoria);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-2 text-text-secondary">Carregando fornecedores...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -232,7 +262,16 @@ export default function FornecedoresPage() {
                         </div>
                         <div className="flex gap-3">
                             <Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button>
-                            <Button type="submit">Salvar Fornecedor</Button>
+                            <Button type="submit" disabled={saving}>
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Salvando...
+                                    </>
+                                ) : (
+                                    'Salvar Fornecedor'
+                                )}
+                            </Button>
                         </div>
                     </div>
                 </form>

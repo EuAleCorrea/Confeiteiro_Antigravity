@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Calendar, User } from "lucide-react";
+import { Plus, Edit2, Trash2, Calendar, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
 import { Toggle } from "@/components/ui/Toggle";
-import { storage, Colaborador } from "@/lib/storage";
+import { Colaborador } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
 
 export default function EquipePage() {
     const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingColaborador, setEditingColaborador] = useState<Colaborador | null>(null);
     const [formData, setFormData] = useState<Partial<Colaborador>>({});
@@ -20,33 +23,51 @@ export default function EquipePage() {
         loadColaboradores();
     }, []);
 
-    function loadColaboradores() {
-        setColaboradores(storage.getColaboradores());
+    async function loadColaboradores() {
+        try {
+            const data = await supabaseStorage.getColaboradores();
+            setColaboradores(data as Colaborador[]);
+        } catch (error) {
+            console.error('Erro ao carregar colaboradores:', error);
+        } finally {
+            setLoading(false);
+        }
     }
 
-    function handleSave(e: React.FormEvent) {
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
         if (!formData.nome || !formData.funcao) return;
 
-        const colaborador: Colaborador = {
-            id: editingColaborador ? editingColaborador.id : crypto.randomUUID(),
-            nome: formData.nome,
-            cpf: formData.cpf || "",
-            telefone: formData.telefone || "",
-            funcao: formData.funcao,
-            status: formData.status || 'Ativo',
-            escala: formData.escala || [],
-        };
+        setSaving(true);
+        try {
+            const colaborador: Partial<Colaborador> = {
+                ...(editingColaborador ? { id: editingColaborador.id } : {}),
+                nome: formData.nome,
+                cpf: formData.cpf || "",
+                telefone: formData.telefone || "",
+                funcao: formData.funcao,
+                status: formData.status || 'Ativo',
+                escala: formData.escala || [],
+            };
 
-        storage.saveColaborador(colaborador);
-        loadColaboradores();
-        closeModal();
+            await supabaseStorage.saveColaborador(colaborador);
+            await loadColaboradores();
+            closeModal();
+        } catch (error) {
+            console.error('Erro ao salvar colaborador:', error);
+        } finally {
+            setSaving(false);
+        }
     }
 
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
         if (confirm("Excluir este colaborador?")) {
-            storage.deleteColaborador(id);
-            loadColaboradores();
+            try {
+                await supabaseStorage.deleteColaborador(id);
+                await loadColaboradores();
+            } catch (error) {
+                console.error('Erro ao deletar colaborador:', error);
+            }
         }
     }
 
@@ -77,6 +98,15 @@ export default function EquipePage() {
     }
 
     const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-2 text-text-secondary">Carregando equipe...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -212,7 +242,16 @@ export default function EquipePage() {
 
                     <div className="pt-4 flex justify-end gap-3">
                         <Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button>
-                        <Button type="submit">Salvar Colaborador</Button>
+                        <Button type="submit" disabled={saving}>
+                            {saving ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                'Salvar Colaborador'
+                            )}
+                        </Button>
                     </div>
                 </form>
             </Dialog>
