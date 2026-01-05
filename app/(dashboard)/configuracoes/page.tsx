@@ -12,7 +12,6 @@ import { Configuracoes } from "@/lib/storage";
 import { supabaseStorage } from "@/lib/supabase-storage";
 import { WhatsAppSettings } from "@/components/settings/WhatsAppSettings";
 import { GoogleSettings } from "@/components/settings/GoogleSettings";
-import { SessionProvider } from "next-auth/react";
 
 import { useSearchParams } from "next/navigation";
 
@@ -37,7 +36,23 @@ function ConfiguracoesContent() {
             try {
                 const data = await supabaseStorage.getConfiguracoes();
                 if (data) {
-                    setConfig(data as Configuracoes);
+                    // Deep merge with defaults to ensure all properties exist
+                    setConfig({
+                        empresa: { ...defaultConfig.empresa, ...data.empresa },
+                        negocio: {
+                            ...defaultConfig.negocio,
+                            ...data.negocio,
+                            taxaEntrega: {
+                                ...defaultConfig.negocio.taxaEntrega,
+                                ...(data.negocio?.taxaEntrega || {})
+                            },
+                            horarios: {
+                                ...defaultConfig.negocio.horarios,
+                                ...(data.negocio?.horarios || {})
+                            }
+                        },
+                        termos: { ...defaultConfig.termos, ...data.termos }
+                    });
                 }
             } catch (error) {
                 console.error('Erro ao carregar configurações:', error);
@@ -247,9 +262,7 @@ function ConfiguracoesContent() {
 
                                 {activeTab === 'Google' && (
                                     <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                                        <SessionProvider>
-                                            <GoogleSettings />
-                                        </SessionProvider>
+                                        <GoogleSettings />
                                     </div>
                                 )}
 

@@ -1,10 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export', // Required for Cloudflare Pages static deployment
+  // SSR mode - compatible with Hostinger VPS/Cloud
   images: {
     unoptimized: true,
   },
 };
 
 export default nextConfig;
+

@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -15,8 +16,19 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
     const [searchOpen, setSearchOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [user, setUser] = useState<any>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+    const supabase = createClient();
+
+    // Load user data
+    useEffect(() => {
+        async function loadUser() {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        }
+        loadUser();
+    }, [supabase.auth]);
 
     // Close user menu when clicking outside
     useEffect(() => {
@@ -91,12 +103,22 @@ export function Header({ onMenuClick }: HeaderProps) {
                             className="flex items-center gap-3 pl-3 border-l border-divider hover:opacity-80 transition-opacity"
                         >
                             <div className="hidden md:block text-right">
-                                <p className="text-sm font-medium text-text-primary">Admin</p>
-                                <p className="text-xs text-text-secondary">admin@confeitaria.com</p>
+                                <p className="text-sm font-medium text-text-primary">
+                                    {user?.user_metadata?.full_name || user?.user_metadata?.name || 'Usuário'}
+                                </p>
+                                <p className="text-xs text-text-secondary">{user?.email || ''}</p>
                             </div>
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                                <User size={20} />
-                            </div>
+                            {user?.user_metadata?.avatar_url ? (
+                                <img
+                                    src={user.user_metadata.avatar_url}
+                                    alt="Avatar"
+                                    className="h-10 w-10 rounded-full border border-primary/20"
+                                />
+                            ) : (
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                    <User size={20} />
+                                </div>
+                            )}
                         </button>
 
                         {/* Dropdown Menu */}
@@ -129,9 +151,12 @@ export function Header({ onMenuClick }: HeaderProps) {
                                     </Link>
                                     <div className="my-1 border-t border-divider" />
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             setUserMenuOpen(false);
+                                            const supabase = createClient();
+                                            await supabase.auth.signOut();
                                             router.push("/login");
+                                            router.refresh();
                                         }}
                                         className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors"
                                     >

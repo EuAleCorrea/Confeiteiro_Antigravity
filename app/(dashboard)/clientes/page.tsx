@@ -9,7 +9,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Cliente } from "@/lib/storage";
 import { supabaseStorage } from "@/lib/supabase-storage";
 import { ImportGoogleContactsModal } from "@/components/clientes/ImportGoogleContactsModal";
-import { SessionProvider, useSession } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 
 function ClientesContent() {
     const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -19,7 +19,8 @@ function ClientesContent() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
-    const { status: authStatus } = useSession();
+    const [isGoogleUser, setIsGoogleUser] = useState(false);
+    const supabase = createClient();
 
     // Form State
     const [formData, setFormData] = useState<Partial<Cliente>>({});
@@ -27,7 +28,13 @@ function ClientesContent() {
 
     useEffect(() => {
         loadClientes();
+        checkGoogleUser();
     }, []);
+
+    async function checkGoogleUser() {
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsGoogleUser(user?.app_metadata?.provider === 'google');
+    }
 
     async function loadClientes() {
         try {
@@ -163,7 +170,7 @@ function ClientesContent() {
                     <p className="text-text-secondary">Gerencie seus clientes e histórico</p>
                 </div>
                 <div className="flex gap-2">
-                    {authStatus === "authenticated" && (
+                    {isGoogleUser && (
                         <Button
                             variant="outline"
                             onClick={() => setIsGoogleModalOpen(true)}
@@ -409,9 +416,6 @@ function ClientesContent() {
 }
 
 export default function ClientesPage() {
-    return (
-        <SessionProvider>
-            <ClientesContent />
-        </SessionProvider>
-    );
+    return <ClientesContent />;
 }
+
