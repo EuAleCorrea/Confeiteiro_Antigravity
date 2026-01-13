@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    image: confeiteiro:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://apiwp.automacaototal.com
+      - NEXTAUTH_URL=https://app.automacaototal.com
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.confeiteiro.rule=Host(`app.automacaototal.com`)"
+        - "traefik.http.routers.confeiteiro.entrypoints=websecure"
+        - "traefik.http.routers.confeiteiro.tls.certresolver=letsencrypt"
+        - "traefik.http.services.confeiteiro.loadbalancer.server.port=3000"
+    networks:
+      - network_public
+
+networks:
+  network_public:
+    external: true
