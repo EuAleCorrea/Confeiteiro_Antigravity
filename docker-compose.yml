@@ -8,6 +8,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - NODE_ENV=production
+      - HOSTNAME=app.automacaototal.com
       - NEXTAUTH_URL=https://app.automacaototal.com
       - NEXT_PUBLIC_SUPABASE_URL=https://jtzhuvqkszsveybakbwp.supabase.co
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0emh1dnFrc3pzdmV5YmFrYndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczODM5MjMsImV4cCI6MjA4Mjk1OTkyM30.aGrQn6Z26HISMTdpOWzYFNj3qAYGH92Kxt6HXegAeJM
