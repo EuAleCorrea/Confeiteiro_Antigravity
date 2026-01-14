@@ -6,10 +6,62 @@ description: Regras de ambiente DEV/PROD para o projeto Confeiteiro
 
 ## Ambientes Disponíveis
 
-| Ambiente | Projeto Supabase | URL | Uso |
-|----------|------------------|-----|-----|
-| **DEV** | `hzbstufkhnurrvnslvkc` | `https://hzbstufkhnurrvnslvkc.supabase.co` | Desenvolvimento local e testes |
-| **PROD** | `jtzhuvqkszsveybakbwp` | `https://jtzhuvqkszsveybakbwp.supabase.co` | Aplicação em produção |
+| Ambiente | Projeto Supabase | URL | Site URL (OAuth) | Uso |
+|----------|------------------|-----|------------------|-----|
+| **DEV** | `hzbstufkhnurrvnslvkc` | `https://hzbstufkhnurrvnslvkc.supabase.co` | `http://localhost:3000` | Desenvolvimento local e testes |
+| **PROD** | `jtzhuvqkszsveybakbwp` | `https://jtzhuvqkszsveybakbwp.supabase.co` | `https://app.automacaototal.com` | Aplicação em produção (Hostinger) |
+
+### ⚙️ Configuração Automática de Ambientes
+
+**O sistema detecta automaticamente qual ambiente usar:**
+
+| Situação | Fonte das Variáveis | Projeto Supabase |
+|----------|---------------------|------------------|
+| `npm run dev` (localhost) | `.env.local` (local, não comitado) | **DEV** |
+| Docker/Produção | `docker-compose.yml` (variáveis injetadas) | **PROD** |
+
+**Regra:** O arquivo `.env.local` **NUNCA** deve ser copiado para a imagem Docker. Ele é exclusivo para desenvolvimento local.
+
+### Configurações de OAuth por Ambiente
+
+| Ambiente | Site URL | Redirect URLs |
+|----------|----------|---------------|
+| **DEV** | `http://localhost:3000` | `http://localhost:3000/auth/callback` |
+| **PROD** | `https://app.automacaototal.com` | `https://app.automacaototal.com/auth/callback` |
+
+---
+
+## ⚠️ IMPORTANTE: Sincronização de Projetos Supabase
+
+### Regra Obrigatória de Sincronização
+
+**Ao subir novas versões ou fazer alterações estruturais, AMBOS os projetos Supabase devem ser atualizados:**
+
+1. **Alterações de Schema (tabelas, colunas, RLS):**
+   - Aplicar primeiro em DEV e testar
+   - Quando autorizado, aplicar as mesmas alterações em PROD
+   - Documentar scripts SQL em `docs/tecnica/`
+
+2. **Alterações em Auth/Providers:**
+   - Se adicionar/remover providers OAuth, configurar em AMBOS os projetos
+   - Manter as URLs de callback corretas para cada ambiente
+
+3. **Edge Functions:**
+   - Deploy em DEV primeiro para testes
+   - Deploy em PROD quando autorizado
+
+4. **Storage Buckets:**
+   - Criar/modificar buckets em ambos os projetos
+   - Manter políticas RLS sincronizadas
+
+### Checklist de Sincronização
+
+Antes de considerar uma alteração "completa", verificar:
+
+- [ ] Alteração aplicada em DEV (`hzbstufkhnurrvnslvkc`)
+- [ ] Alteração testada localmente
+- [ ] Alteração aplicada em PROD (`jtzhuvqkszsveybakbwp`) quando autorizado
+- [ ] Funcionamento verificado em produção
 
 ---
 

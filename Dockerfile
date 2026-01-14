@@ -44,10 +44,9 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Se .env.local existir na imagem builder (copiado do contexto), copie-o. 
-# Como não temos garantia, melhor copiar do contexto original se possivel ou falhar se obrigatorio.
-# Vamos copiar do contexto DEPS por segurança ou do builder onde 'COPY . .' já rolou.
-COPY --from=builder --chown=nextjs:nodejs /app/.env.local ./.env.local
+# NOTA: .env.local NÃO é copiado para a imagem.
+# - Desenvolvimento: usa .env.local local (projeto DEV)
+# - Produção: variáveis são injetadas via docker-compose.yml (projeto PROD)
 
 USER nextjs
 
