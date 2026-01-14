@@ -54,7 +54,6 @@ USER nextjs
 EXPOSE 3000
 
 ENV PORT=3000
-# set hostname to localhost
-ENV HOSTNAME="0.0.0.0"
+# HOSTNAME removido - estava causando problemas no OAuth redirect
 
 CMD ["node", "server.js"]
