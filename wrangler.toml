@@ -1,8 +1,9 @@
-# Configuração Cloudflare Pages/Workers
-# Este projeto usa o ambiente DEV do Supabase
+# Configuração Cloudflare Pages
+# Este arquivo define as variáveis para o ambiente de preview/staging
 
 name = "confeiteiroantigravity"
 compatibility_date = "2025-12-23"
+pages_build_output_dir = "./out"
 
 # Variáveis de ambiente para o ambiente DEV
 [vars]
