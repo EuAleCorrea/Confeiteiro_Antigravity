@@ -1,0 +1,11 @@
+# Configuração Cloudflare Pages/Workers
+# Este projeto usa o ambiente DEV do Supabase
+
+name = "confeiteiroantigravity"
+compatibility_date = "2025-12-23"
+
+# Variáveis de ambiente para o ambiente DEV
+[vars]
+NEXT_PUBLIC_SUPABASE_URL = "https://hzbstufkhnurrvnslvkc.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6YnN0dWZraG51cnJ2bnNsdmtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczODQ4ODEsImV4cCI6MjA4Mjk2MDg4MX0.X4zWjhNZTS_bhYFq58xGbEq1GP-jisn68lhv4P8ZtdQ"
+NODE_ENV = "development"

@@ -18,7 +18,8 @@ description: Regras de ambiente DEV/PROD para o projeto Confeiteiro
 | Situação | Fonte das Variáveis | Projeto Supabase |
 |----------|---------------------|------------------|
 | `npm run dev` (localhost) | `.env.local` (local, não comitado) | **DEV** |
-| Docker/Produção | `docker-compose.yml` (variáveis injetadas) | **PROD** |
+| Cloudflare Pages (staging) | `wrangler.toml` (variáveis) | **DEV** |
+| Docker/Hostinger (produção) | `docker-compose.yml` (variáveis injetadas) | **PROD** |
 
 **Regra:** O arquivo `.env.local` **NUNCA** deve ser copiado para a imagem Docker. Ele é exclusivo para desenvolvimento local.
 
