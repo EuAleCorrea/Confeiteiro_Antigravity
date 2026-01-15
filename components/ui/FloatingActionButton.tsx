@@ -65,9 +65,9 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
     if (pathname?.startsWith('/estoque') || pathname?.startsWith('/orcamentos')) return null;
 
     // Circular layout configuration
-    const radius = 100; // distance from center in pixels
-    const startAngle = -15; // start angle (degrees from vertical, negative = right of vertical)
-    const endAngle = 105; // end angle (degrees, going counterclockwise)
+    const radius = 120; // distance from center in pixels
+    const startAngle = -30; // start angle (degrees from vertical, negative = right of vertical)
+    const endAngle = 120; // end angle (degrees, going counterclockwise)
     const totalAngle = endAngle - startAngle;
     const angleStep = totalAngle / (actions.length - 1);
 
@@ -90,8 +90,8 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                 />
             )}
 
-            {/* FAB Container - positioned higher from bottom */}
-            <div className="fixed bottom-20 right-4 md:bottom-24 md:right-6 z-50">
+            {/* FAB Container - WEB: middle right, MOBILE: bottom right */}
+            <div className="fixed right-4 md:right-6 z-50 bottom-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2">
                 {/* Action buttons in circular layout */}
                 {actions.map((action, index) => {
                     const pos = getPosition(index);
@@ -99,16 +99,17 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                         <div
                             key={index}
                             className={cn(
-                                "absolute flex items-center gap-2 transition-all duration-300 ease-out",
+                                "absolute flex items-center gap-3 transition-all duration-300 ease-out",
                                 isOpen
                                     ? "opacity-100 pointer-events-auto"
-                                    : "opacity-0 pointer-events-none scale-50"
+                                    : "opacity-0 pointer-events-none"
                             )}
                             style={{
-                                // Position from center of main FAB (which is 56px = 14*4)
-                                left: `${28 - pos.x - 24}px`, // 28 = half of FAB, 24 = half of action button
-                                bottom: `${28 + (isOpen ? pos.y : 0) - 24}px`,
+                                // Position from center of main FAB
+                                left: isOpen ? `${28 - pos.x - 24}px` : "4px",
+                                top: isOpen ? `${28 - pos.y - 24}px` : "4px",
                                 transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
+                                transform: isOpen ? "scale(1)" : "scale(0.3)",
                             }}
                         >
                             {/* Label - positioned to the left of button */}
