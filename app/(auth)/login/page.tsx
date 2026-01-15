@@ -205,8 +205,9 @@ export default function LoginPage() {
                                         <Button
                                             variant="outline"
                                             size="md"
-                                            className="w-full h-12 flex items-center justify-center gap-2 border-gray-200 hover:bg-gray-50 font-normal text-gray-700"
-                                            onClick={() => handleSocialLogin('facebook')}
+                                            className="w-full h-12 flex items-center justify-center gap-2 border-gray-200 font-normal text-gray-400 opacity-50 cursor-not-allowed"
+                                            disabled
+                                            title="Em breve"
                                         >
                                             <FacebookIcon />
                                             Facebook
@@ -214,8 +215,9 @@ export default function LoginPage() {
                                         <Button
                                             variant="outline"
                                             size="md"
-                                            className="w-full h-12 flex items-center justify-center gap-2 border-gray-200 hover:bg-gray-50 font-normal text-gray-700"
-                                            onClick={() => handleSocialLogin('apple')}
+                                            className="w-full h-12 flex items-center justify-center gap-2 border-gray-200 font-normal text-gray-400 opacity-50 cursor-not-allowed"
+                                            disabled
+                                            title="Em breve"
                                         >
                                             <AppleIcon />
                                             Apple
