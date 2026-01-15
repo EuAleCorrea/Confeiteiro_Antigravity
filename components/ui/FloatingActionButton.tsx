@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X, FileText, DollarSign, Package, Calendar, ShoppingBag, ChefHat } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -60,16 +60,29 @@ interface FloatingActionButtonProps {
 export function FloatingActionButton({ actions = defaultActions }: FloatingActionButtonProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+    const [isDesktop, setIsDesktop] = useState(false);
+
+    // Responsive check
+    useEffect(() => {
+        const check = () => setIsDesktop(window.matchMedia("(min-width: 768px)").matches);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
 
     // Hide on specific pages where it might obstruct UI or is redundant
     if (pathname?.startsWith('/estoque') || pathname?.startsWith('/orcamentos')) return null;
 
     // Circular layout configuration
     const radius = 120; // distance from center in pixels
-    const startAngle = -30; // start angle (degrees from vertical, negative = right of vertical)
-    const endAngle = 120; // end angle (degrees, going counterclockwise)
+
+    // Desktop: Semi-circle to the left (15° to 165°)
+    // Mobile: Quarter-circle top-left (0° to 90°)
+    const startAngle = isDesktop ? 15 : 0;
+    const endAngle = isDesktop ? 165 : 90;
+
     const totalAngle = endAngle - startAngle;
-    const angleStep = totalAngle / (actions.length - 1);
+    const angleStep = actions.length > 1 ? totalAngle / (actions.length - 1) : 0;
 
     const getPosition = (index: number) => {
         const angleDeg = startAngle + (index * angleStep);
