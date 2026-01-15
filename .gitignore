@@ -30,8 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+# .env é permitido (contém apenas NEXT_PUBLIC_* para build no Cloudflare)
+# .env.local é ignorado (contém chaves locais de desenvolvimento)
+.env.local
+.env*.local
 
 # vercel
 .vercel
