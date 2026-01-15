@@ -11,7 +11,8 @@ import { supabaseStorage } from "@/lib/supabase-storage";
 
 export default function DashboardPage() {
     const [greeting, setGreeting] = useState("");
-    const [userName, setUserName] = useState("Admin");
+    const [userName, setUserName] = useState("");
+    const [isLoadingUser, setIsLoadingUser] = useState(true);
     const [period, setPeriod] = useState<"hoje" | "semana">("hoje");
 
     useEffect(() => {
@@ -33,6 +34,7 @@ export default function DashboardPage() {
                         const firstName = fullName.split(" ")[0];
                         if (firstName) {
                             setUserName(firstName);
+                            setIsLoadingUser(false);
                             return; // Encontrou no Auth, não precisa carregar configurações
                         }
                     }
@@ -48,6 +50,8 @@ export default function DashboardPage() {
                 }
             } catch (error) {
                 console.error("Erro ao carregar dados do usuário:", error);
+            } finally {
+                setIsLoadingUser(false);
             }
         }
         loadUserData();
@@ -59,7 +63,7 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary">
-                        {greeting}, {userName}! 👋
+                        {greeting}, {isLoadingUser ? "..." : (userName || "Admin")}! 👋
                     </h1>
                     <p className="text-text-secondary mt-1">
                         Aqui está o resumo do seu negócio.
