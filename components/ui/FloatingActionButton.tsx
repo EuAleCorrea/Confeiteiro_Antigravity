@@ -64,21 +64,19 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
     // Hide on specific pages where it might obstruct UI or is redundant
     if (pathname?.startsWith('/estoque') || pathname?.startsWith('/orcamentos')) return null;
 
-    // Calculate circular positions for each action
-    // Fan spread: from straight up (0°) to left (-90°)
-    const totalAngle = 90; // degrees to spread
-    const startAngle = 0; // start from top (12 o'clock)
-    const radius = 90; // distance from center in pixels
+    // Circular layout configuration
+    const radius = 100; // distance from center in pixels
+    const startAngle = -15; // start angle (degrees from vertical, negative = right of vertical)
+    const endAngle = 105; // end angle (degrees, going counterclockwise)
+    const totalAngle = endAngle - startAngle;
     const angleStep = totalAngle / (actions.length - 1);
 
     const getPosition = (index: number) => {
-        // Calculate angle for this item (in degrees, going counterclockwise from top)
         const angleDeg = startAngle + (index * angleStep);
-        // Convert to radians
         const angleRad = (angleDeg * Math.PI) / 180;
-        // Calculate x,y offsets (negative y for up, negative x for left)
-        const x = -Math.sin(angleRad) * radius;
-        const y = -Math.cos(angleRad) * radius;
+        // x positive = left, y positive = up
+        const x = Math.sin(angleRad) * radius;
+        const y = Math.cos(angleRad) * radius;
         return { x, y };
     };
 
@@ -92,7 +90,8 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                 />
             )}
 
-            <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 pb-safe">
+            {/* FAB Container - positioned higher from bottom */}
+            <div className="fixed bottom-20 right-4 md:bottom-24 md:right-6 z-50">
                 {/* Action buttons in circular layout */}
                 {actions.map((action, index) => {
                     const pos = getPosition(index);
@@ -100,21 +99,26 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                         <div
                             key={index}
                             className={cn(
-                                "absolute flex items-center gap-2 transition-all duration-300",
+                                "absolute flex items-center gap-2 transition-all duration-300 ease-out",
                                 isOpen
                                     ? "opacity-100 pointer-events-auto"
-                                    : "opacity-0 pointer-events-none"
+                                    : "opacity-0 pointer-events-none scale-50"
                             )}
                             style={{
-                                // Position relative to center of main FAB
-                                bottom: `calc(28px + ${isOpen ? -pos.y : 0}px)`,
-                                right: `calc(28px + ${isOpen ? -pos.x : 0}px)`,
-                                transitionDelay: isOpen ? `${index * 40}ms` : "0ms",
-                                transform: `translate(50%, 50%) scale(${isOpen ? 1 : 0.5})`,
+                                // Position from center of main FAB (which is 56px = 14*4)
+                                left: `${28 - pos.x - 24}px`, // 28 = half of FAB, 24 = half of action button
+                                bottom: `${28 + (isOpen ? pos.y : 0) - 24}px`,
+                                transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
                             }}
                         >
-                            {/* Label */}
-                            <span className="bg-surface px-3 py-1.5 rounded-lg shadow-lg text-sm font-medium text-text-primary whitespace-nowrap">
+                            {/* Label - positioned to the left of button */}
+                            <span
+                                className={cn(
+                                    "bg-surface px-3 py-1.5 rounded-lg shadow-lg text-sm font-medium text-text-primary whitespace-nowrap transition-all duration-300",
+                                    isOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
+                                )}
+                                style={{ transitionDelay: isOpen ? `${index * 50 + 100}ms` : "0ms" }}
+                            >
                                 {action.label}
                             </span>
                             {/* Button */}
@@ -122,7 +126,7 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                                 <Link
                                     href={action.href}
                                     className={cn(
-                                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110",
+                                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 shrink-0",
                                         action.color || "bg-primary"
                                     )}
                                     onClick={() => setIsOpen(false)}
@@ -136,7 +140,7 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                                         setIsOpen(false);
                                     }}
                                     className={cn(
-                                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110",
+                                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 shrink-0",
                                         action.color || "bg-primary"
                                     )}
                                 >
