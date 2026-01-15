@@ -74,7 +74,7 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
     if (pathname?.startsWith('/estoque') || pathname?.startsWith('/orcamentos')) return null;
 
     // Circular layout configuration
-    const radius = 150; // distance from center in pixels
+    const radius = 200; // distance from center in pixels
 
     // Desktop: Semi-circle to the left (20° to 160°)
     // Mobile: Quarter-circle top-left (20° to 110°) - Start at 20° to avoid text clipping on right edge
@@ -126,7 +126,18 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                                 transform: isOpen ? "scale(1)" : "scale(0.3)",
                             }}
                         >
-                            {/* Button (Icon) - First */}
+                            {/* Label - First (Left of Icon) */}
+                            <span
+                                className={cn(
+                                    "bg-surface px-3 py-1.5 rounded-lg shadow-lg text-sm font-medium text-text-primary whitespace-nowrap transition-all duration-300",
+                                    isOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
+                                )}
+                                style={{ transitionDelay: isOpen ? `${index * 50 + 100}ms` : "0ms" }}
+                            >
+                                {action.label}
+                            </span>
+
+                            {/* Button (Icon) - Second (Right of Label) */}
                             {action.href ? (
                                 <Link
                                     href={action.href}
@@ -152,17 +163,6 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                                     <action.icon size={22} />
                                 </button>
                             )}
-
-                            {/* Label - Second (Right of Icon) */}
-                            <span
-                                className={cn(
-                                    "bg-surface px-3 py-1.5 rounded-lg shadow-lg text-sm font-medium text-text-primary whitespace-nowrap transition-all duration-300",
-                                    isOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
-                                )}
-                                style={{ transitionDelay: isOpen ? `${index * 50 + 100}ms` : "0ms" }}
-                            >
-                                {action.label}
-                            </span>
                         </div>
                     );
                 })}
