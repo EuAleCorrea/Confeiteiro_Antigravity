@@ -74,12 +74,12 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
     if (pathname?.startsWith('/estoque') || pathname?.startsWith('/orcamentos')) return null;
 
     // Circular layout configuration
-    const radius = 120; // distance from center in pixels
+    const radius = 150; // distance from center in pixels
 
-    // Desktop: Semi-circle to the left (15° to 165°)
-    // Mobile: Quarter-circle top-left (0° to 90°)
-    const startAngle = isDesktop ? 15 : 0;
-    const endAngle = isDesktop ? 165 : 90;
+    // Desktop: Semi-circle to the left (20° to 160°)
+    // Mobile: Quarter-circle top-left (20° to 110°) - Start at 20° to avoid text clipping on right edge
+    const startAngle = isDesktop ? 20 : 20;
+    const endAngle = isDesktop ? 160 : 110;
 
     const totalAngle = endAngle - startAngle;
     const angleStep = actions.length > 1 ? totalAngle / (actions.length - 1) : 0;
@@ -118,24 +118,15 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                                     : "opacity-0 pointer-events-none"
                             )}
                             style={{
-                                // Position from center of main FAB
+                                // Position from center of main FAB. 
+                                // Since Icon is first, this positions the Icon center at the calculated point.
                                 left: isOpen ? `${28 - pos.x - 24}px` : "4px",
                                 top: isOpen ? `${28 - pos.y - 24}px` : "4px",
                                 transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
                                 transform: isOpen ? "scale(1)" : "scale(0.3)",
                             }}
                         >
-                            {/* Label - positioned to the left of button */}
-                            <span
-                                className={cn(
-                                    "bg-surface px-3 py-1.5 rounded-lg shadow-lg text-sm font-medium text-text-primary whitespace-nowrap transition-all duration-300",
-                                    isOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
-                                )}
-                                style={{ transitionDelay: isOpen ? `${index * 50 + 100}ms` : "0ms" }}
-                            >
-                                {action.label}
-                            </span>
-                            {/* Button */}
+                            {/* Button (Icon) - First */}
                             {action.href ? (
                                 <Link
                                     href={action.href}
@@ -161,6 +152,17 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                                     <action.icon size={22} />
                                 </button>
                             )}
+
+                            {/* Label - Second (Right of Icon) */}
+                            <span
+                                className={cn(
+                                    "bg-surface px-3 py-1.5 rounded-lg shadow-lg text-sm font-medium text-text-primary whitespace-nowrap transition-all duration-300",
+                                    isOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                                )}
+                                style={{ transitionDelay: isOpen ? `${index * 50 + 100}ms` : "0ms" }}
+                            >
+                                {action.label}
+                            </span>
                         </div>
                     );
                 })}
