@@ -20,18 +20,37 @@ export default function DashboardPage() {
         else if (hour < 18) setGreeting("Boa tarde");
         else setGreeting("Boa noite");
 
-        // Get user name from settings if available
-        async function loadConfig() {
-            const config = await supabaseStorage.getConfiguracoes();
-            if (config?.empresa?.nome) {
-                // Use first name only
-                const firstName = config.empresa.nome.split(" ")[0];
-                if (firstName && firstName.length < 20) {
-                    setUserName(firstName);
+        async function loadUserData() {
+            try {
+                // 1. Tentar pegar o nome do usuário autenticado (Supabase Auth)
+                const { createClient } = await import("@/lib/supabase/client");
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (user) {
+                    const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
+                    if (fullName) {
+                        const firstName = fullName.split(" ")[0];
+                        if (firstName) {
+                            setUserName(firstName);
+                            return; // Encontrou no Auth, não precisa carregar configurações
+                        }
+                    }
                 }
+
+                // 2. Fallback: Tentar pegar o nome da empresa nas configurações
+                const config = await supabaseStorage.getConfiguracoes();
+                if (config?.empresa?.nome) {
+                    const firstName = config.empresa.nome.split(" ")[0];
+                    if (firstName && firstName.length < 20) {
+                        setUserName(firstName);
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao carregar dados do usuário:", error);
             }
         }
-        loadConfig();
+        loadUserData();
     }, []);
 
     return (
