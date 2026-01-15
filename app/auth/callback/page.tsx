@@ -12,11 +12,23 @@ function AuthCallbackContent() {
 
     useEffect(() => {
         const handleCallback = async () => {
+            const supabase = createClient()
+
+            // Primeiro, tenta obter a sessão atual (pode já ter sido estabelecida via hash fragment)
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+            if (session) {
+                // Sessão já existe, redireciona para a página principal
+                const next = searchParams.get('next') ?? '/'
+                router.push(next)
+                return
+            }
+
+            // Se não há sessão, verifica se há um código na URL (fluxo PKCE)
             const code = searchParams.get('code')
             const next = searchParams.get('next') ?? '/'
 
             if (code) {
-                const supabase = createClient()
                 const { error } = await supabase.auth.exchangeCodeForSession(code)
 
                 if (!error) {
@@ -25,8 +37,14 @@ function AuthCallbackContent() {
                     setError(error.message)
                 }
             } else {
-                // Se não houver código, redireciona para login
-                router.push('/login')
+                // Verifica se há erro na URL
+                const errorDescription = searchParams.get('error_description')
+                if (errorDescription) {
+                    setError(errorDescription)
+                } else {
+                    // Se não houver código nem sessão, redireciona para login
+                    router.push('/login')
+                }
             }
         }
 

@@ -128,6 +128,11 @@ export default function LoginPage() {
                 provider,
                 options: {
                     redirectTo: `${location.origin}/auth/callback`,
+                    // Usar fluxo implícito para evitar problemas de PKCE em static export
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'consent',
+                    },
                 },
             })
             if (error) {
