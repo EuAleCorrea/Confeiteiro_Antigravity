@@ -144,8 +144,9 @@ export default function LoginPage() {
     const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
         setError(null)
         try {
-            // Usar variável de ambiente para garantir redirecionamento correto em dev/prod
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+            // Sempre usar window.location.origin para detectar automaticamente a URL
+            // Isso funciona tanto em localhost quanto no Cloudflare Pages
+            const appUrl = window.location.origin
 
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
