@@ -31,7 +31,7 @@ export default function PlaylistCard({ playlist }: PlaylistCardProps) {
             </p>
 
             <Link
-                href={`/ajuda/videos/playlist/${playlist.id}`}
+                href={`/dashboard/ajuda/videos/playlist/${playlist.id}`}
                 className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-all mt-auto"
             >
                 Ver Playlist <ArrowRight size={16} />

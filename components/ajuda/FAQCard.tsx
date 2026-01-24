@@ -28,7 +28,7 @@ export default function FAQCard({ question }: FAQCardProps) {
 
     return (
         <Link
-            href={`/ajuda/faq/${question.id}`}
+            href={`/dashboard/ajuda/faq/${question.id}`}
             className="group block bg-white border border-border rounded-xl p-5 hover:border-primary hover:shadow-md transition-all h-full flex flex-col"
         >
             <div className="flex items-start justify-between mb-3">

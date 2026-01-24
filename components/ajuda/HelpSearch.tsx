@@ -76,7 +76,7 @@ export default function HelpSearch() {
                                 {results.faq.map((item) => (
                                     <div
                                         key={item.id}
-                                        onClick={() => router.push(`/ajuda/faq?id=${item.id}&categoria=${item.categoriaId}`)}
+                                        onClick={() => router.push(`/dashboard/ajuda/faq?id=${item.id}&categoria=${item.categoriaId}`)}
                                         className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
                                     >
                                         <div className="text-primary">
@@ -96,7 +96,7 @@ export default function HelpSearch() {
                     </div>
 
                     <div className="p-3 border-t border-border bg-gray-50 text-center">
-                        <Link href={`/ajuda/faq?q=${encodeURIComponent(query)}`} className="text-sm text-primary hover:underline font-medium">
+                        <Link href={`/dashboard/ajuda/faq?q=${encodeURIComponent(query)}`} className="text-sm text-primary hover:underline font-medium">
                             Ver todos os resultados
                         </Link>
                     </div>

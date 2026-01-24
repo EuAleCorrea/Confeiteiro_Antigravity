@@ -53,7 +53,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
                 </div>
 
                 <Link
-                    href={`/ajuda/suporte/${ticket.id}`}
+                    href={`/dashboard/ajuda/suporte/${ticket.id}`}
                     className="text-sm font-bold text-primary flex items-center gap-1 hover:gap-2 transition-all"
                 >
                     Ver Detalhes <ArrowRight size={16} />

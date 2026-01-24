@@ -49,7 +49,7 @@ export default function HelpCenterPage() {
                         </div>
                         <h3 className="text-lg font-bold text-text-primary mb-2">FAQ</h3>
                         <p className="text-sm text-text-secondary mb-4">Perguntas frequentes e respostas rápidas.</p>
-                        <Link href="/ajuda/faq" className="text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all">
+                        <Link href="/dashboard/ajuda/faq" className="text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all">
                             Acessar <ArrowRight size={16} />
                         </Link>
                     </div>
@@ -61,7 +61,7 @@ export default function HelpCenterPage() {
                         </div>
                         <h3 className="text-lg font-bold text-text-primary mb-2">Vídeos</h3>
                         <p className="text-sm text-text-secondary mb-4">Tutoriais em vídeo passo a passo.</p>
-                        <Link href="/ajuda/videos" className="text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all">
+                        <Link href="/dashboard/ajuda/videos" className="text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all">
                             Assistir <ArrowRight size={16} />
                         </Link>
                     </div>
@@ -73,7 +73,7 @@ export default function HelpCenterPage() {
                         </div>
                         <h3 className="text-lg font-bold text-text-primary mb-2">Suporte</h3>
                         <p className="text-sm text-text-secondary mb-4">Abra um ticket para nossa equipe.</p>
-                        <Link href="/ajuda/suporte" className="text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all">
+                        <Link href="/dashboard/ajuda/suporte" className="text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all">
                             Contatar <ArrowRight size={16} />
                         </Link>
                     </div>
@@ -99,7 +99,7 @@ export default function HelpCenterPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {helpCategories.map((category) => (
                             <Link
-                                href={`/ajuda/faq?categoria=${category.id}`}
+                                href={`/dashboard/ajuda/faq?categoria=${category.id}`}
                                 key={category.id}
                                 className="group bg-white p-5 rounded-xl border border-border hover:border-primary transition-all flex items-start gap-4 hover:shadow-sm"
                             >
