@@ -71,3 +71,16 @@ npx wrangler pages deploy ./out --project-name=confeiteiroantigravity --branch=p
 - Dashboard: `/dashboard/*` (autenticado)
 - Login: `/login`
 - Auth Callback: `/auth/callback`
+
+---
+
+## 📋 TODOs PENDENTES
+
+### 🔴 Alta Prioridade
+
+1. **Reimplementar Importação de Contatos do Google**
+   - **Arquivo**: `components/clientes/ImportGoogleContactsModal.tsx`
+   - **Página afetada**: `/dashboard/clientes`
+   - **Problema**: Usava `next-auth` que foi removido na migração para Supabase Auth
+   - **Solução necessária**: Refatorar para usar Supabase Auth com Google People API
+   - **Data desabilitado**: 2026-01-24
