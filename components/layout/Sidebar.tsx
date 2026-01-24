@@ -79,7 +79,10 @@ const menuGroups = [
 function findGroupByPath(pathname: string): string {
     for (const group of menuGroups) {
         for (const item of group.items) {
-            if (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))) {
+            const isMatch = item.href === "/dashboard"
+                ? pathname === "/dashboard"
+                : pathname === item.href || pathname.startsWith(item.href + "/");
+            if (isMatch) {
                 return group.id;
             }
         }
@@ -165,7 +168,9 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                     {menuGroups.map((group) => {
                         const isExpanded = expandedGroup === group.id;
                         const hasActiveItem = group.items.some(
-                            item => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+                            item => item.href === "/dashboard"
+                                ? pathname === "/dashboard"
+                                : pathname === item.href || pathname.startsWith(item.href + "/")
                         );
 
                         return (
@@ -205,7 +210,11 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                                     )}
                                 >
                                     {group.items.map((item) => {
-                                        const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+                                        // /dashboard só fica ativo com match exato
+                                        // Outras rotas usam startsWith para subrotas
+                                        const isActive = item.href === "/dashboard"
+                                            ? pathname === "/dashboard"
+                                            : pathname === item.href || pathname.startsWith(item.href + "/");
                                         return (
                                             <Link
                                                 key={item.href}
