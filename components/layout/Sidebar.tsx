@@ -98,8 +98,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
     }, [pathname]);
 
     const toggleGroup = (groupId: string) => {
-        // Se clicar no mesmo grupo, fecha. Se clicar em outro, abre esse e fecha o anterior.
-        setExpandedGroup(prev => prev === groupId ? "" : groupId);
+        // Sempre abrir o grupo clicado (fecha todos os outros automaticamente)
+        setExpandedGroup(groupId);
     };
 
     return (
