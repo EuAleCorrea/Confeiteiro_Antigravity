@@ -22,16 +22,16 @@ const defaultActions: FABAction[] = [
         color: "bg-primary",
     },
     {
+        icon: ShoppingBag,
+        label: "Novo Pedido",
+        href: "/dashboard/pedidos", // Idealmente abriria modal se houver query param, ou vai pra lista
+        color: "bg-orange-500",
+    },
+    {
         icon: Calendar,
         label: "Ver Agenda",
         href: "/dashboard/agenda",
         color: "bg-blue-500",
-    },
-    {
-        icon: ShoppingBag,
-        label: "Novo Pedido",
-        href: "/dashboard/pedidos",
-        color: "bg-orange-500",
     },
     {
         icon: ChefHat,
@@ -41,14 +41,14 @@ const defaultActions: FABAction[] = [
     },
     {
         icon: DollarSign,
-        label: "Registrar Receita",
-        href: "/dashboard/financeiro?action=nova-receita",
+        label: "Nova Receita",
+        href: "/dashboard/financeiro", // Ajustar para abrir modal de receita se possível via URL
         color: "bg-success",
     },
     {
         icon: Package,
-        label: "Entrada de Estoque",
-        href: "/dashboard/estoque?action=entrada",
+        label: "Entrada Estoque",
+        href: "/dashboard/estoque", // Ajustar para abrir modal de estoque se possível via URL
         color: "bg-info",
     },
 ];
@@ -60,94 +60,60 @@ interface FloatingActionButtonProps {
 export function FloatingActionButton({ actions = defaultActions }: FloatingActionButtonProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
-    const [isDesktop, setIsDesktop] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
-    // Responsive check
+    // Evita hidratação incorreta
     useEffect(() => {
-        const check = () => setIsDesktop(window.matchMedia("(min-width: 768px)").matches);
-        check();
-        window.addEventListener('resize', check);
-        return () => window.removeEventListener('resize', check);
+        setMounted(true);
     }, []);
 
     // Hide on specific pages where it might obstruct UI or is redundant
-    if (pathname?.startsWith('/estoque') || pathname?.startsWith('/orcamentos')) return null;
-
-    // Circular layout configuration
-    const radius = 200; // distance from center in pixels
-
-    // Desktop: Semi-circle to the left (20° to 160°)
-    // Mobile: Quarter-circle top-left (20° to 110°) - Start at 20° to avoid text clipping on right edge
-    const startAngle = isDesktop ? 20 : 20;
-    const endAngle = isDesktop ? 160 : 110;
-
-    const totalAngle = endAngle - startAngle;
-    const angleStep = actions.length > 1 ? totalAngle / (actions.length - 1) : 0;
-
-    const getPosition = (index: number) => {
-        const angleDeg = startAngle + (index * angleStep);
-        const angleRad = (angleDeg * Math.PI) / 180;
-        // x positive = left, y positive = up
-        const x = Math.sin(angleRad) * radius;
-        const y = Math.cos(angleRad) * radius;
-        return { x, y };
-    };
+    if (!mounted || pathname?.startsWith('/dashboard/orcamentos/novo') || pathname?.startsWith('/dashboard/pedidos/novo')) return null;
 
     return (
         <>
             {/* Backdrop */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/20 z-40"
+                    className="fixed inset-0 bg-black/40 z-40 backdrop-blur-[2px] transition-opacity duration-300"
                     onClick={() => setIsOpen(false)}
                 />
             )}
 
-            {/* FAB Container - WEB: middle right, MOBILE: bottom right */}
-            <div className="fixed right-4 md:right-6 z-50 bottom-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2">
-                {/* Action buttons in circular layout */}
-                {actions.map((action, index) => {
-                    const pos = getPosition(index);
-                    return (
+            {/* FAB Container - Bottom Right */}
+            <div className="fixed right-6 bottom-24 md:bottom-10 z-50 flex flex-col items-end gap-4 pointer-events-none">
+
+                {/* Action Buttons Stack */}
+                <div className="flex flex-col items-end gap-3 mb-2">
+                    {actions.map((action, index) => (
                         <div
                             key={index}
                             className={cn(
-                                "absolute flex items-center gap-3 transition-all duration-300 ease-out",
+                                "flex items-center gap-3 transition-all duration-300 ease-out transform",
                                 isOpen
-                                    ? "opacity-100 pointer-events-auto"
-                                    : "opacity-0 pointer-events-none"
+                                    ? "opacity-100 translate-y-0 pointer-events-auto scale-100"
+                                    : "opacity-0 translate-y-10 pointer-events-none scale-75 h-0 overflow-hidden"
                             )}
                             style={{
-                                // Position from center of main FAB. 
-                                // Since Icon is first, this positions the Icon center at the calculated point.
-                                left: isOpen ? `${28 - pos.x - 24}px` : "4px",
-                                top: isOpen ? `${28 - pos.y - 24}px` : "4px",
-                                transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
-                                transform: isOpen ? "scale(1)" : "scale(0.3)",
+                                transitionDelay: isOpen ? `${(actions.length - 1 - index) * 50}ms` : "0ms"
                             }}
                         >
-                            {/* Label - First (Left of Icon) */}
-                            <span
-                                className={cn(
-                                    "bg-surface px-3 py-1.5 rounded-lg shadow-lg text-sm font-medium text-text-primary whitespace-nowrap transition-all duration-300",
-                                    isOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
-                                )}
-                                style={{ transitionDelay: isOpen ? `${index * 50 + 100}ms` : "0ms" }}
-                            >
+                            {/* Label */}
+                            <span className="bg-surface text-text-primary px-3 py-1.5 rounded-lg shadow-lg text-sm font-medium whitespace-nowrap border border-border/50">
                                 {action.label}
                             </span>
 
-                            {/* Button (Icon) - Second (Right of Label) */}
+                            {/* Button */}
                             {action.href ? (
                                 <Link
                                     href={action.href}
+                                    onClick={() => setIsOpen(false)}
                                     className={cn(
-                                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 shrink-0",
+                                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 active:scale-95",
                                         action.color || "bg-primary"
                                     )}
-                                    onClick={() => setIsOpen(false)}
                                 >
-                                    <action.icon size={22} />
+                                    <action.icon size={20} />
                                 </Link>
                             ) : (
                                 <button
@@ -156,28 +122,28 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
                                         setIsOpen(false);
                                     }}
                                     className={cn(
-                                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 shrink-0",
+                                        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 active:scale-95",
                                         action.color || "bg-primary"
                                     )}
                                 >
-                                    <action.icon size={22} />
+                                    <action.icon size={20} />
                                 </button>
                             )}
                         </div>
-                    );
-                })}
+                    ))}
+                </div>
 
-                {/* Main FAB button */}
+                {/* Main Toggle Button */}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className={cn(
-                        "w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl transition-all duration-300",
-                        "bg-gradient-to-br from-primary to-primary-dark",
-                        "hover:shadow-2xl hover:scale-105",
-                        isOpen && "rotate-45"
+                        "w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl transition-all duration-300 pointer-events-auto",
+                        "bg-gradient-to-br from-primary to-primary-dark hover:shadow-2xl hover:scale-105 active:scale-95",
+                        isOpen && "rotate-45 bg-error"
                     )}
+                    aria-label={isOpen ? "Fechar menu" : "Abrir menu de ações rápidas"}
                 >
-                    {isOpen ? <X size={26} /> : <Plus size={26} />}
+                    <Plus size={28} />
                 </button>
             </div>
         </>
