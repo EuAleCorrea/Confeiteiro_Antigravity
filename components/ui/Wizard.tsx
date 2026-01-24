@@ -149,3 +149,4 @@ export function Wizard({ steps, onComplete, onCancel, initialStep = 0 }: WizardP
         </div>
     );
 }
+

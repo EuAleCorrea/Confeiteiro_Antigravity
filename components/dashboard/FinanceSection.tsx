@@ -72,7 +72,7 @@ export function FinanceSection() {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-base font-semibold">Finanças</CardTitle>
-                <Link href="/financeiro">
+                <Link href="/dashboard/financeiro">
                     <Button variant="ghost" size="sm" className="text-xs text-text-secondary">
                         Ver detalhes
                     </Button>
@@ -110,3 +110,4 @@ export function FinanceSection() {
         </Card>
     );
 }
+

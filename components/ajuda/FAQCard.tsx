@@ -53,3 +53,4 @@ export default function FAQCard({ question }: FAQCardProps) {
         </Link>
     );
 }
+

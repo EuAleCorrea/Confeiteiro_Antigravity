@@ -72,3 +72,4 @@ export default function FAQAccordion({ questions, defaultOpenId }: FAQAccordionP
         </div>
     );
 }
+

@@ -42,3 +42,4 @@ export function DayProductionList({ date, orders }: DayProductionListProps) {
         </div>
     );
 }
+

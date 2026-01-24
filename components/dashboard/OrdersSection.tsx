@@ -54,7 +54,7 @@ export function OrdersSection() {
                         </div>
                     ))}
                 </div>
-                <Link href="/pedidos" className="block mt-4">
+                <Link href="/dashboard/pedidos" className="block mt-4">
                     <Button variant="ghost" className="w-full text-sm text-primary hover:text-primary-dark">
                         Ver Todos os Pedidos →
                     </Button>
@@ -63,3 +63,4 @@ export function OrdersSection() {
         </Card>
     );
 }
+

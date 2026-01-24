@@ -112,3 +112,4 @@ export function ProductionCalendar({ orders, startDate }: { orders: Pedido[], st
         </div>
     );
 }
+

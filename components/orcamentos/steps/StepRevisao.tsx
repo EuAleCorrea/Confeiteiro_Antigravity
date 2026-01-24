@@ -124,3 +124,4 @@ export default function StepRevisao({ data, back, next }: StepProps) {
         </div>
     );
 }
+

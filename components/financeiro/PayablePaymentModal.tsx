@@ -111,3 +111,4 @@ export function PayablePaymentModal({ conta, onClose, onSuccess }: PayablePaymen
         </Dialog>
     );
 }
+

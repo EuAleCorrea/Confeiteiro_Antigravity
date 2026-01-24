@@ -66,3 +66,4 @@ export default function StepDecoracao({ data, onUpdate, next, back }: StepProps)
         </div>
     );
 }
+

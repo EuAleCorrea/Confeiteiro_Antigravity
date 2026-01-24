@@ -169,3 +169,4 @@ export function StockList({ onEdit, onEntry, onExit }: StockListProps) {
         </div>
     );
 }
+

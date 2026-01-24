@@ -55,3 +55,4 @@ export function FinancialCard({ title, value, trend, previousLabel = "vs mês an
         </div>
     );
 }
+

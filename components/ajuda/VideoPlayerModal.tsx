@@ -176,3 +176,4 @@ export default function VideoPlayerModal({ video, open, onClose }: VideoPlayerMo
         ) : null
     );
 }
+

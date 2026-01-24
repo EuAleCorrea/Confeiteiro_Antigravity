@@ -60,3 +60,4 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </ToastProvider>
     );
 }
+

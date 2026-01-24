@@ -98,7 +98,7 @@ export function DailyAgenda() {
                         ))}
                     </div>
                 )}
-                <Link href="/agenda" className="block mt-4">
+                <Link href="/dashboard/agenda" className="block mt-4">
                     <Button variant="ghost" className="w-full text-sm text-primary hover:text-primary-dark">
                         Ver Agenda Completa →
                     </Button>
@@ -107,3 +107,4 @@ export function DailyAgenda() {
         </Card>
     );
 }
+

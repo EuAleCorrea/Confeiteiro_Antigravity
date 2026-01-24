@@ -94,3 +94,4 @@ export function CalendarView({ pedidos }: CalendarViewProps) {
         </div>
     );
 }
+

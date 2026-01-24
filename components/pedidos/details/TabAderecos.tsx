@@ -246,3 +246,4 @@ export function TabAderecos({ pedido, onUpdate }: TabAderecosProps) {
         </div>
     );
 }
+

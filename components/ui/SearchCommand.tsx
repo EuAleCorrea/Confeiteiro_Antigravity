@@ -504,3 +504,4 @@ function SearchCommandModal({ onClose }: { onClose: () => void }) {
         </div>
     );
 }
+

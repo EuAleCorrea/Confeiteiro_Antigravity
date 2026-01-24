@@ -160,3 +160,4 @@ export function CategoryManager({ isOpen, onClose, onCallback }: CategoryManager
         </Dialog>
     );
 }
+

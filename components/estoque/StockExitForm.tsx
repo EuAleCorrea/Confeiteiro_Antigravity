@@ -250,3 +250,4 @@ export function StockExitForm({ isOpen, ingrediente, onClose, onSave }: StockExi
         </Dialog>
     </>);
 }
+

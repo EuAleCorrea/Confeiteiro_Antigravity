@@ -89,7 +89,7 @@ export function NotificationPanel() {
                     {notifications.length > 0 && (
                         <div className="px-4 py-2 border-t border-border bg-neutral-50 text-center">
                             <Link
-                                href="/configuracoes?tab=notificacoes"
+                                href="/dashboard/configuracoes?tab=notificacoes"
                                 className="text-xs text-text-secondary hover:text-primary"
                                 onClick={() => setIsOpen(false)}
                             >
@@ -177,3 +177,4 @@ function NotificationItem({
 
     return content;
 }
+

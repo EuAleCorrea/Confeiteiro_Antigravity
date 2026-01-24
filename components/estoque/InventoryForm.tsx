@@ -190,3 +190,4 @@ export function InventoryForm({ isOpen, ingrediente, onClose, onSave }: Inventor
         </Dialog>
     );
 }
+

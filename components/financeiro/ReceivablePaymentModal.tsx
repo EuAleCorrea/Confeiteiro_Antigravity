@@ -110,3 +110,4 @@ export function ReceivablePaymentModal({ conta, onClose, onSuccess }: Receivable
         </Dialog>
     );
 }
+

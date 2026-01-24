@@ -59,3 +59,4 @@ export default function VideoCard({ video, onClick }: VideoCardProps) {
         </div>
     );
 }
+

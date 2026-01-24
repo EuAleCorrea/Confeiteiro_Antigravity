@@ -363,3 +363,4 @@ export function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalProps) {
         </div>
     );
 }
+

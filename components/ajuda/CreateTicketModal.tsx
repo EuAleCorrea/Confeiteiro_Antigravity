@@ -342,3 +342,4 @@ export default function CreateTicketModal({ isOpen, onClose, onSubmit }: CreateT
         </div>
     );
 }
+

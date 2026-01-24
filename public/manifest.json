@@ -1,0 +1,23 @@
+{
+    "name": "Confeiteiro - Gestão de Confeitaria",
+    "short_name": "Confeiteiro",
+    "description": "Sistema de gestão completo para confeitarias artesanais. Controle pedidos, receitas, estoque e finanças.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#FFF0F5",
+    "theme_color": "#FF69B4",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "64x64",
+            "type": "image/x-icon"
+        }
+    ],
+    "categories": [
+        "business",
+        "productivity",
+        "food"
+    ],
+    "lang": "pt-BR"
+}

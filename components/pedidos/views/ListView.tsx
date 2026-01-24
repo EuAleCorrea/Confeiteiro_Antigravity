@@ -143,3 +143,4 @@ export function ListView({ pedidos, onPaymentConfirm }: ListViewProps) {
     );
 }
 
+

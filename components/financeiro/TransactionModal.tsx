@@ -192,3 +192,4 @@ export function TransactionModal({ isOpen, onClose, type, onSuccess }: Transacti
         </Dialog>
     );
 }
+

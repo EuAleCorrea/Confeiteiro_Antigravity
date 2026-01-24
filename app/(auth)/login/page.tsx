@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
@@ -63,6 +63,26 @@ export default function LoginPage() {
     const router = useRouter()
     const supabase = createClient()
 
+    // Limpar sessão corrompida ao carregar a página
+    useEffect(() => {
+        const clearCorruptedSession = async () => {
+            try {
+                // Tenta obter a sessão atual
+                const { error } = await supabase.auth.getSession()
+                if (error) {
+                    // Se houver erro, faz logout para limpar cookies corrompidos
+                    await supabase.auth.signOut()
+                    console.log('Sessão corrompida limpa')
+                }
+            } catch (e) {
+                // Em caso de erro, força logout
+                await supabase.auth.signOut()
+            }
+        }
+        clearCorruptedSession()
+    }, [supabase.auth])
+
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
@@ -124,10 +144,13 @@ export default function LoginPage() {
     const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
         setError(null)
         try {
+            // Usar variável de ambiente para garantir redirecionamento correto em dev/prod
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
-                    redirectTo: `${location.origin}/auth/callback`,
+                    redirectTo: `${appUrl}/auth/callback`,
                     // Usar fluxo implícito para evitar problemas de PKCE em static export
                     queryParams: {
                         access_type: 'offline',
@@ -339,3 +362,4 @@ export default function LoginPage() {
         </div>
     )
 }
+

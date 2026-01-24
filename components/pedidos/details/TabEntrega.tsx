@@ -130,3 +130,4 @@ export function TabEntrega({ pedido }: TabEntregaProps) {
         </div>
     );
 }
+

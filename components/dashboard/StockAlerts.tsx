@@ -101,12 +101,12 @@ export function StockAlerts() {
                     </div>
                 )}
                 <div className="flex gap-2 mt-4">
-                    <Link href="/estoque" className="flex-1">
+                    <Link href="/dashboard/estoque" className="flex-1">
                         <Button variant="ghost" className="w-full text-sm text-text-secondary hover:text-primary">
                             <Package size={14} className="mr-1" /> Estoque
                         </Button>
                     </Link>
-                    <Link href="/aderecos" className="flex-1">
+                    <Link href="/dashboard/aderecos" className="flex-1">
                         <Button variant="ghost" className="w-full text-sm text-text-secondary hover:text-primary">
                             <Sparkles size={14} className="mr-1" /> Adereços
                         </Button>
@@ -116,4 +116,5 @@ export function StockAlerts() {
         </Card>
     );
 }
+
 

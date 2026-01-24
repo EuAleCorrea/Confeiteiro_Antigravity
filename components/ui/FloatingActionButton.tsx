@@ -18,37 +18,37 @@ const defaultActions: FABAction[] = [
     {
         icon: FileText,
         label: "Novo Orçamento",
-        href: "/orcamentos/novo",
+        href: "/dashboard/orcamentos/novo",
         color: "bg-primary",
     },
     {
         icon: Calendar,
         label: "Ver Agenda",
-        href: "/agenda",
+        href: "/dashboard/agenda",
         color: "bg-blue-500",
     },
     {
         icon: ShoppingBag,
         label: "Novo Pedido",
-        href: "/pedidos",
+        href: "/dashboard/pedidos",
         color: "bg-orange-500",
     },
     {
         icon: ChefHat,
         label: "Produção",
-        href: "/producao",
+        href: "/dashboard/producao",
         color: "bg-green-600",
     },
     {
         icon: DollarSign,
         label: "Registrar Receita",
-        href: "/financeiro?action=nova-receita",
+        href: "/dashboard/financeiro?action=nova-receita",
         color: "bg-success",
     },
     {
         icon: Package,
         label: "Entrada de Estoque",
-        href: "/estoque?action=entrada",
+        href: "/dashboard/estoque?action=entrada",
         color: "bg-info",
     },
 ];
@@ -183,3 +183,4 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
         </>
     );
 }
+

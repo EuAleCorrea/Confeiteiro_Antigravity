@@ -18,15 +18,15 @@ function AuthCallbackContent() {
             const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
             if (session) {
-                // Sessão já existe, redireciona para a página principal
-                const next = searchParams.get('next') ?? '/'
+                // Sessão já existe, redireciona para o dashboard
+                const next = searchParams.get('next') ?? '/dashboard'
                 router.push(next)
                 return
             }
 
             // Se não há sessão, verifica se há um código na URL (fluxo PKCE)
             const code = searchParams.get('code')
-            const next = searchParams.get('next') ?? '/'
+            const next = searchParams.get('next') ?? '/dashboard'
 
             if (code) {
                 const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -78,3 +78,4 @@ export default function AuthCallbackPage() {
         </Suspense>
     )
 }
+

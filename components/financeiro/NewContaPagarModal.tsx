@@ -216,3 +216,4 @@ export function NewContaPagarModal({ onClose, onSuccess }: NewContaPagarModalPro
         </Dialog>
     );
 }
+

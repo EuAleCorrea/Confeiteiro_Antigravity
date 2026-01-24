@@ -142,7 +142,7 @@ export function QuickTasks() {
                         })}
                     </div>
                 )}
-                <Link href="/producao" className="block mt-4">
+                <Link href="/dashboard/producao" className="block mt-4">
                     <Button variant="ghost" className="w-full text-sm text-primary hover:text-primary-dark">
                         Ver Todas as Tarefas →
                     </Button>
@@ -151,3 +151,4 @@ export function QuickTasks() {
         </Card>
     );
 }
+

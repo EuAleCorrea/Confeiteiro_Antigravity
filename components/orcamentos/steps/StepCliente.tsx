@@ -233,3 +233,4 @@ export default function StepCliente({ data, onUpdate, next, back }: WizardStepPr
         </div>
     );
 }
+

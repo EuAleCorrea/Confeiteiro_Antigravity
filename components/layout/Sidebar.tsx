@@ -40,36 +40,36 @@ const menuGroups = [
         id: "principal",
         title: "Principal",
         items: [
-            { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-            { icon: Calendar, label: "Agenda", href: "/agenda" },
-            { icon: FileText, label: "Orçamentos", href: "/orcamentos" },
-            { icon: ShoppingBag, label: "Pedidos", href: "/pedidos" },
-            { icon: ChefHat, label: "Produção", href: "/producao" },
+            { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+            { icon: Calendar, label: "Agenda", href: "/dashboard/agenda" },
+            { icon: FileText, label: "Orçamentos", href: "/dashboard/orcamentos" },
+            { icon: ShoppingBag, label: "Pedidos", href: "/dashboard/pedidos" },
+            { icon: ChefHat, label: "Produção", href: "/dashboard/producao" },
         ]
     },
     {
         id: "cadastros",
         title: "Cadastros",
         items: [
-            { icon: UserCircle, label: "Clientes", href: "/clientes" },
-            { icon: Utensils, label: "Produtos", href: "/produtos" },
-            { icon: Sparkles, label: "Adereços", href: "/aderecos" },
+            { icon: UserCircle, label: "Clientes", href: "/dashboard/clientes" },
+            { icon: Utensils, label: "Produtos", href: "/dashboard/produtos" },
+            { icon: Sparkles, label: "Adereços", href: "/dashboard/aderecos" },
         ]
     },
     {
         id: "gestao",
         title: "Gestão",
         items: [
-            { icon: Package, label: "Estoque", href: "/estoque" },
-            { icon: Truck, label: "Fornecedores", href: "/fornecedores" },
-            { icon: DollarSign, label: "Financeiro", href: "/financeiro" },
+            { icon: Package, label: "Estoque", href: "/dashboard/estoque" },
+            { icon: Truck, label: "Fornecedores", href: "/dashboard/fornecedores" },
+            { icon: DollarSign, label: "Financeiro", href: "/dashboard/financeiro" },
         ]
     },
     {
         id: "sistema",
         title: "Sistema",
         items: [
-            { icon: Settings, label: "Configurações", href: "/configuracoes" },
+            { icon: Settings, label: "Configurações", href: "/dashboard/configuracoes" },
             { icon: HelpCircle, label: "Ajuda", href: "/ajuda" },
         ]
     }
@@ -241,4 +241,5 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
         </>
     );
 }
+
 

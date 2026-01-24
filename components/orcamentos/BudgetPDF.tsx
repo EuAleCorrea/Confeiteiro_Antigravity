@@ -129,3 +129,4 @@ export function BudgetPDF({ orcamento, config }: BudgetPDFProps) {
         </div>
     );
 }
+

@@ -226,3 +226,4 @@ export function KanbanView({ pedidos, onStatusChange, onPaymentConfirm }: Kanban
         </>
     );
 }
+

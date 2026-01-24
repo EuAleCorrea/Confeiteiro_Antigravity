@@ -147,3 +147,4 @@ export function TabResumo({ pedido }: TabResumoProps) {
         </div>
     );
 }
+

@@ -43,3 +43,4 @@ export function TabHistorico({ pedido }: TabHistoricoProps) {
         </Card>
     );
 }
+

@@ -1,0 +1,17 @@
+# Confeiteiro - Robots.txt
+# Landing page pública, dashboard privado
+
+User-agent: *
+
+# Permitir indexação da landing page e páginas de marketing
+Allow: /$
+Allow: /login$
+
+# Bloquear todo o dashboard (área autenticada)
+Disallow: /dashboard/
+Disallow: /auth/callback
+Disallow: /print/
+
+# Sitemap
+Sitemap: https://app.automacaototal.com/sitemap.xml
+

@@ -1,6 +1,15 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Rotas públicas que não precisam de autenticação
+const PUBLIC_ROUTES = ['/', '/login', '/auth', '/ajuda', '/contato', '/termos', '/privacidade']
+
+function isPublicRoute(pathname: string): boolean {
+    return PUBLIC_ROUTES.some(route =>
+        pathname === route || pathname.startsWith(route + '/')
+    )
+}
+
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
@@ -33,26 +42,36 @@ export async function updateSession(request: NextRequest) {
     // supabase.auth.getUser(). A simple mistake could make it very hard to debug
     // issues with users being randomly logged out.
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    let user = null
+    try {
+        const { data } = await supabase.auth.getUser()
+        user = data.user
+    } catch (error) {
+        // Se houver erro de refresh token, ignora e trata como usuário não logado
+        // O Supabase irá limpar os cookies automaticamente
+        console.warn('Auth error (token may be expired):', error)
+    }
 
-    // 1. Proteger rotas internas (Dashboard, etc.)
-    // Se NÃO tem usuário e está tentando acessar algo que não seja público (login, auth, etc)
-    if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth') && !request.nextUrl.pathname.startsWith('/_next') && !request.nextUrl.pathname.startsWith('/static')) {
-        // Redireciona para login
+
+    const pathname = request.nextUrl.pathname
+    const isPublic = isPublicRoute(pathname)
+
+    // 1. Usuário logado tentando acessar landing page ou login
+    // Redireciona para o dashboard
+    if (user && (pathname === '/' || pathname.startsWith('/login'))) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+    }
+
+    // 2. Usuário NÃO logado tentando acessar rotas protegidas
+    // Redireciona para login
+    if (!user && !isPublic && !pathname.startsWith('/_next') && !pathname.startsWith('/static')) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 
-    // 2. Redirecionar usuário logado fora do login
-    // Se TEM usuário e está tentando acessar /login
-    if (user && request.nextUrl.pathname.startsWith('/login')) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/'
-        return NextResponse.redirect(url)
-    }
-
     return supabaseResponse
 }
+

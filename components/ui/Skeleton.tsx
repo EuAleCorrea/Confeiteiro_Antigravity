@@ -67,3 +67,4 @@ export function SkeletonChart() {
         </div>
     );
 }
+

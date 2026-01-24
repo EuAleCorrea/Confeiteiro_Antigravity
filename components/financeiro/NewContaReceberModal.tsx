@@ -218,3 +218,4 @@ export function NewContaReceberModal({ isOpen, onClose, onSuccess }: NewContaRec
         </Dialog>
     );
 }
+

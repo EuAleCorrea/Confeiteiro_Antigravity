@@ -134,7 +134,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                                         <span>Ajuda</span>
                                     </Link>
                                     <Link
-                                        href="/configuracoes"
+                                        href="/dashboard/configuracoes"
                                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-neutral-100 hover:text-text-primary transition-colors"
                                         onClick={() => setUserMenuOpen(false)}
                                     >
@@ -142,7 +142,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                                         <span>Configurações</span>
                                     </Link>
                                     <Link
-                                        href="/configuracoes-avancadas"
+                                        href="/dashboard/configuracoes-avancadas"
                                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-neutral-100 hover:text-text-primary transition-colors"
                                         onClick={() => setUserMenuOpen(false)}
                                     >
@@ -368,3 +368,4 @@ function SearchModal({ onClose }: { onClose: () => void }) {
         </div>
     );
 }
+

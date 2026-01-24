@@ -138,3 +138,4 @@ export function ShoppingList({ plan }: ShoppingListProps) {
         </div>
     );
 }
+

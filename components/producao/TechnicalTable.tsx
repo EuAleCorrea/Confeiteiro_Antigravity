@@ -86,3 +86,4 @@ export function TechnicalTable({ massa, receitas, ingredientes }: TechnicalTable
         </div>
     );
 }
+

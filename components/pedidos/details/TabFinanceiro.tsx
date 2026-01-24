@@ -115,3 +115,4 @@ export function TabFinanceiro({ pedido }: TabFinanceiroProps) {
 interface ExtendedPedido extends Pedido {
     sinal?: number;
 }
+

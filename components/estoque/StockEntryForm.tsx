@@ -245,3 +245,4 @@ export function StockEntryForm({ isOpen, ingrediente, onClose, onSave }: StockEn
         </Dialog>
     );
 }
+
