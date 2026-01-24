@@ -198,9 +198,9 @@ export default function ProdutosPage() {
                 alert("Por favor, informe o preço para os tamanhos selecionados.");
                 return;
             }
-        } else if (!formData.preco) {
-            alert("Por favor, informe o preço do produto.");
-            return;
+        } else if (!formData.preco && formData.preco !== 0) {
+            // Preço não é obrigatório se não tiver tamanhos
+            // Deixa como 0 se não informado
         }
 
         setSaving(true);
@@ -624,12 +624,12 @@ export default function ProdutosPage() {
                         </div>
                         {(!formData.tamanhos || formData.tamanhos.length === 0) && (
                             <Input
-                                label="Preço Único (R$) *"
+                                label="Preço Único (R$)"
                                 type="number"
                                 step="0.01"
-                                required
                                 value={formData.preco || ""}
                                 onChange={e => setFormData({ ...formData, preco: Number(e.target.value) })}
+                                placeholder="Opcional se usar tamanhos"
                             />
                         )}
 
