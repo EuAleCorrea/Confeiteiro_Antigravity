@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Mail, Lock, Loader2, AlertCircle, User, CheckCircle } from 'lucide-react'
@@ -186,7 +187,7 @@ export default function LoginPage() {
                     <div className="absolute top-[-20%] left-[-20%] w-[500px] h-[500px] bg-white/20 rounded-full blur-3xl"></div>
                     <div className="absolute bottom-[-20%] right-[-20%] w-[500px] h-[500px] bg-[#FFB6C1]/20 rounded-full blur-3xl"></div>
 
-                    <div className="relative z-10 flex flex-col items-center gap-6">
+                    <Link href="/" className="relative z-10 flex flex-col items-center gap-6 cursor-pointer hover:scale-105 transition-transform">
                         <div className="w-24 h-24 bg-white rounded-3xl shadow-lg flex items-center justify-center text-4xl mb-4 transform rotate-[-6deg]">
                             🎂
                         </div>
@@ -196,7 +197,7 @@ export default function LoginPage() {
                         <p className="text-[#A0522D] text-lg font-medium max-w-xs">
                             Gestão completa e inteligente para o seu negócio doce.
                         </p>
-                    </div>
+                    </Link>
                 </div>
 
                 {/* Lado Direito - Form */}
