@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, History, Share2, Loader2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, History, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Dialog } from "@/components/ui/Dialog";
 import { Cliente } from "@/lib/storage";
 import { supabaseStorage } from "@/lib/supabase-storage";
-import { ImportGoogleContactsModal } from "@/components/clientes/ImportGoogleContactsModal";
-import { createClient } from "@/lib/supabase/client";
 
 function ClientesContent() {
     const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -17,10 +15,7 @@ function ClientesContent() {
     const [saving, setSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
-    const [isGoogleUser, setIsGoogleUser] = useState(false);
-    const supabase = createClient();
 
     // Form State
     const [formData, setFormData] = useState<Partial<Cliente>>({});
@@ -28,13 +23,7 @@ function ClientesContent() {
 
     useEffect(() => {
         loadClientes();
-        checkGoogleUser();
     }, []);
-
-    async function checkGoogleUser() {
-        const { data: { user } } = await supabase.auth.getUser();
-        setIsGoogleUser(user?.app_metadata?.provider === 'google');
-    }
 
     async function loadClientes() {
         try {
@@ -169,22 +158,10 @@ function ClientesContent() {
                     <h1 className="text-2xl font-bold text-text-primary">Clientes</h1>
                     <p className="text-text-secondary">Gerencie seus clientes e histórico</p>
                 </div>
-                <div className="flex gap-2">
-                    {isGoogleUser && (
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsGoogleModalOpen(true)}
-                            className="gap-2 border-primary/20 hover:bg-primary/5 text-primary"
-                        >
-                            <Share2 size={18} />
-                            Importar do Google
-                        </Button>
-                    )}
-                    <Button onClick={() => openModal()}>
-                        <Plus size={20} className="mr-2" />
-                        Novo Cliente
-                    </Button>
-                </div>
+                <Button onClick={() => openModal()}>
+                    <Plus size={20} className="mr-2" />
+                    Novo Cliente
+                </Button>
             </div>
 
             <div className="flex items-center gap-2 bg-surface p-2 rounded-xl border border-border max-w-md">
@@ -405,12 +382,7 @@ function ClientesContent() {
                 </div>
             </Dialog>
 
-            {/* Google Import Modal */}
-            <ImportGoogleContactsModal
-                isOpen={isGoogleModalOpen}
-                onClose={() => setIsGoogleModalOpen(false)}
-                onImportSuccess={() => loadClientes()}
-            />
+            {/* TODO: Reimplementar importação do Google com Supabase Auth */}
         </div>
     );
 }
