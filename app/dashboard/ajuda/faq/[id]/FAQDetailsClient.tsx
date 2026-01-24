@@ -40,15 +40,15 @@ export default function FAQDetailsClient() {
             <div className="bg-white border-b border-border shadow-sm">
                 <div className="max-w-4xl mx-auto px-4 py-4">
                     <div className="flex items-center gap-2 text-sm text-text-secondary mb-4">
-                        <Link href="/ajuda" className="hover:text-primary"><Home size={16} /></Link>
+                        <Link href="/dashboard/ajuda" className="hover:text-primary"><Home size={16} /></Link>
                         <span>/</span>
-                        <Link href="/ajuda/faq" className="hover:text-primary">FAQ</Link>
+                        <Link href="/dashboard/ajuda/faq" className="hover:text-primary">FAQ</Link>
                         <span>/</span>
                         <span className="text-text-primary font-medium truncate">{question.pergunta}</span>
                     </div>
 
                     <Link
-                        href="/ajuda/faq"
+                        href="/dashboard/ajuda/faq"
                         className="inline-flex items-center font-bold text-text-primary hover:text-primary transition-colors gap-2"
                     >
                         <ArrowLeft size={20} /> Voltar para perguntas
@@ -117,7 +117,7 @@ export default function FAQDetailsClient() {
                             <p className="text-sm text-blue-700">Nossa equipe de suporte está pronta para te atender.</p>
                         </div>
                         <Link
-                            href="/ajuda/suporte"
+                            href="/dashboard/ajuda/suporte"
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 sm:px-4 sm:py-2 rounded-lg font-bold shadow-sm flex items-center justify-center sm:justify-start gap-2 transition-colors whitespace-nowrap flex-shrink-0 w-full sm:w-auto text-center"
                         >
                             <MessageSquare size={18} /> Falar com Suporte
@@ -135,7 +135,7 @@ export default function FAQDetailsClient() {
                                 {relatedQuestions.map(rel => (
                                     <Link
                                         key={rel.id}
-                                        href={`/ajuda/faq/${rel.id}`}
+                                        href={`/dashboard/ajuda/faq/${rel.id}`}
                                         className="block group"
                                     >
                                         <h4 className="text-sm font-medium text-text-primary group-hover:text-primary transition-colors mb-1">

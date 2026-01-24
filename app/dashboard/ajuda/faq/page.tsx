@@ -60,7 +60,7 @@ function FAQContent() {
                             ❓ Perguntas Frequentes
                         </h1>
                         <Link
-                            href="/ajuda"
+                            href="/dashboard/ajuda"
                             className="text-text-secondary hover:text-primary flex items-center gap-1 text-sm font-medium transition-colors"
                         >
                             <ArrowLeft size={16} /> Voltar
@@ -82,7 +82,7 @@ function FAQContent() {
                     {/* Category Filters */}
                     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide justify-start md:justify-center">
                         <button
-                            onClick={() => router.push('/ajuda/faq?categoria=todas')}
+                            onClick={() => router.push('/dashboard/ajuda/faq?categoria=todas')}
                             className={cn(
                                 "whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors border",
                                 categoryParam === 'todas'
@@ -95,7 +95,7 @@ function FAQContent() {
                         {helpCategories.map(cat => (
                             <button
                                 key={cat.id}
-                                onClick={() => router.push(`/ajuda/faq?categoria=${cat.id}`)}
+                                onClick={() => router.push(`/dashboard/ajuda/faq?categoria=${cat.id}`)}
                                 className={cn(
                                     "whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors border",
                                     categoryParam === cat.id
@@ -120,7 +120,7 @@ function FAQContent() {
                         <button
                             onClick={() => {
                                 setSearchTerm('');
-                                router.push('/ajuda/faq?categoria=todas');
+                                router.push('/dashboard/ajuda/faq?categoria=todas');
                             }}
                             className="mt-4 text-primary font-medium hover:underline"
                         >

@@ -69,7 +69,7 @@ export default function SupportPage() {
                 <div className="max-w-5xl mx-auto px-4 py-4">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-4">
-                            <Link href="/ajuda" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-text-secondary">
+                            <Link href="/dashboard/ajuda" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-text-secondary">
                                 <ArrowLeft size={20} />
                             </Link>
                             <h1 className="text-xl font-bold text-text-primary flex items-center gap-2">

@@ -70,7 +70,7 @@ const menuGroups = [
         title: "Sistema",
         items: [
             { icon: Settings, label: "Configurações", href: "/dashboard/configuracoes" },
-            { icon: HelpCircle, label: "Ajuda", href: "/ajuda" },
+            { icon: HelpCircle, label: "Ajuda", href: "/dashboard/ajuda" },
         ]
     }
 ];

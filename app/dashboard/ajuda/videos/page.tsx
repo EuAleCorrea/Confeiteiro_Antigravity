@@ -40,7 +40,7 @@ export default function VideosPage() {
             <header className="bg-white border-b border-border sticky top-0 z-30">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/ajuda" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-text-secondary">
+                        <Link href="/dashboard/ajuda" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-text-secondary">
                             <ArrowLeft size={20} />
                         </Link>
                         <h1 className="text-xl font-bold text-text-primary flex items-center gap-2">
