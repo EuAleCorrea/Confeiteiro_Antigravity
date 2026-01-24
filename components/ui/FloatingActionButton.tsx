@@ -68,7 +68,7 @@ export function FloatingActionButton({ actions = defaultActions }: FloatingActio
     }, []);
 
     // Hide on specific pages where it might obstruct UI or is redundant
-    if (!mounted || pathname?.startsWith('/dashboard/orcamentos/novo') || pathname?.startsWith('/dashboard/pedidos/novo')) return null;
+    if (!mounted) return null;
 
     return (
         <>
