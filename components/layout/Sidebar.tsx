@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -89,13 +89,9 @@ function findGroupByPath(pathname: string): string {
 
 export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
     const pathname = usePathname();
-    const [expandedGroup, setExpandedGroup] = useState<string>("principal");
 
-    // Auto-expand the group that contains the current page
-    useEffect(() => {
-        const currentGroup = findGroupByPath(pathname);
-        setExpandedGroup(currentGroup);
-    }, [pathname]);
+    // Inicializa o grupo expandido baseado na rota atual (apenas na primeira renderização)
+    const [expandedGroup, setExpandedGroup] = useState<string>(() => findGroupByPath(pathname));
 
     const toggleGroup = (groupId: string) => {
         // Sempre abrir o grupo clicado (fecha todos os outros automaticamente)
