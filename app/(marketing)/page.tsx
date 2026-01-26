@@ -398,6 +398,7 @@ export default function LandingPage() {
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
                         {[
                             {
+                                id: "basico",
                                 name: "Básico",
                                 price: "49",
                                 description: "Ideal para quem está começando",
@@ -405,6 +406,7 @@ export default function LandingPage() {
                                 highlighted: false,
                             },
                             {
+                                id: "profissional",
                                 name: "Profissional",
                                 price: "99",
                                 description: "Para confeitarias em crescimento",
@@ -412,6 +414,7 @@ export default function LandingPage() {
                                 highlighted: true,
                             },
                             {
+                                id: "premium",
                                 name: "Premium",
                                 price: "199",
                                 description: "Para operações maiores",
@@ -454,7 +457,7 @@ export default function LandingPage() {
                                     ))}
                                 </ul>
                                 <Link
-                                    href="/login"
+                                    href={`/checkout/${plan.id}`}
                                     className={`block w-full text-center font-bold py-4 rounded-full transition-all hover:scale-105 ${plan.highlighted
                                         ? "bg-white text-primary hover:shadow-lg"
                                         : "bg-primary text-white hover:bg-primary-dark"

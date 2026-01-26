@@ -114,17 +114,17 @@ function ClientesContent() {
             setLoadingCep(true);
             try {
                 const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-                const data = await response.json();
+                const data = await response.json() as { erro?: boolean; logradouro?: string; bairro?: string; localidade?: string; uf?: string };
                 if (!data.erro) {
                     setFormData(prev => ({
                         ...prev,
                         endereco: {
                             ...prev.endereco!,
                             cep: prev.endereco?.cep || cep,
-                            rua: data.logradouro,
-                            bairro: data.bairro,
-                            cidade: data.localidade,
-                            estado: data.uf
+                            rua: data.logradouro || "",
+                            bairro: data.bairro || "",
+                            cidade: data.localidade || "",
+                            estado: data.uf || ""
                         }
                     }));
                 }

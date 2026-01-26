@@ -30,7 +30,7 @@ export class GoogleDriveService {
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
+            const error = await response.json().catch(() => ({})) as { error?: { message?: string } };
             throw new Error(
                 error.error?.message || `Google Drive API error: ${response.status}`
             );
@@ -163,7 +163,7 @@ export class GoogleDriveService {
         );
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
+            const error = await response.json().catch(() => ({})) as { error?: { message?: string } };
             throw new Error(error.error?.message || "Upload failed");
         }
 

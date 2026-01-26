@@ -28,7 +28,7 @@ export class GoogleContactsService {
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
+            const error = await response.json().catch(() => ({})) as { error?: { message?: string } };
             throw new Error(
                 error.error?.message || `Google API error: ${response.status}`
             );
