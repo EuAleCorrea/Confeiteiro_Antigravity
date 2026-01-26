@@ -28,6 +28,7 @@ export default function LandingPage() {
 
     useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 50);
+        handleScroll(); // Check immediately on mount
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
