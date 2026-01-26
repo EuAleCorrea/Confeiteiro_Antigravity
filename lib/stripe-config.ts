@@ -4,13 +4,13 @@
 // Price IDs dos planos (valores públicos, podem ser expostos)
 export const STRIPE_PLANS = {
     basico: {
-        priceId: 'price_basico', // Placeholder - será substituído via API
+        priceId: 'price_1StozFGyxdWug2Mx6PWPcEQy',
         name: 'Básico',
         price: 49,
         features: ['Até 50 pedidos/mês', 'Gestão de clientes', 'Agenda básica', 'Suporte por email'],
     },
     profissional: {
-        priceId: 'price_profissional', // Placeholder - será substituído via API
+        priceId: 'price_1StozoGyxdWug2MxToWzoQCS',
         name: 'Profissional',
         price: 99,
         features: [
@@ -24,7 +24,7 @@ export const STRIPE_PLANS = {
         highlighted: true,
     },
     premium: {
-        priceId: 'price_premium', // Placeholder - será substituído via API
+        priceId: 'price_1Stp07GyxdWug2Mxks9OcHOw',
         name: 'Premium',
         price: 199,
         features: [
