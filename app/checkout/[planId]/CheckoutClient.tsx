@@ -30,6 +30,18 @@ export default function CheckoutClient({ planId: initialPlanId }: CheckoutClient
         }
     }, [initialPlanId, router]);
 
+    // Reset loading state quando usuário volta pelo botão do navegador (bfcache)
+    useEffect(() => {
+        const handlePageShow = (event: PageTransitionEvent) => {
+            if (event.persisted) {
+                setIsLoading(false);
+            }
+        };
+
+        window.addEventListener('pageshow', handlePageShow);
+        return () => window.removeEventListener('pageshow', handlePageShow);
+    }, []);
+
     if (!planId) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#FFFBF7]">
