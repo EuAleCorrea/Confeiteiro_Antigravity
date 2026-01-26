@@ -99,16 +99,33 @@ function SuccessContent() {
                 </div>
 
                 {/* CTA */}
-                <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white font-bold text-lg px-8 py-4 rounded-full transition-all hover:scale-105 hover:shadow-lg"
-                >
-                    Começar a Usar
-                    <ArrowRight size={20} />
-                </Link>
+                {/* CTA */}
+                <div className="flex flex-col items-center gap-4 w-full max-w-md mx-auto">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 w-full text-left">
+                        <h3 className="font-bold text-[#3E2723] mb-2 flex items-center gap-2">
+                            <Mail size={20} className="text-blue-600" />
+                            Verifique seu email
+                        </h3>
+                        <p className="text-[#5D4037]/80 text-sm mb-4">
+                            Enviamos um link de acesso para <strong>{searchParams.get("email") || "seu email"}</strong>.
+                            Clique nele para definir sua senha.
+                        </p>
+                        <p className="text-xs text-[#5D4037]/60">
+                            Não recebeu? Verifique a caixa de spam ou acesse a página de login e clique em "Esqueci minha senha".
+                        </p>
+                    </div>
 
-                <p className="text-sm text-[#5D4037]/60 mt-6">
-                    Você receberá um email de confirmação com os detalhes da sua assinatura
+                    <Link
+                        href="/login"
+                        className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white font-bold text-lg px-8 py-4 rounded-full transition-all hover:scale-105 hover:shadow-lg w-full justify-center"
+                    >
+                        Ir para Login
+                        <ArrowRight size={20} />
+                    </Link>
+                </div>
+
+                <p className="text-sm text-[#5D4037]/60 mt-8">
+                    Dúvidas? Entre em contato com nosso suporte.
                 </p>
             </div>
         </main>

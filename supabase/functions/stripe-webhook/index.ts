@@ -48,14 +48,12 @@ serve(async (req) => {
                 console.log(`💰 Pagamento confirmado para: ${email}`);
 
                 // 1. Criar ou buscar usuário no Supabase Auth
-                // Usamos admin para criar sem senha (link mágico/reset depois)
-                const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-                    email: email,
-                    email_confirm: true,
-                    user_metadata: {
+                // Usamos inviteUserByEmail para criar E enviar email de convite (para definir senha)
+                const { data: userData, error: userError } = await supabase.auth.admin.inviteUserByEmail(email, {
+                    data: {
                         stripe_customer_id: customerId,
                         role: 'subscriber'
-                    },
+                    }
                 });
 
                 if (userError) {

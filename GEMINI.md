@@ -94,7 +94,7 @@
 
 ---
 
-## �️ PROTOCOLO DE PRODUÇÃO
+## ️ PROTOCOLO DE PRODUÇÃO
 
 1. **Status Atual**: Todo o trabalho e deploys atuais são destinados ao ambiente de **DESENVOLVIMENTO e TESTES**.
 2. **Autorização para Produção**: Qualquer movimentação para um ambiente de produção real (clientes pagantes reais) deve ser solicitada pelo USER de maneira **enfática e explícita**.
@@ -102,31 +102,30 @@
 
 ---
 
-## �📋 TODOs PENDENTES
+## 🧠 DIRETRIZES DE IA & APRENDIZADOS (MEMÓRIA PERSISTENTE)
+
+### 1. Autenticação e Onboarding (Supabase)
+- **Problema de Envio de Email**: `admin.createUser` + `email_confirm: true` NÃO envia email automaticamente. `admin.generateLink` também não envia.
+- **Solução Padronizada**: Usar `supabase.auth.admin.inviteUserByEmail(email)`. Esta função cria o usuário e dispara o template de convite real.
+- **Limitações do MCP**: Ferramentas como `execute_sql` e `list_tables` falham por permissão. Sempre gerar script SQL para execução manual pelo usuário.
+
+### 2. Pagamentos (Stripe)
+- **Trials**: Sempre gerar Payment Links via API configurando `subscription_data.trial_period_days` explicitamente. O Dashboard é propenso a falhas nesse setup.
+
+### 3. Deployment
+- Deploy manual via SSH é mandatório. Sempre rodar `git pull` e `npm run build` na VPS.
+
+---
+
+## 📋 TODOs PENDENTES
 
 ### 🔴 Alta Prioridade
 
 1. **Reimplementar Importação de Contatos do Google**
    - **Arquivo**: `components/clientes/ImportGoogleContactsModal.tsx`
-   - **Página afetada**: `/dashboard/clientes`
-   - **Problema**: Usava `next-auth` que foi removido na migração para Supabase Auth
-   - **Solução necessária**: Refatorar para usar Supabase Auth com Google People API
-   - **Data desabilitado**: 2026-01-24
+   - **Solução necessaria**: Refatorar para Supabase Auth
 
-2. **Configurar Webhook do Stripe para fluxo pós-pagamento**
-   - **Objetivo**: Processar eventos de pagamento confirmado
-   - **Ação ao receber pagamento**: Criar usuário no Supabase com email do cliente
-   - **Enviar email de boas-vindas** com link para definir senha ou vincular Google
-   - **Prioridade**: Alta (necessário para produção com clientes pagantes)
-   - **Data adicionado**: 2026-01-26
-
-3. **Adicionar Redirect URL de produção no Supabase**
-   - **URL a adicionar**: `https://confeiteiro.automacaototal.com/**`
-   - **Onde configurar**: Supabase Dashboard > Authentication > URL Configuration
-   - **Data adicionado**: 2026-01-26
-
-4. **Configurar variáveis de ambiente no servidor Hostinger**
-   - **Supabase URL e Anon Key** para o build de produção
-   - **Stripe Keys** para o checkout transparente
-   - **Data adicionado**: 2026-01-26
-
+2. **Configurar Webhook do Stripe (Fluxo Onboarding)**
+   - **Status**: Em andamento.
+   - **Correção necessária**: Atualizar webhook para usar `inviteUserByEmail`.
+   - **Data**: 2026-01-26
