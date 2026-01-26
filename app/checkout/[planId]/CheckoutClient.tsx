@@ -3,9 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { STRIPE_PLANS, PlanKey } from "@/lib/stripe-config";
-import { ChefHat, CheckCircle, Shield, ArrowLeft, Loader2 } from "lucide-react";
+import { ChefHat, CheckCircle, Shield, ArrowLeft, Loader2, CreditCard } from "lucide-react";
 import Link from "next/link";
-import StripeWrapper from "@/components/checkout/StripeWrapper";
+
+// Payment Links do Stripe - Checkout hospedado pelo Stripe (mais estável)
+const PAYMENT_LINKS: Record<PlanKey, string> = {
+    basico: 'https://buy.stripe.com/test_00w8wP1KwbL97DP0lqbfO03',
+    profissional: 'https://buy.stripe.com/test_eVqeVd2OA8yX9LX5FKbfO04',
+    premium: 'https://buy.stripe.com/test_6oU4gz2OA9D1bU5b04bfO05',
+};
 
 interface CheckoutClientProps {
     planId: string;
@@ -15,7 +21,6 @@ export default function CheckoutClient({ planId: initialPlanId }: CheckoutClient
     const router = useRouter();
     const [planId, setPlanId] = useState<PlanKey | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (initialPlanId in STRIPE_PLANS) {
@@ -35,30 +40,11 @@ export default function CheckoutClient({ planId: initialPlanId }: CheckoutClient
 
     const plan = STRIPE_PLANS[planId];
 
-    const handleCheckout = async () => {
+    const handleCheckout = () => {
         setIsLoading(true);
-        setError(null);
-
-        try {
-            // Payment Links do Stripe - checkout sem login
-            // O email é coletado pelo próprio Stripe durante o checkout
-            const PAYMENT_LINKS: Record<PlanKey, string> = {
-                basico: 'https://buy.stripe.com/test_00wfZhcpaaH5aQ1b04bfO00',
-                profissional: 'https://buy.stripe.com/test_9B614n60MaH5aQ1fgkbfO01',
-                premium: 'https://buy.stripe.com/test_28EdR92OAeXl5vHb04bfO02',
-            };
-
-            const paymentLink = PAYMENT_LINKS[planId];
-
-            if (!paymentLink) {
-                throw new Error('Link de pagamento não configurado para este plano');
-            }
-
-            // Redirecionar diretamente para o Payment Link do Stripe
+        const paymentLink = PAYMENT_LINKS[planId];
+        if (paymentLink) {
             window.location.href = paymentLink;
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Erro inesperado");
-            setIsLoading(false);
         }
     };
 
@@ -76,6 +62,7 @@ export default function CheckoutClient({ planId: initialPlanId }: CheckoutClient
                 </div>
 
                 <div className="grid lg:grid-cols-2 gap-12">
+                    {/* Resumo do Plano */}
                     <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
@@ -117,24 +104,84 @@ export default function CheckoutClient({ planId: initialPlanId }: CheckoutClient
                         </div>
                     </div>
 
+                    {/* Área de Checkout */}
                     <div className="space-y-6">
                         <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
                             <h2 className="text-xl font-bold text-[#3E2723] mb-6">
-                                Dados do Pagamento
+                                Finalizar Assinatura
                             </h2>
 
-                            {/* Componente de Checkout Transparente */}
-                            <StripeWrapper
-                                planId={plan.priceId}
-                                planName={plan.name}
-                                price={plan.price}
-                            />
+                            <div className="space-y-6">
+                                {/* Informações de segurança */}
+                                <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+                                    <div className="flex items-start gap-3">
+                                        <Shield className="text-green-600 mt-0.5" size={20} />
+                                        <div>
+                                            <p className="font-medium text-green-800">
+                                                Pagamento 100% Seguro
+                                            </p>
+                                            <p className="text-sm text-green-700 mt-1">
+                                                Você será redirecionado para a página segura do Stripe para inserir seus dados de pagamento.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Resumo de valores */}
+                                <div className="border-t border-gray-100 pt-4">
+                                    <div className="flex justify-between text-sm text-[#5D4037] mb-2">
+                                        <span>Plano {plan.name}</span>
+                                        <span>R$ {plan.price}/mês</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm text-green-600 mb-4">
+                                        <span>Período de teste</span>
+                                        <span>14 dias grátis</span>
+                                    </div>
+                                    <div className="flex justify-between font-bold text-[#3E2723] text-lg border-t border-gray-100 pt-4">
+                                        <span>Total hoje</span>
+                                        <span>R$ 0,00</span>
+                                    </div>
+                                    <p className="text-xs text-[#5D4037]/60 mt-2">
+                                        A cobrança de R$ {plan.price} ocorrerá após 14 dias
+                                    </p>
+                                </div>
+
+                                {/* Botão de Checkout */}
+                                <button
+                                    onClick={handleCheckout}
+                                    disabled={isLoading}
+                                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Redirecionando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CreditCard size={20} />
+                                            Começar Teste Grátis
+                                        </>
+                                    )}
+                                </button>
+
+                                <p className="text-xs text-center text-[#5D4037]/60">
+                                    Ao clicar, você concorda com os{" "}
+                                    <Link href="/termos" className="underline hover:text-primary">
+                                        Termos de Uso
+                                    </Link>{" "}
+                                    e{" "}
+                                    <Link href="/privacidade" className="underline hover:text-primary">
+                                        Política de Privacidade
+                                    </Link>
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex items-center justify-center gap-4 text-[#5D4037]/60">
                             <Shield size={20} />
                             <span className="text-sm">
-                                Ambientes seguro e criptografado
+                                Ambiente seguro e criptografado
                             </span>
                         </div>
                     </div>
