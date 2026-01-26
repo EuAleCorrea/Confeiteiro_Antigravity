@@ -39,34 +39,22 @@ export default function CheckoutClient({ planId: initialPlanId }: CheckoutClient
         setError(null);
 
         try {
-            const { createClient } = await import("@/lib/supabase/client");
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
+            // Payment Links do Stripe - checkout sem login
+            // O email é coletado pelo próprio Stripe durante o checkout
+            const PAYMENT_LINKS: Record<PlanKey, string> = {
+                basico: 'https://buy.stripe.com/test_00wfZhcpaaH5aQ1b04bfO00',
+                profissional: 'https://buy.stripe.com/test_9B614n60MaH5aQ1fgkbfO01',
+                premium: 'https://buy.stripe.com/test_28EdR92OAeXl5vHb04bfO02',
+            };
 
-            if (!user) {
-                window.location.href = `/login?redirect=/checkout/${planId}`;
-                return;
+            const paymentLink = PAYMENT_LINKS[planId];
+
+            if (!paymentLink) {
+                throw new Error('Link de pagamento não configurado para este plano');
             }
 
-            const response = await fetch("/api/stripe/create-checkout-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    planId,
-                    userId: user.id,
-                    email: user.email,
-                }),
-            });
-
-            const data = await response.json() as { error?: string; url?: string; sessionId?: string };
-
-            if (!response.ok) {
-                throw new Error(data.error || "Erro ao criar sessão de checkout");
-            }
-
-            if (data.url) {
-                window.location.href = data.url;
-            }
+            // Redirecionar diretamente para o Payment Link do Stripe
+            window.location.href = paymentLink;
         } catch (err) {
             setError(err instanceof Error ? err.message : "Erro inesperado");
             setIsLoading(false);
