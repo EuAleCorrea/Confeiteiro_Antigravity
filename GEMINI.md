@@ -4,30 +4,49 @@
 
 ---
 
-## 🚀 DEPLOY NO CLOUDFLARE PAGES
+## 🚀 DEPLOY NA VPS HOSTINGER
 
-### REGRA CRÍTICA: Sempre usar `--branch=production`
+### ⚠️ REGRA CRÍTICA: Deploy APENAS na Hostinger
 
-**NUNCA** fazer deploy sem especificar a branch de produção. O comando correto é:
-
-```bash
-npx wrangler pages deploy ./out --project-name=confeiteiroantigravity --branch=production
-```
+**NUNCA** fazer deploy no Cloudflare Pages. O deploy de produção é **EXCLUSIVAMENTE** na VPS Hostinger.
 
 ### URLs do Projeto
 
 | Ambiente | URL |
 |----------|-----|
-| **PRODUÇÃO** | https://production.confeiteiroantigravity.pages.dev |
-| **Preview** | https://feature-supabase-migration.confeiteiroantigravity.pages.dev |
+| **PRODUÇÃO** | https://confeiteiro.automacaototal.com |
 
 ### Processo de Deploy Completo
 
-1. `git add -A`
-2. `git commit -m "mensagem"`
-3. `git push Confeiteiro feature/supabase-migration`
-4. `npm run build`
-5. `npx wrangler pages deploy ./out --project-name=confeiteiroantigravity --branch=production`
+1. **Commit e Push:**
+   ```bash
+   git add -A
+   git commit -m "mensagem"
+   git push Confeiteiro feature/supabase-migration
+   ```
+
+2. **Deploy no Servidor (SSH):**
+   ```bash
+   ssh root@195.200.4.198
+   cd /var/www/confeiteiro
+   git pull origin feature/supabase-migration
+   npm ci
+   npm run build
+   ```
+
+3. **Verificar Deploy:**
+   ```bash
+   curl -I https://confeiteiro.automacaototal.com
+   ```
+
+### Informações do Servidor
+
+- **IP**: 195.200.4.198
+- **Hostname**: srv561524.hstgr.cloud
+- **Senha Root**: `fyS22vc9SSZ#lElX`
+- **Diretório**: `/var/www/confeiteiro`
+- **Arquitetura**: Next.js Static Export + Nginx
+- **SSL**: Let's Encrypt (auto-renovação)
 
 ---
 
