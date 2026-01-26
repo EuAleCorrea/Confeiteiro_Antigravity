@@ -46,11 +46,11 @@ export default function StripeWrapper({ planId, planName, price }: StripeWrapper
                     if (response.status === 404) {
                         throw new Error("Edge Function não encontrada. Configure o backend.");
                     }
-                    const errorData = await response.json();
+                    const errorData = await response.json() as { error?: string };
                     throw new Error(errorData.error || "Erro ao iniciar pagamento");
                 }
 
-                const data = await response.json();
+                const data = await response.json() as { clientSecret: string };
                 setClientSecret(data.clientSecret);
             } catch (err) {
                 console.error("Erro no checkout:", err);
