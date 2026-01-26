@@ -103,3 +103,21 @@
    - **Problema**: Usava `next-auth` que foi removido na migração para Supabase Auth
    - **Solução necessária**: Refatorar para usar Supabase Auth com Google People API
    - **Data desabilitado**: 2026-01-24
+
+2. **Configurar Webhook do Stripe para fluxo pós-pagamento**
+   - **Objetivo**: Processar eventos de pagamento confirmado
+   - **Ação ao receber pagamento**: Criar usuário no Supabase com email do cliente
+   - **Enviar email de boas-vindas** com link para definir senha ou vincular Google
+   - **Prioridade**: Alta (necessário para produção com clientes pagantes)
+   - **Data adicionado**: 2026-01-26
+
+3. **Adicionar Redirect URL de produção no Supabase**
+   - **URL a adicionar**: `https://confeiteiro.automacaototal.com/**`
+   - **Onde configurar**: Supabase Dashboard > Authentication > URL Configuration
+   - **Data adicionado**: 2026-01-26
+
+4. **Configurar variáveis de ambiente no servidor Hostinger**
+   - **Supabase URL e Anon Key** para o build de produção
+   - **Stripe Keys** para o checkout transparente
+   - **Data adicionado**: 2026-01-26
+

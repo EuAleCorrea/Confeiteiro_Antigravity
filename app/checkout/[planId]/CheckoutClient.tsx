@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { STRIPE_PLANS, PlanKey } from "@/lib/stripe-config";
 import { ChefHat, CheckCircle, Shield, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import StripeWrapper from "@/components/checkout/StripeWrapper";
 
 interface CheckoutClientProps {
     planId: string;
@@ -119,54 +120,21 @@ export default function CheckoutClient({ planId: initialPlanId }: CheckoutClient
                     <div className="space-y-6">
                         <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
                             <h2 className="text-xl font-bold text-[#3E2723] mb-6">
-                                Finalizar Assinatura
+                                Dados do Pagamento
                             </h2>
 
-                            {error && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl mb-6">
-                                    {error}
-                                </div>
-                            )}
-
-                            <div className="space-y-4 mb-6">
-                                <div className="flex justify-between text-[#5D4037]">
-                                    <span>Plano {plan.name}</span>
-                                    <span className="font-semibold">R${plan.price}/mês</span>
-                                </div>
-                                <div className="flex justify-between text-green-600">
-                                    <span>14 dias grátis</span>
-                                    <span className="font-semibold">-R${plan.price}</span>
-                                </div>
-                                <div className="border-t pt-4 flex justify-between text-[#3E2723]">
-                                    <span className="font-bold">Total hoje</span>
-                                    <span className="font-bold text-xl">R$0,00</span>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={handleCheckout}
-                                disabled={isLoading}
-                                className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-full transition-all hover:scale-[1.02] hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <Loader2 className="animate-spin" size={20} />
-                                        Processando...
-                                    </>
-                                ) : (
-                                    "Continuar para Pagamento"
-                                )}
-                            </button>
-
-                            <p className="text-sm text-center text-[#5D4037]/60 mt-4">
-                                Você será redirecionado para o Stripe para finalizar
-                            </p>
+                            {/* Componente de Checkout Transparente */}
+                            <StripeWrapper
+                                planId={plan.priceId}
+                                planName={plan.name}
+                                price={plan.price}
+                            />
                         </div>
 
                         <div className="flex items-center justify-center gap-4 text-[#5D4037]/60">
                             <Shield size={20} />
                             <span className="text-sm">
-                                Pagamento seguro processado pelo Stripe
+                                Ambientes seguro e criptografado
                             </span>
                         </div>
                     </div>
