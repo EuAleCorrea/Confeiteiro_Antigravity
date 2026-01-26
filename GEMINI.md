@@ -14,7 +14,8 @@
 
 | Ambiente | URL |
 |----------|-----|
-| **PRODUÇÃO** | https://confeiteiro.automacaototal.com |
+| **DESENVOLVIMENTO / TESTES** | https://confeiteiro.automacaototal.com |
+| **PRODUÇÃO** | *A definir (Requer autorização enfática)* |
 
 ### Processo de Deploy Completo
 
@@ -93,7 +94,15 @@
 
 ---
 
-## 📋 TODOs PENDENTES
+## �️ PROTOCOLO DE PRODUÇÃO
+
+1. **Status Atual**: Todo o trabalho e deploys atuais são destinados ao ambiente de **DESENVOLVIMENTO e TESTES**.
+2. **Autorização para Produção**: Qualquer movimentação para um ambiente de produção real (clientes pagantes reais) deve ser solicitada pelo USER de maneira **enfática e explícita**.
+3. **Double-Check Obrigatório**: A IA deve **sempre questionar** o USER ("Tem certeza que deseja aplicar isso em produção?") antes de realizar qualquer alteração em ambiente produtivo ou crítico.
+
+---
+
+## �📋 TODOs PENDENTES
 
 ### 🔴 Alta Prioridade
 
