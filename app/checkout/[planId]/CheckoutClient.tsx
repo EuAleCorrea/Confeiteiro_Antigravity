@@ -7,10 +7,11 @@ import { ChefHat, CheckCircle, Shield, ArrowLeft, Loader2, CreditCard } from "lu
 import Link from "next/link";
 
 // Payment Links do Stripe - Checkout hospedado pelo Stripe (mais estável)
+// Links atualizados com Trial de 14 dias
 const PAYMENT_LINKS: Record<PlanKey, string> = {
-    basico: 'https://buy.stripe.com/test_00w8wP1KwbL97DP0lqbfO03',
-    profissional: 'https://buy.stripe.com/test_eVqeVd2OA8yX9LX5FKbfO04',
-    premium: 'https://buy.stripe.com/test_6oU4gz2OA9D1bU5b04bfO05',
+    basico: 'https://buy.stripe.com/test_6oU3cv9cY16vbU54BGbfO06',
+    profissional: 'https://buy.stripe.com/test_4gM8wPfBm02rbU5ecgbfO07',
+    premium: 'https://buy.stripe.com/test_14A28rfBm02r3nz1pubfO08',
 };
 
 interface CheckoutClientProps {
