@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, PartyPopper, Calendar, ArrowRight, Loader2 } from "lucide-react";
+import { CheckCircle, PartyPopper, Calendar, ArrowRight, Loader2, Mail } from "lucide-react";
 
 function SuccessContent() {
     const searchParams = useSearchParams();
