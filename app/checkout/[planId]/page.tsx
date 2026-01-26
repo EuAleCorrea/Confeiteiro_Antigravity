@@ -1,4 +1,4 @@
-import { STRIPE_PLANS } from "@/lib/stripe";
+import { STRIPE_PLANS } from "@/lib/stripe-config";
 import CheckoutClient from "./CheckoutClient";
 
 // Gerar parâmetros estáticos para todas as rotas de checkout

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { STRIPE_PLANS, PlanKey } from "@/lib/stripe";
+import { STRIPE_PLANS, PlanKey } from "@/lib/stripe-config";
 import { ChefHat, CheckCircle, Shield, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
