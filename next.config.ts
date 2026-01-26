@@ -7,10 +7,6 @@ const nextConfig: NextConfig = {
   },
   // Desabilitar trailing slash para compatibilidade com Cloudflare
   trailingSlash: false,
-  // @ts-ignore
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 };
 
 export default nextConfig;
