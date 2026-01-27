@@ -78,7 +78,7 @@ export default function StepRevisao({ data, back, next }: StepProps) {
                         <ul className="space-y-2">
                             {data.itens?.map(item => (
                                 <li key={item.id} className="flex justify-between text-sm border-b border-border/50 pb-2">
-                                    <span>{item.quantidade}x {item.nome} {item.tamanho && `(${item.tamanho})`}</span>
+                                    <span>{item.quantidade}x {item.nome}</span>
                                     <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.subtotal)}</span>
                                 </li>
                             ))}

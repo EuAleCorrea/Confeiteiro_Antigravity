@@ -262,7 +262,7 @@ export default function OrcamentoDetalhesClient() {
                             Orçamento #{orcamento.numero}
                             <Badge variant={orcamento.status === 'Convertido' ? 'success' : 'warning'}>{orcamento.status}</Badge>
                         </h1>
-                        <p className="text-text-secondary">Criado em {new Date(orcamento.dataCriacao).toLocaleDateString()}</p>
+                        <p className="text-text-secondary">Criado em {orcamento.dataCriacao ? new Date(orcamento.dataCriacao).toLocaleDateString() : 'Data desconhecida'}</p>
                     </div>
                 </div>
 
@@ -320,18 +320,18 @@ export default function OrcamentoDetalhesClient() {
                                     <DollarSign size={18} className="text-primary" /> Dados do Cliente
                                 </h3>
                                 <div className="bg-neutral-50 p-4 rounded-lg">
-                                    <p className="font-bold">{orcamento.cliente.nome}</p>
-                                    <p className="text-text-secondary">{orcamento.cliente.telefone}</p>
-                                    {orcamento.cliente.email && <p className="text-text-secondary">{orcamento.cliente.email}</p>}
+                                    <p className="font-bold">{orcamento.cliente?.nome || 'Cliente sem nome'}</p>
+                                    <p className="text-text-secondary">{orcamento.cliente?.telefone || ''}</p>
+                                    {orcamento.cliente?.email && <p className="text-text-secondary">{orcamento.cliente.email}</p>}
                                 </div>
                             </section>
 
                             <section>
                                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                                    <Copy size={18} className="text-primary" /> Itens do Pedido ({orcamento.itens.length})
+                                    <Copy size={18} className="text-primary" /> Itens do Pedido ({orcamento.itens?.length || 0})
                                 </h3>
                                 <div className="space-y-3">
-                                    {orcamento.itens.map((item, idx) => (
+                                    {orcamento.itens?.map((item, idx) => (
                                         <div key={idx} className="flex justify-between items-start border-b border-border/50 pb-3 last:border-0">
                                             <div>
                                                 <p className="font-medium">{item.quantidade}x {item.nome}</p>
@@ -352,7 +352,7 @@ export default function OrcamentoDetalhesClient() {
                             <section>
                                 <h3 className="font-semibold text-lg mb-4">Decoração</h3>
                                 <div className="bg-neutral-50 p-4 rounded-lg text-sm whitespace-pre-line">
-                                    {orcamento.decoracao.descricao || "Nenhuma descrição informada."}
+                                    {orcamento.decoracao?.descricao || "Nenhuma descrição informada."}
                                 </div>
                             </section>
                         </div>
@@ -366,10 +366,10 @@ export default function OrcamentoDetalhesClient() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="text-sm space-y-2">
-                                    <p><span className="text-text-secondary">Tipo:</span> {orcamento.entrega.tipo}</p>
-                                    <p><span className="text-text-secondary">Data:</span> {new Date(orcamento.entrega.data).toLocaleDateString()}</p>
-                                    <p><span className="text-text-secondary">Horário:</span> {orcamento.entrega.horario}</p>
-                                    {orcamento.entrega.endereco && (
+                                    <p><span className="text-text-secondary">Tipo:</span> {orcamento.entrega?.tipo || 'Não informado'}</p>
+                                    <p><span className="text-text-secondary">Data:</span> {orcamento.entrega?.data ? new Date(orcamento.entrega.data).toLocaleDateString() : 'A definir'}</p>
+                                    <p><span className="text-text-secondary">Horário:</span> {orcamento.entrega?.horario || '--:--'}</p>
+                                    {orcamento.entrega?.endereco && (
                                         <div className="mt-2 pt-2 border-t border-border">
                                             <p className="font-medium flex items-center gap-1"><MapPin size={14} /> Endereço:</p>
                                             <p className="text-text-secondary">
@@ -388,11 +388,11 @@ export default function OrcamentoDetalhesClient() {
                                 <CardContent className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-text-secondary">Subtotal Itens</span>
-                                        <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(orcamento.itens.reduce((acc, i) => acc + i.subtotal, 0))}</span>
+                                        <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(orcamento.itens?.reduce((acc, i) => acc + i.subtotal, 0) || 0)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-text-secondary">Taxa de Entrega</span>
-                                        <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(orcamento.entrega.taxa)}</span>
+                                        <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(orcamento.entrega?.taxa || 0)}</span>
                                     </div>
                                     <div className="pt-3 border-t border-primary/20 flex justify-between items-center">
                                         <span className="font-bold text-lg">TOTAL</span>
@@ -410,16 +410,16 @@ export default function OrcamentoDetalhesClient() {
                     <div className="p-8 space-y-6">
                         <div className="prose max-w-none">
                             <h3 className="text-lg font-semibold">Formas de Pagamento</h3>
-                            <p className="mb-4 whitespace-pre-line">{orcamento.termos.pagamento}</p>
+                            <p className="mb-4 whitespace-pre-line">{orcamento.termos?.pagamento || 'Não definido'}</p>
 
                             <h3 className="text-lg font-semibold">Política de Cancelamento</h3>
-                            <p className="mb-4 whitespace-pre-line">{orcamento.termos.cancelamento}</p>
+                            <p className="mb-4 whitespace-pre-line">{orcamento.termos?.cancelamento || 'Não definido'}</p>
 
                             <h3 className="text-lg font-semibold">Transporte</h3>
-                            <p className="mb-4 whitespace-pre-line">{orcamento.termos.transporte}</p>
+                            <p className="mb-4 whitespace-pre-line">{orcamento.termos?.transporte || 'Não definido'}</p>
 
                             <h3 className="text-lg font-semibold">Cuidados com o Produto</h3>
-                            <p className="mb-4 whitespace-pre-line">{orcamento.termos.cuidados}</p>
+                            <p className="mb-4 whitespace-pre-line">{orcamento.termos?.cuidados || 'Não definido'}</p>
                         </div>
                     </div>
                 )}
@@ -427,7 +427,7 @@ export default function OrcamentoDetalhesClient() {
                 {activeTab === 'historico' && (
                     <div className="p-6">
                         <div className="space-y-4">
-                            {orcamento.historico.map((log, idx) => (
+                            {orcamento.historico?.map((log, idx) => (
                                 <div key={idx} className="flex gap-4 items-start">
                                     <div className="mt-1">
                                         <div className="w-2 h-2 rounded-full bg-primary" />
