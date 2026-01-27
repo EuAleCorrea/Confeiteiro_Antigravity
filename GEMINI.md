@@ -26,19 +26,16 @@
    git push Confeiteiro feature/supabase-migration
    ```
 
-2. **Deploy no Servidor (SSH):**
+2. **Deploy no Servidor (via plink do Windows):**
    ```bash
-   ssh root@195.200.4.198
-   cd /var/www/confeiteiro
-   git pull origin feature/supabase-migration
-   npm ci
-   npm run build
+   plink -batch -pw fyS22vc9SSZ#lElX root@195.200.4.198 "cd /var/www/confeiteiro && git pull origin feature/supabase-migration && npm run build && pm2 restart confeiteiro"
    ```
 
 3. **Verificar Deploy:**
    ```bash
-   curl -I https://confeiteiro.automacaototal.com
+   plink -batch -pw fyS22vc9SSZ#lElX root@195.200.4.198 "curl -s -o /dev/null -w '%{http_code}' https://confeiteiro.automacaototal.com"
    ```
+   Deve retornar `200`.
 
 ### Informações do Servidor
 
@@ -46,8 +43,21 @@
 - **Hostname**: srv561524.hstgr.cloud
 - **Senha Root**: `fyS22vc9SSZ#lElX`
 - **Diretório**: `/var/www/confeiteiro`
-- **Arquitetura**: Next.js Static Export + Nginx
+- **Arquitetura**: Next.js Server Mode (PM2) + Nginx Proxy Reverso
 - **SSL**: Let's Encrypt (auto-renovação)
+- **Gerenciador de Processos**: PM2 (app name: `confeiteiro`)
+
+### ⚠️ IMPORTANTE: next.config.ts
+
+**NÃO usar `output: 'export'`** no servidor. Esta opção é incompatível com Server Actions e impede o modo servidor.
+
+O `next.config.ts` no servidor deve ter:
+```typescript
+const nextConfig: NextConfig = {
+  images: { unoptimized: true },
+  trailingSlash: false,
+};
+```
 
 ---
 
@@ -112,8 +122,17 @@
 ### 2. Pagamentos (Stripe)
 - **Trials**: Sempre gerar Payment Links via API configurando `subscription_data.trial_period_days` explicitamente. O Dashboard é propenso a falhas nesse setup.
 
-### 3. Deployment
-- Deploy manual via SSH é mandatório. Sempre rodar `git pull` e `npm run build` na VPS.
+### 3. Deployment (ATUALIZADO 2026-01-27)
+- **Arquitetura**: Next.js roda como servidor Node.js via PM2, com Nginx como proxy reverso na porta 443.
+- **NÃO usar `output: 'export'`**: Server Actions são incompatíveis com static export. O build falha silenciosamente e não gera o diretório `out/`.
+- **Comandos de deploy**: Usar `plink -batch` do Windows para automação (evita problemas de autenticação interativa SSH).
+- **Após build**: Sempre rodar `pm2 restart confeiteiro` para aplicar mudanças.
+- **Verificação**: Testar com `curl` que retorne HTTP 200.
+
+### 4. Nginx Configuration
+- **Arquivo**: `/etc/nginx/sites-available/confeiteiro`
+- **Modo**: Proxy reverso para `http://127.0.0.1:3000`
+- **NUNCA** configurar como static files (`root /var/www/confeiteiro/out`) - isso quebra o app.
 
 ---
 
