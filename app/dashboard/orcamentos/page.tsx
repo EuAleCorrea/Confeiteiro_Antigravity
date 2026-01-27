@@ -304,360 +304,360 @@ export default function OrcamentosPage() {
     }
 
     const filtered = orcamentos.filter(o => {
-    const matchesSearch =
-        o.cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.numero.toString().includes(searchTerm);
-    const matchesStatus = statusFilter === "Todos" || o.status === statusFilter;
-    return matchesSearch && matchesStatus;
-});
+        const matchesSearch =
+            o.cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            o.numero.toString().includes(searchTerm);
+        const matchesStatus = statusFilter === "Todos" || o.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
 
-// Calculate Stats
-const totalMes = filtered.length; // Mock: using total instead of month for simplicity
-const pendentes = filtered.filter(o => o.status === 'Pendente').length;
-const aprovados = filtered.filter(o => o.status === 'Aprovado' || o.status === 'Convertido').length;
-const taxaConversao = totalMes > 0 ? Math.round((aprovados / totalMes) * 100) : 0;
+    // Calculate Stats
+    const totalMes = filtered.length; // Mock: using total instead of month for simplicity
+    const pendentes = filtered.filter(o => o.status === 'Pendente').length;
+    const aprovados = filtered.filter(o => o.status === 'Aprovado' || o.status === 'Convertido').length;
+    const taxaConversao = totalMes > 0 ? Math.round((aprovados / totalMes) * 100) : 0;
 
-function getStatusVariant(status: string) {
-    switch (status) {
-        case 'Aprovado': case 'Convertido': return 'success';
-        case 'Pendente': return 'warning';
-        case 'Recusado': case 'Expirado': return 'error';
-        case 'Enviado': return 'info';
-        default: return 'neutral';
+    function getStatusVariant(status: string) {
+        switch (status) {
+            case 'Aprovado': case 'Convertido': return 'success';
+            case 'Pendente': return 'warning';
+            case 'Recusado': case 'Expirado': return 'error';
+            case 'Enviado': return 'info';
+            default: return 'neutral';
+        }
     }
-}
 
-return (
-    <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <h1 className="text-2xl font-bold text-text-primary">Orçamentos</h1>
-                <p className="text-text-secondary">Gerencie suas propostas comerciais</p>
-            </div>
-            <Link href="/dashboard/orcamentos/novo">
-                <Button>
-                    <Plus size={20} className="mr-2" />
-                    Novo Orçamento
-                </Button>
-            </Link>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-                <CardContent className="p-4 text-center">
-                    <p className="text-sm text-text-secondary">Total (Geral)</p>
-                    <p className="text-2xl font-bold">{totalMes}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardContent className="p-4 text-center">
-                    <p className="text-sm text-text-secondary">Pendentes</p>
-                    <p className="text-2xl font-bold text-warning-darker">{pendentes}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardContent className="p-4 text-center">
-                    <p className="text-sm text-text-secondary">Aprovados</p>
-                    <p className="text-2xl font-bold text-success-darker">{aprovados}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardContent className="p-4 text-center">
-                    <p className="text-sm text-text-secondary">Conversão</p>
-                    <p className="text-2xl font-bold text-primary">{taxaConversao}%</p>
-                </CardContent>
-            </Card>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center bg-surface p-2 rounded-xl border border-border">
-            <div className="flex items-center gap-2 flex-1 w-full">
-                <Search size={20} className="text-text-secondary ml-2" />
-                <input
-                    type="text"
-                    placeholder="Buscar por número ou cliente..."
-                    className="flex-1 bg-transparent border-none focus:outline-none text-sm"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto overflow-x-auto">
-                {['Todos', 'Pendente', 'Enviado', 'Aprovado'].map(status => (
-                    <Button
-                        key={status}
-                        variant={statusFilter === status ? 'primary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setStatusFilter(status)}
-                        className="rounded-full px-4"
-                    >
-                        {status}
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-text-primary">Orçamentos</h1>
+                    <p className="text-text-secondary">Gerencie suas propostas comerciais</p>
+                </div>
+                <Link href="/dashboard/orcamentos/novo">
+                    <Button>
+                        <Plus size={20} className="mr-2" />
+                        Novo Orçamento
                     </Button>
-                ))}
+                </Link>
             </div>
-        </div>
 
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="whitespace-nowrap"># Proposta</TableHead>
-                    <TableHead className="whitespace-nowrap">Data</TableHead>
-                    <TableHead className="whitespace-nowrap">Cliente</TableHead>
-                    <TableHead className="whitespace-nowrap">Valor Total</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {filtered.length === 0 ? (
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-sm text-text-secondary">Total (Geral)</p>
+                        <p className="text-2xl font-bold">{totalMes}</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-sm text-text-secondary">Pendentes</p>
+                        <p className="text-2xl font-bold text-warning-darker">{pendentes}</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-sm text-text-secondary">Aprovados</p>
+                        <p className="text-2xl font-bold text-success-darker">{aprovados}</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-sm text-text-secondary">Conversão</p>
+                        <p className="text-2xl font-bold text-primary">{taxaConversao}%</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center bg-surface p-2 rounded-xl border border-border">
+                <div className="flex items-center gap-2 flex-1 w-full">
+                    <Search size={20} className="text-text-secondary ml-2" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por número ou cliente..."
+                        className="flex-1 bg-transparent border-none focus:outline-none text-sm"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto overflow-x-auto">
+                    {['Todos', 'Pendente', 'Enviado', 'Aprovado'].map(status => (
+                        <Button
+                            key={status}
+                            variant={statusFilter === status ? 'primary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setStatusFilter(status)}
+                            className="rounded-full px-4"
+                        >
+                            {status}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
+            <Table>
+                <TableHeader>
                     <TableRow>
-                        <TableCell colSpan={6} className="text-center py-12 text-text-secondary">
-                            Nenhum orçamento encontrado.
-                        </TableCell>
+                        <TableHead className="whitespace-nowrap"># Proposta</TableHead>
+                        <TableHead className="whitespace-nowrap">Data</TableHead>
+                        <TableHead className="whitespace-nowrap">Cliente</TableHead>
+                        <TableHead className="whitespace-nowrap">Valor Total</TableHead>
+                        <TableHead className="whitespace-nowrap">Status</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
                     </TableRow>
-                ) : (
-                    filtered.map((orcamento) => (
-                        <TableRow key={orcamento.id}>
-                            <TableCell className="font-medium">#{orcamento.numero}</TableCell>
-                            <TableCell>{new Date(orcamento.dataCriacao).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                                <div className="flex flex-col">
-                                    <span className="font-medium">{orcamento.cliente.nome}</span>
-                                    <span className="text-xs text-text-secondary">{orcamento.cliente.telefone}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell className="font-bold">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(orcamento.valorTotal)}
-                            </TableCell>
-                            <TableCell>
-                                <Badge variant={getStatusVariant(orcamento.status) as any}>
-                                    {orcamento.status}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                    <Button variant="ghost" size="icon" className="text-blue-600" title="Enviar WhatsApp" onClick={() => handleSendClick(orcamento)}>
-                                        <Send size={16} />
-                                    </Button>
-
-                                    {orcamento.status === 'Enviado' && (
-                                        <Button variant="ghost" size="icon" className="text-green-600" title="Aprovar e Gerar Pedido" onClick={() => setApproveModal({ open: true, orcamento })}>
-                                            <Check size={16} />
-                                        </Button>
-                                    )}
-
-                                    <Link href={`/orcamentos/${orcamento.id}`}>
-                                        <Button variant="ghost" size="icon" title="Ver Detalhes">
-                                            <FileText size={16} />
-                                        </Button>
-                                    </Link>
-                                    <Button variant="ghost" size="icon" className="text-error" onClick={() => setDeleteModal({ open: true, id: orcamento.id })}>
-                                        <Trash2 size={16} />
-                                    </Button>
-                                </div>
+                </TableHeader>
+                <TableBody>
+                    {filtered.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={6} className="text-center py-12 text-text-secondary">
+                                Nenhum orçamento encontrado.
                             </TableCell>
                         </TableRow>
-                    ))
-                )}
-            </TableBody>
-        </Table>
+                    ) : (
+                        filtered.map((orcamento) => (
+                            <TableRow key={orcamento.id}>
+                                <TableCell className="font-medium">#{orcamento.numero}</TableCell>
+                                <TableCell>{new Date(orcamento.dataCriacao).toLocaleDateString()}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{orcamento.cliente.nome}</span>
+                                        <span className="text-xs text-text-secondary">{orcamento.cliente.telefone}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="font-bold">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(orcamento.valorTotal)}
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={getStatusVariant(orcamento.status) as any}>
+                                        {orcamento.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button variant="ghost" size="icon" className="text-blue-600" title="Enviar WhatsApp" onClick={() => handleSendClick(orcamento)}>
+                                            <Send size={16} />
+                                        </Button>
 
-        {/* WhatsApp Modal */}
-        <Dialog
-            isOpen={whatsappModal}
-            onClose={() => !whatsappLoading && setWhatsappModal(false)}
-            title="Enviar Orçamento via WhatsApp"
-            className="max-w-md"
-        >
-            <div className="space-y-4">
-                <div>
-                    <label className="text-sm font-medium mb-1 block">Número do WhatsApp</label>
-                    <div className="flex gap-2">
-                        <div className="flex items-center justify-center w-10 bg-neutral-100 rounded-md border border-input text-text-secondary">
-                            <Smartphone size={18} />
+                                        {orcamento.status === 'Enviado' && (
+                                            <Button variant="ghost" size="icon" className="text-green-600" title="Aprovar e Gerar Pedido" onClick={() => setApproveModal({ open: true, orcamento })}>
+                                                <Check size={16} />
+                                            </Button>
+                                        )}
+
+                                        <Link href={`/dashboard/orcamentos/${orcamento.id}`}>
+                                            <Button variant="ghost" size="icon" title="Ver Detalhes">
+                                                <FileText size={16} />
+                                            </Button>
+                                        </Link>
+                                        <Button variant="ghost" size="icon" className="text-error" onClick={() => setDeleteModal({ open: true, id: orcamento.id })}>
+                                            <Trash2 size={16} />
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                </TableBody>
+            </Table>
+
+            {/* WhatsApp Modal */}
+            <Dialog
+                isOpen={whatsappModal}
+                onClose={() => !whatsappLoading && setWhatsappModal(false)}
+                title="Enviar Orçamento via WhatsApp"
+                className="max-w-md"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Número do WhatsApp</label>
+                        <div className="flex gap-2">
+                            <div className="flex items-center justify-center w-10 bg-neutral-100 rounded-md border border-input text-text-secondary">
+                                <Smartphone size={18} />
+                            </div>
+                            <Input
+                                value={whatsappData.phone}
+                                onChange={e => setWhatsappData({ ...whatsappData, phone: e.target.value })}
+                                placeholder="5511999999999"
+                                disabled={whatsappLoading}
+                            />
                         </div>
-                        <Input
-                            value={whatsappData.phone}
-                            onChange={e => setWhatsappData({ ...whatsappData, phone: e.target.value })}
-                            placeholder="5511999999999"
+                        <p className="text-xs text-text-secondary mt-1">Dica: Use 55 + DDD + Número</p>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Mensagem</label>
+                        <textarea
+                            className="w-full min-h-[120px] p-3 rounded-md border border-input bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                            value={whatsappData.message}
+                            onChange={e => setWhatsappData({ ...whatsappData, message: e.target.value })}
                             disabled={whatsappLoading}
                         />
                     </div>
-                    <p className="text-xs text-text-secondary mt-1">Dica: Use 55 + DDD + Número</p>
-                </div>
 
-                <div>
-                    <label className="text-sm font-medium mb-1 block">Mensagem</label>
-                    <textarea
-                        className="w-full min-h-[120px] p-3 rounded-md border border-input bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                        value={whatsappData.message}
-                        onChange={e => setWhatsappData({ ...whatsappData, message: e.target.value })}
-                        disabled={whatsappLoading}
-                    />
-                </div>
+                    {/* PDF Attachment Toggle */}
+                    <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                        <input
+                            type="checkbox"
+                            id="sendPdf"
+                            checked={sendPdfAttachment}
+                            onChange={e => setSendPdfAttachment(e.target.checked)}
+                            disabled={whatsappLoading}
+                            className="w-4 h-4 rounded border-neutral-300 text-primary focus:ring-primary"
+                        />
+                        <label htmlFor="sendPdf" className="flex items-center gap-2 text-sm cursor-pointer">
+                            <Paperclip size={16} className="text-text-secondary" />
+                            <span>Anexar PDF do Orçamento</span>
+                        </label>
+                    </div>
 
-                {/* PDF Attachment Toggle */}
-                <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
-                    <input
-                        type="checkbox"
-                        id="sendPdf"
-                        checked={sendPdfAttachment}
-                        onChange={e => setSendPdfAttachment(e.target.checked)}
-                        disabled={whatsappLoading}
-                        className="w-4 h-4 rounded border-neutral-300 text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="sendPdf" className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Paperclip size={16} className="text-text-secondary" />
-                        <span>Anexar PDF do Orçamento</span>
-                    </label>
+                    <div className="flex gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setWhatsappModal(false)} className="flex-1" disabled={whatsappLoading}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={sendWhatsApp} className="flex-1 bg-success hover:bg-success-darker text-white" disabled={whatsappLoading}>
+                            {whatsappLoading ? <Loader2 size={18} className="animate-spin mr-2" /> : <Send size={18} className="mr-2" />}
+                            {sendPdfAttachment ? 'Enviar com PDF' : 'Enviar Mensagem'}
+                        </Button>
+                    </div>
                 </div>
+            </Dialog>
 
-                <div className="flex gap-3 pt-2">
-                    <Button variant="outline" onClick={() => setWhatsappModal(false)} className="flex-1" disabled={whatsappLoading}>
-                        Cancelar
+            {/* Delete Confirmation Modal */}
+            <Dialog
+                isOpen={deleteModal.open}
+                onClose={() => setDeleteModal({ open: false, id: null })}
+                title="Excluir Orçamento"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-secondary">Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.</p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setDeleteModal({ open: false, id: null })} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={confirmDelete} className="flex-1 bg-error hover:bg-error/90 text-white">
+                            Excluir
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Approve Confirmation Modal */}
+            <Dialog
+                isOpen={approveModal.open}
+                onClose={() => setApproveModal({ open: false, orcamento: null })}
+                title="Aprovar Orçamento"
+                className="max-w-md"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle size={32} className="text-success" />
+                    </div>
+                    <div className="space-y-2">
+                        <p className="font-medium">Aprovar orçamento e gerar pedido?</p>
+                        <p className="text-sm text-text-secondary">
+                            Orçamento <strong>#{approveModal.orcamento?.numero}</strong> para <strong>{approveModal.orcamento?.cliente.nome}</strong>
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                            Valor: <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approveModal.orcamento?.valorTotal || 0)}</strong>
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setApproveModal({ open: false, orcamento: null })} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={confirmApprove} className="flex-1 bg-success hover:bg-success-darker text-white">
+                            Aprovar e Gerar Pedido
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Success Modal */}
+            <Dialog
+                isOpen={successModal.open}
+                onClose={() => setSuccessModal({ open: false, message: '' })}
+                title="Sucesso"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle size={32} className="text-success" />
+                    </div>
+                    <p className="text-text-primary font-medium">{successModal.message}</p>
+                    <Button onClick={() => setSuccessModal({ open: false, message: '' })} className="w-full">
+                        OK
                     </Button>
-                    <Button onClick={sendWhatsApp} className="flex-1 bg-success hover:bg-success-darker text-white" disabled={whatsappLoading}>
-                        {whatsappLoading ? <Loader2 size={18} className="animate-spin mr-2" /> : <Send size={18} className="mr-2" />}
-                        {sendPdfAttachment ? 'Enviar com PDF' : 'Enviar Mensagem'}
-                    </Button>
                 </div>
-            </div>
-        </Dialog>
+            </Dialog>
 
-        {/* Delete Confirmation Modal */}
-        <Dialog
-            isOpen={deleteModal.open}
-            onClose={() => setDeleteModal({ open: false, id: null })}
-            title="Excluir Orçamento"
-            className="max-w-sm"
-        >
-            <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
-                    <AlertTriangle size={32} className="text-error" />
-                </div>
-                <p className="text-text-secondary">Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.</p>
-                <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => setDeleteModal({ open: false, id: null })} className="flex-1">
-                        Cancelar
-                    </Button>
-                    <Button onClick={confirmDelete} className="flex-1 bg-error hover:bg-error/90 text-white">
-                        Excluir
+            {/* Error Modal */}
+            <Dialog
+                isOpen={errorModal.open}
+                onClose={() => setErrorModal({ open: false, message: '' })}
+                title="Atenção"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                        <AlertTriangle size={32} className="text-error" />
+                    </div>
+                    <p className="text-text-primary font-medium">{errorModal.message}</p>
+                    <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
+                        OK
                     </Button>
                 </div>
-            </div>
-        </Dialog>
+            </Dialog>
 
-        {/* Approve Confirmation Modal */}
-        <Dialog
-            isOpen={approveModal.open}
-            onClose={() => setApproveModal({ open: false, orcamento: null })}
-            title="Aprovar Orçamento"
-            className="max-w-md"
-        >
-            <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle size={32} className="text-success" />
-                </div>
-                <div className="space-y-2">
-                    <p className="font-medium">Aprovar orçamento e gerar pedido?</p>
-                    <p className="text-sm text-text-secondary">
-                        Orçamento <strong>#{approveModal.orcamento?.numero}</strong> para <strong>{approveModal.orcamento?.cliente.nome}</strong>
+            {/* Resend Confirmation Modal */}
+            <Dialog
+                isOpen={resendConfirmModal.open}
+                onClose={() => setResendConfirmModal({ open: false, orcamento: null, previousSends: 0, lastSendDate: '', lastSendType: '' })}
+                title="Reenviar Orçamento"
+                className="max-w-sm"
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                        <Send size={32} className="text-orange-600" />
+                    </div>
+                    <div className="space-y-2">
+                        <p className="font-medium">Este orçamento já foi enviado!</p>
+                        <p className="text-sm text-text-secondary">
+                            Enviado <strong>{resendConfirmModal.previousSends} vez(es)</strong>
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                            Último envio: <strong>{resendConfirmModal.lastSendDate}</strong>
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                            Tipo: <strong>{resendConfirmModal.lastSendType}</strong>
+                        </p>
+                    </div>
+                    <p className="text-sm text-text-secondary font-medium">
+                        Deseja enviar novamente?
                     </p>
-                    <p className="text-sm text-text-secondary">
-                        Valor: <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approveModal.orcamento?.valorTotal || 0)}</strong>
-                    </p>
+                    <div className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => setResendConfirmModal({ open: false, orcamento: null, previousSends: 0, lastSendDate: '', lastSendType: '' })}
+                            className="flex-1"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={confirmResend}
+                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                            Sim, Reenviar
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => setApproveModal({ open: false, orcamento: null })} className="flex-1">
-                        Cancelar
-                    </Button>
-                    <Button onClick={confirmApprove} className="flex-1 bg-success hover:bg-success-darker text-white">
-                        Aprovar e Gerar Pedido
-                    </Button>
-                </div>
-            </div>
-        </Dialog>
-
-        {/* Success Modal */}
-        <Dialog
-            isOpen={successModal.open}
-            onClose={() => setSuccessModal({ open: false, message: '' })}
-            title="Sucesso"
-            className="max-w-sm"
-        >
-            <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle size={32} className="text-success" />
-                </div>
-                <p className="text-text-primary font-medium">{successModal.message}</p>
-                <Button onClick={() => setSuccessModal({ open: false, message: '' })} className="w-full">
-                    OK
-                </Button>
-            </div>
-        </Dialog>
-
-        {/* Error Modal */}
-        <Dialog
-            isOpen={errorModal.open}
-            onClose={() => setErrorModal({ open: false, message: '' })}
-            title="Atenção"
-            className="max-w-sm"
-        >
-            <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto">
-                    <AlertTriangle size={32} className="text-error" />
-                </div>
-                <p className="text-text-primary font-medium">{errorModal.message}</p>
-                <Button onClick={() => setErrorModal({ open: false, message: '' })} className="w-full">
-                    OK
-                </Button>
-            </div>
-        </Dialog>
-
-        {/* Resend Confirmation Modal */}
-        <Dialog
-            isOpen={resendConfirmModal.open}
-            onClose={() => setResendConfirmModal({ open: false, orcamento: null, previousSends: 0, lastSendDate: '', lastSendType: '' })}
-            title="Reenviar Orçamento"
-            className="max-w-sm"
-        >
-            <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
-                    <Send size={32} className="text-orange-600" />
-                </div>
-                <div className="space-y-2">
-                    <p className="font-medium">Este orçamento já foi enviado!</p>
-                    <p className="text-sm text-text-secondary">
-                        Enviado <strong>{resendConfirmModal.previousSends} vez(es)</strong>
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                        Último envio: <strong>{resendConfirmModal.lastSendDate}</strong>
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                        Tipo: <strong>{resendConfirmModal.lastSendType}</strong>
-                    </p>
-                </div>
-                <p className="text-sm text-text-secondary font-medium">
-                    Deseja enviar novamente?
-                </p>
-                <div className="flex gap-3">
-                    <Button
-                        variant="outline"
-                        onClick={() => setResendConfirmModal({ open: false, orcamento: null, previousSends: 0, lastSendDate: '', lastSendType: '' })}
-                        className="flex-1"
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        onClick={confirmResend}
-                        className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
-                    >
-                        Sim, Reenviar
-                    </Button>
-                </div>
-            </div>
-        </Dialog>
-    </div>
-);
+            </Dialog>
+        </div>
+    );
 }
 

@@ -82,7 +82,7 @@ export default function NovoOrcamentoPage() {
             };
 
             await supabaseStorage.saveOrcamento(finalOrcamento);
-            router.push('/orcamentos');
+            router.push('/dashboard/orcamentos');
         } catch (error) {
             console.error('Erro ao salvar orçamento:', error);
             setErrorModal({ open: true, message: 'Erro ao salvar orçamento.' });
@@ -129,7 +129,7 @@ export default function NovoOrcamentoPage() {
             <Wizard
                 steps={steps}
                 onComplete={handleFinish}
-                onCancel={() => router.push('/orcamentos')}
+                onCancel={() => router.push('/dashboard/orcamentos')}
             />
 
             {/* Error Modal */}
