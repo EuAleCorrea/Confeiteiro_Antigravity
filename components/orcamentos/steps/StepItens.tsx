@@ -16,14 +16,64 @@ interface StepProps {
     back?: () => void;
 }
 
+// Interface para produto expandido por tamanho
+interface ProductVariant {
+    variantId: string; // formato: produtoId ou produtoId__tamanho
+    produtoId: string;
+    nome: string;
+    displayName: string; // "Bolo Grande (P - 15 fatias)"
+    preco: number;
+    tamanho?: string;
+    categoria: string;
+    produto: Produto; // Referência ao produto original
+}
+
+// Função para expandir produtos em variantes por tamanho
+function expandProductsToVariants(products: Produto[]): ProductVariant[] {
+    const variants: ProductVariant[] = [];
+
+    products.forEach(p => {
+        // Se tem tamanhos, criar uma variante por tamanho
+        if (p.tamanhos && p.tamanhos.length > 0) {
+            p.tamanhos.forEach(tamanho => {
+                // Usar preço específico do tamanho se existir, senão usar preço base
+                const preco = p.precosPorTamanho?.[tamanho] ?? p.preco;
+                variants.push({
+                    variantId: `${p.id}__${tamanho}`,
+                    produtoId: p.id,
+                    nome: p.nome,
+                    displayName: `${p.nome} (${tamanho})`,
+                    preco,
+                    tamanho,
+                    categoria: p.categoria,
+                    produto: p
+                });
+            });
+        } else {
+            // Produto sem tamanhos: usar como está
+            variants.push({
+                variantId: p.id,
+                produtoId: p.id,
+                nome: p.nome,
+                displayName: p.nome,
+                preco: p.preco,
+                categoria: p.categoria,
+                produto: p
+            });
+        }
+    });
+
+    return variants;
+}
+
 export default function StepItens({ data, onUpdate, next, back }: StepProps) {
     const [availableProducts, setAvailableProducts] = useState<Produto[]>([]);
+    const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
     const [availableSabores, setAvailableSabores] = useState<Sabor[]>([]);
-    const [selectedProduct, setSelectedProduct] = useState<string>("");
+    const [selectedVariantId, setSelectedVariantId] = useState<string>("");
 
     // Item Details State
     const [quantity, setQuantity] = useState(1);
-    const [selectedSize, setSelectedSize] = useState("");
     const [selectedMassa, setSelectedMassa] = useState("");
     const [selectedRecheios, setSelectedRecheios] = useState<string[]>([]);
     const [items, setItems] = useState<ItemOrcamento[]>(data.itens || []);
@@ -45,7 +95,11 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
             supabaseStorage.getProdutos(),
             supabaseStorage.getSabores()
         ]);
-        setAvailableProducts(prods.filter(p => p.ativo));
+        const activeProducts = prods.filter(p => p.ativo);
+        const variants = expandProductsToVariants(activeProducts);
+
+        setAvailableProducts(activeProducts);
+        setProductVariants(variants);
         setAvailableSabores(sabores);
     }
 
@@ -65,7 +119,7 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
         try {
             const saved = await supabaseStorage.saveProduto(newProduct);
             await loadData(); // Reload all to refresh list
-            setSelectedProduct(saved.id);
+            setSelectedVariantId(saved.id);
 
             // Reset and close modal
             setNewProductName("");
@@ -77,17 +131,15 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
         }
     }
 
-    const currentProduct = availableProducts.find(p => p.id === selectedProduct);
+    const currentVariant = productVariants.find(v => v.variantId === selectedVariantId);
+    const currentProduct = currentVariant?.produto;
     const massas = availableSabores.filter(s => s.tipo === 'Massa');
     const recheios = availableSabores.filter(s => s.tipo === 'Recheio');
 
     function addItem() {
-        if (!currentProduct) return;
+        if (!currentVariant || !currentProduct) return;
 
-        let unitPrice = currentProduct.preco;
-        if (selectedSize && currentProduct.precosPorTamanho && currentProduct.precosPorTamanho[selectedSize]) {
-            unitPrice = currentProduct.precosPorTamanho[selectedSize];
-        }
+        const unitPrice = currentVariant.preco;
 
         const subtotal = unitPrice * quantity;
 
@@ -96,8 +148,8 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
             tipo: currentProduct.categoria === 'Bolo' ? 'Produto' :
                 currentProduct.categoria === 'Adicional' ? 'Adicional' : 'Servico',
             produtoId: currentProduct.id,
-            nome: currentProduct.nome,
-            tamanho: selectedSize,
+            nome: currentVariant.displayName,
+            tamanho: currentVariant.tamanho,
             saborMassa: selectedMassa ? massas.find(m => m.id === selectedMassa)?.nome : undefined,
             saborRecheio: selectedRecheios.length > 0
                 ? selectedRecheios.map(id => recheios.find(r => r.id === id)?.nome).filter(Boolean).join(" + ")
@@ -112,8 +164,7 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
         onUpdate({ itens: newItems });
 
         // Reset form
-        setSelectedProduct("");
-        setSelectedSize("");
+        setSelectedVariantId("");
         setSelectedMassa("");
         setSelectedRecheios([]);
         setQuantity(1);
@@ -139,13 +190,13 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
                         <div className="flex gap-2">
                             <select
                                 className="flex-1 h-10 rounded-lg border border-border px-3 focus:outline-none focus:ring-2 focus:ring-primary"
-                                value={selectedProduct}
-                                onChange={(e) => setSelectedProduct(e.target.value)}
+                                value={selectedVariantId}
+                                onChange={(e) => setSelectedVariantId(e.target.value)}
                             >
                                 <option value="">Selecione um produto...</option>
-                                {availableProducts.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.nome} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.preco)}
+                                {productVariants.map(v => (
+                                    <option key={v.variantId} value={v.variantId}>
+                                        {v.displayName} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v.preco)}
                                     </option>
                                 ))}
                             </select>
@@ -159,24 +210,11 @@ export default function StepItens({ data, onUpdate, next, back }: StepProps) {
                         </div>
                     </div>
 
-                    {currentProduct && (
+                    {currentVariant && currentProduct && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                             {currentProduct.categoria === 'Bolo' && (
                                 <div className="grid grid-cols-2 gap-4">
-                                    {currentProduct.tamanhos && currentProduct.tamanhos.length > 0 && (
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1">Tamanho</label>
-                                            <select
-                                                className="w-full h-10 rounded-lg border border-border px-3"
-                                                value={selectedSize}
-                                                onChange={(e) => setSelectedSize(e.target.value)}
-                                            >
-                                                <option value="">Selecione...</option>
-                                                {currentProduct.tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
-                                            </select>
-                                        </div>
-                                    )}
-                                    <div>
+                                    <div className="col-span-2">
                                         <label className="block text-sm font-medium mb-1">Massa</label>
                                         <select
                                             className="w-full h-10 rounded-lg border border-border px-3"
