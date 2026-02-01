@@ -2,7 +2,7 @@
 # (O projeto tem funções Supabase em Deno, mas o app principal é Next.js)
 
 [phases.setup]
-nixPkgs = ["nodejs-slim"]
+nixPkgs = ["nodejs"]
 
 [phases.install]
 cmds = ["npm ci"]
