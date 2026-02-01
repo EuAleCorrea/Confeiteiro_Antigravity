@@ -1,11 +1,7 @@
 # Forçar Nixpacks a usar Node.js ao invés de Deno
 # (O projeto tem funções Supabase em Deno, mas o app principal é Next.js)
 
-[providers]
-node = { }
-
-[setup]
-nodeCanvasDependencies = false
+providers = ["node"]
 
 [variables]
 NODE_VERSION = "20"
