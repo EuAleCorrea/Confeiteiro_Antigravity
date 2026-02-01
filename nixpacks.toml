@@ -1,0 +1,14 @@
+# Forçar Nixpacks a usar Node.js ao invés de Deno
+# (O projeto tem funções Supabase em Deno, mas o app principal é Next.js)
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node .next/standalone/server.js"
