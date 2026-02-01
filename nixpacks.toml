@@ -1,6 +1,14 @@
 # Forçar Nixpacks a usar Node.js ao invés de Deno
 # (O projeto tem funções Supabase em Deno, mas o app principal é Next.js)
-# A versão do Node.js é definida em package.json "engines"
+
+[providers]
+node = { }
+
+[setup]
+nodeCanvasDependencies = false
+
+[variables]
+NODE_VERSION = "20"
 
 [phases.install]
 cmds = ["npm ci"]

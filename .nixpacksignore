@@ -1,0 +1,4 @@
+# Ignorar pastas que contêm código Deno para não confundir o Nixpacks
+# Essas são funções do Supabase Edge Functions (rodam no Supabase, não no container)
+supabase/functions/
+functions/
