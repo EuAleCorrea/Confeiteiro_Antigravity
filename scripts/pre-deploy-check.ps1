@@ -28,15 +28,23 @@ Write-Host "--- LOCAL CHECKS ---`n" -ForegroundColor Magenta
 Write-Host "[1/7] Checking nixpacks.toml..." -ForegroundColor Yellow
 if (Test-Path "nixpacks.toml") {
     $content = Get-Content "nixpacks.toml" -Raw
-    if ($content -match "nodejs_22") {
-        Write-Host "  OK: nixpacks.toml exists with Node.js 22" -ForegroundColor Green
+    if ($content -match "nodejs-slim") {
+        Write-Host "  OK: nixpacks.toml uses nodejs-slim (recommended)" -ForegroundColor Green
+    }
+    elseif ($content -match "nodejs_22") {
+        $errors += "nixpacks.toml uses nodejs_22 which does NOT exist in Nixpkgs! Use 'nodejs-slim'"
+        Write-Host "  FAIL: nodejs_22 does NOT exist in Nixpkgs!" -ForegroundColor Red
+        Write-Host "  --> Change to 'nodejs-slim' in nixpacks.toml" -ForegroundColor Red
     }
     elseif ($content -match "nodejs_20") {
-        $errors += "nixpacks.toml uses nodejs_20 (too old for Next.js 16+, use nodejs_22)"
-        Write-Host "  FAIL: nodejs_20 detected - MUST use nodejs_22!" -ForegroundColor Red
+        $errors += "nixpacks.toml uses nodejs_20 (may be too old for Next.js 16+, use nodejs-slim)"
+        Write-Host "  FAIL: nodejs_20 may be too old - use nodejs-slim!" -ForegroundColor Red
+    }
+    elseif ($content -match "nodejs") {
+        Write-Host "  OK: nixpacks.toml has Node.js configured" -ForegroundColor Green
     }
     else {
-        $warnings += "nixpacks.toml exists but Node.js version not detected"
+        $warnings += "nixpacks.toml exists but Node.js config not detected"
         Write-Host "  WARN: Node.js version not detected in nixpacks.toml" -ForegroundColor Yellow
     }
     
