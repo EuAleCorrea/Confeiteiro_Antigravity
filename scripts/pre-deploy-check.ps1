@@ -28,20 +28,23 @@ Write-Host "--- LOCAL CHECKS ---`n" -ForegroundColor Magenta
 Write-Host "[1/7] Checking nixpacks.toml..." -ForegroundColor Yellow
 if (Test-Path "nixpacks.toml") {
     $content = Get-Content "nixpacks.toml" -Raw
-    if ($content -match "nodejs-slim") {
-        Write-Host "  OK: nixpacks.toml uses nodejs-slim (recommended)" -ForegroundColor Green
+    # Check for correct Node.js package
+    if ($content -match '"nodejs"' -and $content -notmatch 'nodejs-slim') {
+        Write-Host "  OK: nixpacks.toml uses nodejs (with npm)" -ForegroundColor Green
+    }
+    elseif ($content -match "nodejs-slim") {
+        $errors += "nixpacks.toml uses nodejs-slim which does NOT include npm! Use 'nodejs'"
+        Write-Host "  FAIL: nodejs-slim does NOT include npm!" -ForegroundColor Red
+        Write-Host "  --> Change to 'nodejs' in nixpacks.toml" -ForegroundColor Red
     }
     elseif ($content -match "nodejs_22") {
-        $errors += "nixpacks.toml uses nodejs_22 which does NOT exist in Nixpkgs! Use 'nodejs-slim'"
+        $errors += "nixpacks.toml uses nodejs_22 which does NOT exist in Nixpkgs! Use 'nodejs'"
         Write-Host "  FAIL: nodejs_22 does NOT exist in Nixpkgs!" -ForegroundColor Red
-        Write-Host "  --> Change to 'nodejs-slim' in nixpacks.toml" -ForegroundColor Red
+        Write-Host "  --> Change to 'nodejs' in nixpacks.toml" -ForegroundColor Red
     }
     elseif ($content -match "nodejs_20") {
-        $errors += "nixpacks.toml uses nodejs_20 (may be too old for Next.js 16+, use nodejs-slim)"
-        Write-Host "  FAIL: nodejs_20 may be too old - use nodejs-slim!" -ForegroundColor Red
-    }
-    elseif ($content -match "nodejs") {
-        Write-Host "  OK: nixpacks.toml has Node.js configured" -ForegroundColor Green
+        $errors += "nixpacks.toml uses nodejs_20 (may be too old for Next.js 16+, use nodejs)"
+        Write-Host "  FAIL: nodejs_20 may be too old - use nodejs!" -ForegroundColor Red
     }
     else {
         $warnings += "nixpacks.toml exists but Node.js config not detected"
