@@ -53,7 +53,7 @@
 | **App** | `confeiteiro` |
 | **Build** | Nixpacks (auto-detecta Next.js) |
 | **SSL** | Let's Encrypt (gerenciado pelo EasyPanel) |
-| **Senha Root** | `fyS22vc9SSZ#lElX` |
+| **Senha Root** | `Ale386124613300#` |
 
 ### ⚠️ IMPORTANTE: next.config.ts
 
