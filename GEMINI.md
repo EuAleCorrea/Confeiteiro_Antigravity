@@ -4,17 +4,17 @@
 
 ---
 
-## 🚀 DEPLOY NA VPS HOSTINGER
+## 🚀 DEPLOY VIA EASYPANEL
 
-### ⚠️ REGRA CRÍTICA: Deploy APENAS na Hostinger
+### ⚠️ REGRA CRÍTICA: Deploy APENAS via EasyPanel
 
-**NUNCA** fazer deploy no Cloudflare Pages. O deploy de produção é **EXCLUSIVAMENTE** na VPS Hostinger.
+**NUNCA** fazer deploy via SSH direto ou Cloudflare Pages. O deploy é **EXCLUSIVAMENTE** via EasyPanel na VPS Hostinger.
 
 ### URLs do Projeto
 
 | Ambiente | URL |
 |----------|-----|
-| **DESENVOLVIMENTO / TESTES** | https://confeiteiro.automacaototal.com |
+| **DESENVOLVIMENTO / TESTES** | https://confeiteiro.sinapseai.com |
 | **PRODUÇÃO** | *A definir (Requer autorização enfática)* |
 
 ### Processo de Deploy Completo
@@ -26,14 +26,15 @@
    git push Confeiteiro feature/supabase-migration
    ```
 
-2. **Deploy no Servidor (via plink do Windows):**
-   ```bash
-   plink -batch -pw fyS22vc9SSZ#lElX root@195.200.4.198 "cd /var/www/confeiteiro && git pull origin feature/supabase-migration && npm run build && pm2 restart confeiteiro"
-   ```
+2. **Deploy no EasyPanel:**
+   - Acessar EasyPanel: `https://srv561524.hstgr.cloud` (porta padrão)
+   - Navegar para: **Projeto `meu_negocio`** → **App `confeiteiro`**
+   - Clicar em **"Rebuild"** ou **"Deploy"**
+   - Aguardar build do Nixpacks concluir
 
 3. **Verificar Deploy:**
    ```bash
-   plink -batch -pw fyS22vc9SSZ#lElX root@195.200.4.198 "curl -s -o /dev/null -w '%{http_code}' https://confeiteiro.automacaototal.com"
+   curl -s -o /dev/null -w '%{http_code}' https://confeiteiro.sinapseai.com
    ```
    Deve retornar `200`.
 
@@ -41,27 +42,38 @@
 
 5. **Lembrete de SEO**: Antes de iniciar qualquer deploy, a IA deve lembrar o USER de verificar se as pendências de SEO/GEO listadas em `docs/SEO_Pendencias.md` foram atendidas. Este lembrete **não impede** a execução do deploy.
 
-### Informações do Servidor
+### Informações do Servidor (EasyPanel)
 
-- **IP**: 195.200.4.198
-- **Hostname**: srv561524.hstgr.cloud
-- **Senha Root**: `fyS22vc9SSZ#lElX`
-- **Diretório**: `/var/www/confeiteiro`
-- **Arquitetura**: Next.js Server Mode (PM2) + Nginx Proxy Reverso
-- **SSL**: Let's Encrypt (auto-renovação)
-- **Gerenciador de Processos**: PM2 (app name: `confeiteiro`)
+| Item | Valor |
+|------|-------|
+| **IP** | 195.200.4.198 |
+| **Hostname** | srv561524.hstgr.cloud |
+| **Painel** | EasyPanel |
+| **Projeto** | `meu_negocio` |
+| **App** | `confeiteiro` |
+| **Build** | Nixpacks (auto-detecta Next.js) |
+| **SSL** | Let's Encrypt (gerenciado pelo EasyPanel) |
+| **Senha Root** | `fyS22vc9SSZ#lElX` |
 
 ### ⚠️ IMPORTANTE: next.config.ts
 
-**NÃO usar `output: 'export'`** no servidor. Esta opção é incompatível com Server Actions e impede o modo servidor.
+O `next.config.ts` DEVE ter `output: "standalone"` para funcionar com EasyPanel/Nixpacks:
 
-O `next.config.ts` no servidor deve ter:
 ```typescript
 const nextConfig: NextConfig = {
+  output: "standalone",
   images: { unoptimized: true },
   trailingSlash: false,
 };
 ```
+
+### Variáveis de Ambiente (Configuradas no EasyPanel)
+
+As seguintes variáveis estão configuradas na aba "Environment" do app:
+- `NODE_ENV`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `NEXT_PUBLIC_APP_URL`
+- `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_PRICE_BASICO`, `STRIPE_PRICE_PROFISSIONAL`, `STRIPE_PRICE_PREMIUM`
 
 ---
 
@@ -126,17 +138,19 @@ const nextConfig: NextConfig = {
 ### 2. Pagamentos (Stripe)
 - **Trials**: Sempre gerar Payment Links via API configurando `subscription_data.trial_period_days` explicitamente. O Dashboard é propenso a falhas nesse setup.
 
-### 3. Deployment (ATUALIZADO 2026-01-27)
-- **Arquitetura**: Next.js roda como servidor Node.js via PM2, com Nginx como proxy reverso na porta 443.
-- **NÃO usar `output: 'export'`**: Server Actions são incompatíveis com static export. O build falha silenciosamente e não gera o diretório `out/`.
-- **Comandos de deploy**: Usar `plink -batch` do Windows para automação (evita problemas de autenticação interativa SSH).
-- **Após build**: Sempre rodar `pm2 restart confeiteiro` para aplicar mudanças.
-- **Verificação**: Testar com `curl` que retorne HTTP 200.
+### 3. Deployment (ATUALIZADO 2026-01-31)
+- **Arquitetura**: EasyPanel gerencia containers Docker via Nixpacks na VPS Hostinger.
+- **OBRIGATÓRIO usar `output: 'standalone'`**: Necessário para builds em containers.
+- **Encoding de arquivos**: Sempre verificar se arquivos `.ts` estão em UTF-8 (não UTF-16). Nixpacks falha com encoding incorreto.
+- **Processo**: Push para GitHub → Rebuild no EasyPanel → Verificar com curl.
+- **SSL**: Gerenciado automaticamente pelo EasyPanel via Let's Encrypt.
 
-### 4. Nginx Configuration
-- **Arquivo**: `/etc/nginx/sites-available/confeiteiro`
-- **Modo**: Proxy reverso para `http://127.0.0.1:3000`
-- **NUNCA** configurar como static files (`root /var/www/confeiteiro/out`) - isso quebra o app.
+### 4. EasyPanel Configuration
+- **Painel**: https://srv561524.hstgr.cloud
+- **Projeto**: `meu_negocio`
+- **App**: `confeiteiro`
+- **Build**: Nixpacks (auto-detecta Next.js)
+- **Variáveis de ambiente**: Configuradas na aba "Environment" do app
 
 ---
 
