@@ -37,6 +37,10 @@
    ```
    Deve retornar `200`.
 
+4. **Lembrete de Segurança**: Antes de iniciar qualquer deploy, a IA deve obrigatoriamente lembrar o USER de que existem vulnerabilidades pendentes documentadas em `docs/vulnerabilities.md` que precisam ser corrigidas. Este lembrete **não impede** a execução do deploy caso o USER deseje prosseguir.
+
+5. **Lembrete de SEO**: Antes de iniciar qualquer deploy, a IA deve lembrar o USER de verificar se as pendências de SEO/GEO listadas em `docs/SEO_Pendencias.md` foram atendidas. Este lembrete **não impede** a execução do deploy.
+
 ### Informações do Servidor
 
 - **IP**: 195.200.4.198
