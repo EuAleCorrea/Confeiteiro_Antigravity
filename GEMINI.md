@@ -138,7 +138,7 @@ As seguintes variáveis estão configuradas na aba "Environment" do app:
 ### 2. Pagamentos (Stripe)
 - **Trials**: Sempre gerar Payment Links via API configurando `subscription_data.trial_period_days` explicitamente. O Dashboard é propenso a falhas nesse setup.
 
-### 3. Deployment (ATUALIZADO 2026-01-31)
+### 3. Deployment (ATUALIZADO 2026-02-01)
 - **Arquitetura**: EasyPanel gerencia containers Docker via Nixpacks na VPS Hostinger.
 - **OBRIGATÓRIO usar `output: 'standalone'`**: Necessário para builds em containers.
 - **Encoding de arquivos**: Sempre verificar se arquivos `.ts` estão em UTF-8 (não UTF-16). Nixpacks falha com encoding incorreto.
@@ -151,6 +151,38 @@ As seguintes variáveis estão configuradas na aba "Environment" do app:
 - **App**: `confeiteiro`
 - **Build**: Nixpacks (auto-detecta Next.js)
 - **Variáveis de ambiente**: Configuradas na aba "Environment" do app
+- **Domínio**: `confeiteiro.sinapseai.com`
+
+### 5. Nixpacks - Erros Críticos Conhecidos (NOVO 2026-02-01)
+
+| Problema | Causa | Solução |
+|----------|-------|---------|
+| `npm: command not found` | Nixpacks detectando Deno | Usar `providers = ["node"]` (ARRAY!) no nixpacks.toml |
+| `invalid type: map, expected sequence` | Syntax errada: `[providers]` | Usar `providers = ["node"]` (não `[providers]`) |
+| CSS não carrega | static/ não copiado para standalone | Adicionar `cp -r .next/static .next/standalone/.next/static` no build |
+| 500 Internal Server Error externo | Domain config errada | No EasyPanel Domains: **Protocolo = HTTP** (não HTTPS), Porta = 8000 |
+| Login redireciona domínio antigo | URLs desatualizadas | Atualizar NEXTAUTH_URL, NEXT_PUBLIC_APP_URL e Supabase Redirect URLs |
+
+### 6. nixpacks.toml Correto (Referência)
+```toml
+providers = ["node"]
+
+[variables]
+NODE_VERSION = "20"
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = [
+    "npm run build",
+    "cp -r .next/static .next/standalone/.next/static",
+    "cp -r public .next/standalone/public"
+]
+
+[start]
+cmd = "node .next/standalone/server.js"
+```
 
 ---
 
